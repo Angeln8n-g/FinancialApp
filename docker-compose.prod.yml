@@ -10,10 +10,20 @@ services:
       POSTGRES_DB: hogariq_prod_db
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hogariq_user -d hogariq_prod_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
     restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   ollama:
     image: ollama/ollama:latest
@@ -34,9 +44,12 @@ services:
       OLLAMA_MODEL: llama3.2:1b
       PORT: 3000
     depends_on:
-      - db
-      - redis
-      - ollama
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
 
   web:
     build:
