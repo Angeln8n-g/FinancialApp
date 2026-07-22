@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Instalar librerías de OpenSSL requeridas por Prisma en Alpine Linux
+RUN apk add --no-cache openssl libc6-compat ca-certificates
+
 # Copiar configuraciones y archivos del monorepo
 COPY package*.json ./
 COPY . .
@@ -18,6 +21,9 @@ RUN npm run build --workspace=apps/backend
 FROM node:20-alpine AS runner
 
 WORKDIR /app
+
+# Instalar librerías de OpenSSL en el contenedor de ejecución
+RUN apk add --no-cache openssl libc6-compat ca-certificates
 
 ENV NODE_ENV=production
 ENV PORT=3000
