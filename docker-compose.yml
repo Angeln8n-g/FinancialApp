@@ -1,62 +1,54 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: pgvector/pgvector:pg15
-    container_name: hogariq-postgres
+  db:
+    image: ankane/pgvector:v0.5.1
+    restart: always
     environment:
       POSTGRES_USER: hogariq_user
-      POSTGRES_PASSWORD: hogariq_dev_password
-      POSTGRES_DB: hogariq_dev_db
-    ports:
-      - "5432:5432"
+      POSTGRES_PASSWORD: hogariq_prod_password_9988
+      POSTGRES_DB: hogariq_prod_db
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - hogariq-network
-    restart: always
+      - postgres_prod_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
-    container_name: hogariq-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - hogariq-network
     restart: always
 
   ollama:
     image: ollama/ollama:latest
-    container_name: hogariq-ollama
-    ports:
-      - "11434:11434"
+    restart: always
     volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - hogariq-network
-    restart: always
+      - ollama_prod_data:/root/.ollama
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: hogariq-pgadmin
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    restart: always
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@hogariq.local
-      PGADMIN_DEFAULT_PASSWORD: admin_password
-    ports:
-      - "5050:80"
-    networks:
-      - hogariq-network
+      DATABASE_URL: postgresql://hogariq_user:hogariq_prod_password_9988@db:5432/hogariq_prod_db?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: hogariq_prod_secret_key_change_me_in_coolify
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: llama3.2:1b
+      PORT: 3000
     depends_on:
-      - postgres
-    restart: always
+      - db
+      - redis
+      - ollama
 
-networks:
-  hogariq-network:
-    driver: bridge
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    restart: always
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:3000
+      PORT: 3000
+    depends_on:
+      - backend
 
 volumes:
-  postgres_data:
-  redis_data:
-  ollama_data:
+  postgres_prod_data:
+  ollama_prod_data:

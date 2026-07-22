@@ -3,17 +3,12 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copiar configuración de workspaces
+# Copiar configuraciones y archivos del monorepo
 COPY package*.json ./
-COPY packages/database/package*.json ./packages/database/
-COPY apps/backend/package*.json ./apps/backend/
+COPY . .
 
 # Instalar dependencias
 RUN npm install --legacy-peer-deps
-
-# Copiar código fuente
-COPY packages/database ./packages/database
-COPY apps/backend ./apps/backend
 
 # Generar cliente de Prisma y construir backend
 RUN npx prisma generate --schema=packages/database/schema.prisma
