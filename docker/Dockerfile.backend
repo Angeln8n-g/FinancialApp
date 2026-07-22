@@ -1,0 +1,39 @@
+# Stage 1: Build
+FROM node:18-alpine AS builder
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+COPY tsconfig*.json ./
+COPY prisma ./prisma/
+
+# Instalar dependencias
+RUN npm ci
+
+# Copiar el código fuente
+COPY src/ ./src/
+
+# Generar el cliente de Prisma
+RUN npx prisma generate
+
+# Construir la aplicación
+RUN npm run build
+
+# Stage 2: Runtime
+FROM node:18-alpine AS runner
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Instalar dependencias solo de producción
+RUN npm ci --only=production
+
+# Copiar archivos generados en el build anterior
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
+
+EXPOSE 3000
+
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]

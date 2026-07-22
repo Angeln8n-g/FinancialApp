@@ -1,0 +1,19 @@
+{
+  "name": "@hogariq/database",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.10.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.10.0"
+  },
+  "prisma": {
+    "seed": "node seed.js"
+  }
+}
