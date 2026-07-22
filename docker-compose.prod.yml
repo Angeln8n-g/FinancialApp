@@ -9,8 +9,6 @@ services:
       POSTGRES_USER: hogariq_user
       POSTGRES_PASSWORD: hogariq_prod_password_9988
       POSTGRES_DB: hogariq_prod_db
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
 
@@ -18,15 +16,11 @@ services:
     image: redis:7-alpine
     container_name: hogariq-prod-redis
     restart: always
-    ports:
-      - "6379:6379"
 
   ollama:
     image: ollama/ollama:latest
     container_name: hogariq-prod-ollama
     restart: always
-    ports:
-      - "11434:11434"
     volumes:
       - ollama_prod_data:/root/.ollama
 
@@ -57,8 +51,8 @@ services:
     container_name: hogariq-prod-web
     restart: always
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3000
-      PORT: 3001
+      NEXT_PUBLIC_API_URL: http://backend:3000
+      PORT: 3000
     ports:
       - "3001:3000"
     depends_on:
