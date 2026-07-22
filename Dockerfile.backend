@@ -1,0 +1,37 @@
+# Stage 1: Build
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copiar configuración de workspaces
+COPY package*.json ./
+COPY packages/database/package*.json ./packages/database/
+COPY apps/backend/package*.json ./apps/backend/
+
+# Instalar dependencias
+RUN npm install --legacy-peer-deps
+
+# Copiar código fuente
+COPY packages/database ./packages/database
+COPY apps/backend ./apps/backend
+
+# Generar cliente de Prisma y construir backend
+RUN npx prisma generate --schema=packages/database/schema.prisma
+RUN npm run build --workspace=apps/backend
+
+# Stage 2: Production Runner
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages/database ./packages/database
+COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
+
+EXPOSE 3000
+
+CMD ["node", "apps/backend/dist/main.js"]

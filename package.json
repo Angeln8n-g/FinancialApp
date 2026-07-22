@@ -1,0 +1,19 @@
+{
+  "name": "hogariq-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:backend": "npm run start:dev --workspace=apps/backend",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:mobile": "npm run start --workspace=apps/mobile",
+    "db:migrate": "npm run prisma migrate dev --workspace=packages/database",
+    "db:generate": "npm run prisma generate --workspace=packages/database"
+  },
+  "prisma": {
+    "seed": "node packages/database/seed.js"
+  }
+}
