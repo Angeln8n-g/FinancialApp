@@ -3,7 +3,6 @@ version: '3.8'
 services:
   db:
     image: ankane/pgvector:v0.5.1
-    container_name: hogariq-prod-db
     restart: always
     environment:
       POSTGRES_USER: hogariq_user
@@ -14,12 +13,10 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: hogariq-prod-redis
     restart: always
 
   ollama:
     image: ollama/ollama:latest
-    container_name: hogariq-prod-ollama
     restart: always
     volumes:
       - ollama_prod_data:/root/.ollama
@@ -28,7 +25,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    container_name: hogariq-prod-backend
     restart: always
     environment:
       DATABASE_URL: postgresql://hogariq_user:hogariq_prod_password_9988@db:5432/hogariq_prod_db?schema=public
@@ -46,7 +42,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
-    container_name: hogariq-prod-web
     restart: always
     environment:
       NEXT_PUBLIC_API_URL: http://backend:3000
