@@ -1,0 +1,60 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hogarIqBg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1E1B4B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <linearGradient id="roofGrad" x1="100" y1="120" x2="412" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="50%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </linearGradient>
+    <linearGradient id="barGrad1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#6366F1" />
+    </linearGradient>
+    <linearGradient id="barGrad2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#A855F7" />
+    </linearGradient>
+    <linearGradient id="barGrad3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+    <linearGradient id="sparkGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#34D399" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Card Tile -->
+  <rect width="512" height="512" rx="128" fill="url(#hogarIqBg)"/>
+  <rect width="504" height="504" x="4" y="4" rx="124" stroke="url(#roofGrad)" stroke-width="4" stroke-opacity="0.3"/>
+
+  <!-- Glowing background aura behind roof -->
+  <path d="M 256 100 L 410 220 L 370 220 L 370 380 L 142 380 L 142 220 L 102 220 Z" fill="#6366F1" opacity="0.15" filter="url(#glow)"/>
+
+  <!-- Modern House Roof (Geometric Thick Polyline) -->
+  <path d="M 100 230 L 256 105 L 412 230" stroke="url(#roofGrad)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Financial Growth Bars Inside House Body -->
+  <!-- Bar 1 (Left - Foundation) -->
+  <rect x="170" y="270" width="38" height="90" rx="10" fill="url(#barGrad1)"/>
+  
+  <!-- Bar 2 (Center - Growth) -->
+  <rect x="237" y="220" width="38" height="140" rx="10" fill="url(#barGrad2)"/>
+  
+  <!-- Bar 3 (Right - Peak / Intelligence) -->
+  <rect x="304" y="170" width="38" height="190" rx="10" fill="url(#barGrad3)"/>
+
+  <!-- IQ AI Neural Spark Node at Peak -->
+  <circle cx="390" cy="115" r="22" fill="url(#sparkGrad)" filter="url(#glow)"/>
+  <circle cx="390" cy="115" r="12" fill="#FFFFFF"/>
+  
+  <!-- Sparkles / Connection Rays -->
+  <path d="M 390 80 L 390 90 M 390 140 L 390 150 M 355 115 L 365 115 M 415 115 L 425 115" stroke="#38BDF8" stroke-width="5" stroke-linecap="round"/>
+</svg>

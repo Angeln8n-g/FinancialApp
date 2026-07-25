@@ -12,6 +12,7 @@ import {
   Modal,
 } from 'react-native';
 import { API_URL } from '@/constants/Api';
+import Logo from '@/components/Logo';
 
 export default function MobileDashboardScreen() {
   const [loading, setLoading] = useState(true);
@@ -201,13 +202,7 @@ export default function MobileDashboardScreen() {
     >
       {/* Header Mobile con Campana de Notificaciones 🔔 */}
       <View style={styles.header}>
-        <View style={styles.logoBadge}>
-          <Text style={styles.logoIcon}>🏠</Text>
-        </View>
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.appName}>HogarIQ Mobile</Text>
-          <Text style={styles.householdName}>Hogar de Angela • Administrador</Text>
-        </View>
+        <Logo size="sm" showText={true} />
 
         {/* 🔔 Botón de Notificaciones */}
         <TouchableOpacity style={styles.notifBellBtn} onPress={() => setShowNotifModal(true)}>

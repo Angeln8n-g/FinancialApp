@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { io } from 'socket.io-client';
+import Logo from '@/components/Logo';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -378,13 +379,10 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-6">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center border border-purple-500/30 text-xl font-bold">
-                🏠
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-white leading-tight">HogarIQ</h1>
-                <p className="text-xs text-slate-400">{household?.name || 'Hogar'}</p>
-              </div>
+              <Logo size="md" showText={true} />
+              <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300">
+                {household?.name || 'Hogar'}
+              </span>
             </div>
 
             {/* Navigation Links */}

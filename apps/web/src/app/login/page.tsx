@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Logo from '@/components/Logo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -54,12 +55,9 @@ export default function LoginPage() {
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-600/30 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-purple-600/20 text-purple-400 mb-4 border border-purple-500/30">
-            <span className="text-3xl font-bold">🏠</span>
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">HogarIQ</h1>
-          <p className="text-sm text-slate-400">
+        <div className="flex flex-col items-center justify-center text-center mb-8">
+          <Logo size="xl" showTagline={false} className="mb-3" />
+          <p className="text-sm text-slate-400 mt-1">
             {isRegister ? 'Crea la cuenta para tu hogar' : 'Asistente Financiero Inteligente'}
           </p>
         </div>
