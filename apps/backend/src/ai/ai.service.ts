@@ -193,4 +193,46 @@ Responde de forma concisa, útil, empática y en español a las dudas financiera
       aiAdvice: advice,
     };
   }
+
+  // ⚠️ 3. Detección Inteligente de Fugas de Dinero y Anomalías de Gasto
+  async detectSpendingAnomalies(householdId: string) {
+    const expenses = await this.prisma.transaction.findMany({
+      where: { householdId, type: 'EXPENSE' },
+      include: { category: true },
+      orderBy: { date: 'desc' },
+      take: 50,
+    });
+
+    const categoryMap = new Map<string, number[]>();
+    for (const t of expenses) {
+      const catName = t.category?.name || 'General';
+      const amt = Number(t.amount);
+      if (!categoryMap.has(catName)) categoryMap.set(catName, []);
+      categoryMap.get(catName)!.push(amt);
+    }
+
+    const anomalies: Array<{ category: string; average: number; latest: number; isSpike: boolean; advice: string }> = [];
+
+    for (const [catName, amounts] of categoryMap.entries()) {
+      if (amounts.length >= 2) {
+        const latest = amounts[0];
+        const prevAvg = amounts.slice(1).reduce((s, a) => s + a, 0) / (amounts.length - 1);
+
+        if (latest > prevAvg * 1.35) {
+          anomalies.push({
+            category: catName,
+            average: Math.round(prevAvg),
+            latest: Math.round(latest),
+            isSpike: true,
+            advice: `Alerta: Registraste un gasto reciente de $${latest} en "${catName}", lo cual supera tu promedio habitual de $${Math.round(prevAvg)} (+${Math.round(((latest - prevAvg) / prevAvg) * 100)}%).`,
+          });
+        }
+      }
+    }
+
+    return {
+      hasAnomalies: anomalies.length > 0,
+      anomalies,
+    };
+  }
 }

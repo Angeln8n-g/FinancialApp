@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Navbar from '@/components/Navbar';
 
 export default function ReportsPage() {
   const router = useRouter();
@@ -63,6 +64,27 @@ export default function ReportsPage() {
       console.error('Error exportando CSV:', err);
     }
   };
+  const handleExportPdf = async () => {
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${API_URL}/api/reports/pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        const htmlText = await res.text();
+        const win = window.open('', '_blank');
+        if (win) {
+          win.document.write(htmlText);
+          win.document.close();
+        }
+      }
+    } catch (err) {
+      console.error('Error generando PDF:', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -73,30 +95,30 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 pb-12">
-      {/* Header Bar */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Link href="/dashboard" className="text-slate-400 hover:text-white transition-colors text-sm font-semibold">
-              ← Volver al Dashboard
-            </Link>
-            <div className="h-4 w-px bg-slate-800" />
-            <h1 className="text-lg font-bold text-white leading-tight">Reportes & Analítica Financiera</h1>
-          </div>
-
-          <button
-            onClick={handleExportCsv}
-            className="px-4 py-2 rounded-xl glow-button text-xs font-bold text-white cursor-pointer flex items-center space-x-2"
-          >
-            <span>📥</span>
-            <span>Exportar CSV</span>
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#0f172a] text-slate-100 pb-20 lg:pb-12">
+      <Navbar />
 
       {/* Main Container */}
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h1 className="text-xl font-extrabold text-white">Reportes & Analítica Financiera</h1>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleExportPdf}
+              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white cursor-pointer flex items-center space-x-2 transition-colors shadow-md"
+            >
+              <span>📄</span>
+              <span>Informe PDF Ejecutivo</span>
+            </button>
+            <button
+              onClick={handleExportCsv}
+              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 cursor-pointer flex items-center space-x-2 transition-colors"
+            >
+              <span>📥</span>
+              <span>Exportar CSV</span>
+            </button>
+          </div>
+        </div>
         {/* KPI Banner */}
         <div className="glass-card p-6 border border-purple-500/30 flex items-center justify-between">
           <div>

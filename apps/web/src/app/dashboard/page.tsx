@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { io } from 'socket.io-client';
 import Logo from '@/components/Logo';
+import Navbar from '@/components/Navbar';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -45,6 +46,7 @@ export default function DashboardPage() {
   const [naturalText, setNaturalText] = useState('');
   const [aiParsing, setAiParsing] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [anomalies, setAnomalies] = useState<any[]>([]);
 
   // Chat RAG Estados
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string }>>([
@@ -67,12 +69,13 @@ export default function DashboardPage() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [resSum, resAcc, resTx, resCat, resRem] = await Promise.all([
+      const [resSum, resAcc, resTx, resCat, resRem, resAnom] = await Promise.all([
         fetch(`${API_URL}/api/transactions/summary`, { headers }),
         fetch(`${API_URL}/api/accounts`, { headers }),
-        fetch(`${API_URL}/api/transactions`, { headers }),
+        fetch(`${API_URL}/api/transactions?limit=10`, { headers }),
         fetch(`${API_URL}/api/categories`, { headers }),
         fetch(`${API_URL}/api/reminders`, { headers }),
+        fetch(`${API_URL}/api/ai/anomalies`, { headers }),
       ]);
 
       if (resSum.ok) setSummary(await resSum.json());
@@ -373,109 +376,82 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 pb-12">
-      {/* Header Bar */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center space-x-3">
-              <Logo size="md" showText={true} />
-              <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300">
-                {household?.name || 'Hogar'}
-              </span>
-            </div>
-
-            {/* Navigation Links */}
-            <nav className="hidden lg:flex items-center space-x-2 border-l border-slate-800 pl-6">
-              <Link href="/dashboard" className="px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-bold text-purple-400 border border-purple-500/30">
-                Dashboard
-              </Link>
-              <Link href="/dashboard/budgets" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-colors">
-                🎯 Presupuestos & Metas
-              </Link>
-              <Link href="/dashboard/commitments" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-colors">
-                💸 Deudas & Suscripciones
-              </Link>
-              <Link href="/dashboard/patrimony" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-colors">
-                💎 Patrimonio Neto
-              </Link>
-              <Link href="/dashboard/family" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-colors">
-                👨‍👩‍👧‍👦 Familia
-              </Link>
-              <Link href="/dashboard/reports" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-colors">
-                📊 Reportes
-              </Link>
-            </nav>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            {/* 🔔 Notifications Bell */}
-            <div className="relative">
-              <button
-                onClick={() => setShowChatModal(false)}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 relative cursor-pointer border border-slate-700 transition-colors"
-                title="Notificaciones de Alerta"
-              >
-                <span className="text-base">🔔</span>
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
-                  {reminders.filter(r => !r.isPaid).length}
-                </span>
-              </button>
-            </div>
-
-            <button
-              onClick={() => setShowChatModal(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 text-xs font-bold border border-purple-500/30 flex items-center space-x-1.5 cursor-pointer transition-colors"
-            >
-              <span>🤖</span>
-              <span className="hidden sm:inline">Chat IA Privado</span>
-            </button>
-
-
-            <div className="text-right hidden sm:block border-l border-slate-800 pl-3">
-              <p className="text-sm font-semibold text-slate-200">{user?.fullName}</p>
-              <span className="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">
-                {household?.role || 'MIEMBRO'}
-              </span>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition-colors border border-slate-700 cursor-pointer"
-            >
-              Salir
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#0f172a] text-slate-100 pb-20 lg:pb-12">
+      {/* Navbar Responsive (Desktop Tabs + Mobile Hamburger Drawer + Mobile Bottom Bar) */}
+      <Navbar
+        user={user}
+        household={household}
+        unreadNotifications={reminders.filter(r => !r.isPaid).length}
+        onOpenChat={() => setShowChatModal(true)}
+      />
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-        {/* 🤖 BARRA DE ENTRADA INTELIGENTE POR LENGUAJE NATURAL */}
-        <div className="glass-card p-4 relative overflow-hidden border border-purple-500/30">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="flex items-center space-x-2 text-purple-400 font-bold text-xs uppercase tracking-wider shrink-0">
-              <span>⚡ Entrada IA:</span>
+      <main className="max-w-7xl mx-auto px-4 py-6 sm:py-8 space-y-8">
+        {/* 🚀 1. HERO ACTION PANEL: REGISTRO RÁPIDO DE GASTOS E INGRESOS (UX DESTACADA) */}
+        <section className="glass-card p-5 sm:p-6 border-2 border-purple-500/40 shadow-2xl relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900">
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="px-2.5 py-1 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[10px] font-extrabold uppercase tracking-wider">
+                  Acción Principal
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Registro Rápido de Movimientos
+                </h2>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Registra tus gastos o ingresos en un clic o escribe a la IA Privada del hogar.
+              </p>
             </div>
 
-            <form onSubmit={handleParseNatural} className="flex-1 flex items-center gap-2">
+            {/* Botones Gigantes de Acción Directa */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setTxType('EXPENSE');
+                  setShowTxModal(true);
+                }}
+                className="flex-1 sm:flex-none px-5 py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-extrabold text-sm shadow-lg shadow-rose-950/50 flex items-center justify-center space-x-2 cursor-pointer transition-all hover:scale-105"
+              >
+                <span className="text-lg">📉</span>
+                <span>Registrar Gasto (-)</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setTxType('INCOME');
+                  setShowTxModal(true);
+                }}
+                className="flex-1 sm:flex-none px-5 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-950/50 flex items-center justify-center space-x-2 cursor-pointer transition-all hover:scale-105"
+              >
+                <span className="text-lg">📈</span>
+                <span>Registrar Ingreso (+)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Entrada de Lenguaje Natural con IA Privada */}
+          <form onSubmit={handleParseNatural} className="pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-stretch gap-2">
+            <div className="flex-1 relative">
               <input
                 type="text"
                 value={naturalText}
                 onChange={(e) => setNaturalText(e.target.value)}
-                placeholder='Ej. "Ayer gasté 45$ en supermercado Mercadona con la tarjeta"'
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-sm text-slate-100 focus:outline-none focus:border-purple-500"
+                placeholder='⚡ O escribe en lenguaje natural: Ej. "Compré 45$ en supermercado Mercadona"'
+                className="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-950/80 border border-purple-500/30 text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-purple-400 transition-colors shadow-inner"
               />
-              <button
-                type="submit"
-                disabled={aiParsing || !naturalText.trim()}
-                className="px-4 py-2.5 glow-button text-xs font-bold text-white rounded-xl shrink-0 cursor-pointer disabled:opacity-50"
-              >
-                {aiParsing ? 'Procesando...' : '⚡ Procesar con IA'}
-              </button>
-            </form>
-          </div>
-        </div>
+            </div>
+            <button
+              type="submit"
+              disabled={aiParsing || !naturalText.trim()}
+              className="px-5 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center space-x-2 shrink-0 cursor-pointer shadow-md"
+            >
+              <span>{aiParsing ? 'Procesando...' : '⚡ Procesar con IA'}</span>
+            </button>
+          </form>
+        </section>
 
         {/* KPI Cards Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -506,6 +482,20 @@ export default function DashboardPage() {
             <p className="text-xs text-slate-400 mt-2">Salidas registradas</p>
           </div>
         </div>
+
+        {/* ⚠️ ALERTAS PROACTIVAS DE IA: FUGAS DE DINERO Y ANOMALÍAS */}
+        {anomalies.length > 0 && (
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 space-y-2">
+            <div className="flex items-center space-x-2 text-amber-400 font-extrabold text-xs uppercase tracking-wider">
+              <span>⚠️ Alerta de Inteligencia Privada - Desviación de Gastos:</span>
+            </div>
+            {anomalies.map((anom, idx) => (
+              <p key={idx} className="text-xs font-semibold leading-relaxed">
+                • {anom.advice}
+              </p>
+            ))}
+          </div>
+        )}
 
         {/* ⏰ RECORDATORIOS DE PAGO PRÓXIMOS */}
         <div className="glass-card p-6 border border-purple-500/20 space-y-4">

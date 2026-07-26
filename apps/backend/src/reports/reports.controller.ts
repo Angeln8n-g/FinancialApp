@@ -21,4 +21,12 @@ export class ReportsController {
     res.setHeader('Content-Disposition', `attachment; filename=hogariq_transacciones_${new Date().toISOString().split('T')[0]}.csv`);
     return res.send(csv);
   }
+
+  @Get('pdf')
+  async getPdfReport(@CurrentUser() user: UserPayload, @Res() res: any) {
+    const htmlPdf = await this.reportsService.generatePdfReport(user.householdId);
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', `inline; filename=hogariq_informe_${new Date().toISOString().split('T')[0]}.html`);
+    return res.send(htmlPdf);
+  }
 }

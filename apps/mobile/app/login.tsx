@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Logo from '@/components/Logo';
-import { getApiUrl, setApiUrl, setAuthToken, setUser, setHousehold } from '@/constants/Api';
+import { getApiUrl, setApiUrl, setAuthToken, setUser, setHousehold, getAuthToken } from '@/constants/Api';
+import { checkBiometricsAvailable, authenticateWithBiometrics } from '@/constants/Biometrics';
 
 export default function MobileLoginScreen() {
   const router = useRouter();
@@ -25,6 +26,20 @@ export default function MobileLoginScreen() {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [showServerConfig, setShowServerConfig] = useState(false);
+  const [biometricsAvailable, setBiometricsAvailable] = useState(false);
+
+  useEffect(() => {
+    checkBiometricsAvailable().then((avail) => {
+      setBiometricsAvailable(avail && !!getAuthToken());
+    });
+  }, []);
+
+  const handleBiometricUnlock = async () => {
+    const success = await authenticateWithBiometrics('Desbloquear HogarIQ con Huella / FaceID');
+    if (success) {
+      router.replace('/(tabs)' as any);
+    }
+  };
 
   const handleAuth = async () => {
     if (!email || !password) {
@@ -159,6 +174,25 @@ export default function MobileLoginScreen() {
                   Ingresa la URL de producción (ej. https://api-hogariq.tudominio.com) o la IP local de tu servidor.
                 </Text>
               </View>
+            )}
+
+            {biometricsAvailable && (
+              <TouchableOpacity
+                onPress={handleBiometricUnlock}
+                style={{
+                  backgroundColor: 'rgba(168, 85, 247, 0.15)',
+                  borderColor: '#A855F7',
+                  borderWidth: 1,
+                  borderRadius: 14,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  marginTop: 6,
+                }}
+              >
+                <Text style={{ color: '#C084FC', fontSize: 14, fontWeight: '700' }}>
+                  🔒 Desbloquear con Huella / FaceID
+                </Text>
+              </TouchableOpacity>
             )}
 
             <TouchableOpacity style={styles.btnSubmit} onPress={handleAuth} disabled={loading}>

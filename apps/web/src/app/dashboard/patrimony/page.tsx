@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Navbar from '@/components/Navbar';
 
 export default function PatrimonyPage() {
   const router = useRouter();
@@ -99,19 +100,8 @@ export default function PatrimonyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 pb-12">
-      {/* Header Bar */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Link href="/dashboard" className="text-slate-400 hover:text-white transition-colors text-sm font-semibold">
-              ← Volver al Dashboard
-            </Link>
-            <div className="h-4 w-px bg-slate-800" />
-            <h1 className="text-lg font-bold text-white leading-tight">Patrimonio Neto Familiar</h1>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#0f172a] text-slate-100 pb-20 lg:pb-12">
+      <Navbar />
 
       {/* Main Container */}
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-10">

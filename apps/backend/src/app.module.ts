@@ -18,6 +18,7 @@ import { DebtsModule } from './debts/debts.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PatrimonyModule } from './patrimony/patrimony.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AllowancesModule } from './allowances/allowances.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     SubscriptionsModule,
     PatrimonyModule,
     NotificationsModule,
+    AllowancesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { ParseNaturalDto, ProcessOcrDto, ChatRagDto } from './ai.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -27,5 +27,10 @@ export class AiController {
   @Post('forecast')
   async forecastWhatIf(@CurrentUser() user: UserPayload, @Body() body: { simulateExpense?: number }) {
     return this.aiService.forecastWhatIf(user.householdId, body.simulateExpense || 0);
+  }
+
+  @Get('anomalies')
+  async detectSpendingAnomalies(@CurrentUser() user: UserPayload) {
+    return this.aiService.detectSpendingAnomalies(user.householdId);
   }
 }

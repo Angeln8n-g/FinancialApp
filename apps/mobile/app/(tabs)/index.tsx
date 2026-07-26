@@ -247,6 +247,77 @@ export default function MobileDashboardScreen() {
         </View>
       </View>
 
+      {/* 🚀 BOTONES GIGANTES DE ACCESO RÁPIDO (1-TAP LOGGING) */}
+      <View style={{ flexDirection: 'row', gap: 10, marginVertical: 12 }}>
+        <TouchableOpacity
+          onPress={() => {
+            Alert.prompt(
+              '📉 Registrar Gasto',
+              'Ingresa la descripción y monto del gasto (Ej: Supermercado 45)',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Registrar Gasto',
+                  onPress: (val: any) => {
+                    if (val) {
+                      setNaturalInput(`Gasto ${val}`);
+                      handleProcessAi();
+                    }
+                  },
+                },
+              ],
+              'plain-text'
+            );
+          }}
+          style={{
+            flex: 1,
+            backgroundColor: '#E11D48',
+            paddingVertical: 14,
+            borderRadius: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'row',
+            gap: 6,
+          }}
+        >
+          <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 14 }}>📉 Gasto (-)</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => {
+            Alert.prompt(
+              '📈 Registrar Ingreso',
+              'Ingresa la descripción y monto del ingreso (Ej: Nómina 1500)',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Registrar Ingreso',
+                  onPress: (val: any) => {
+                    if (val) {
+                      setNaturalInput(`Ingreso ${val}`);
+                      handleProcessAi();
+                    }
+                  },
+                },
+              ],
+              'plain-text'
+            );
+          }}
+          style={{
+            flex: 1,
+            backgroundColor: '#059669',
+            paddingVertical: 14,
+            borderRadius: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'row',
+            gap: 6,
+          }}
+        >
+          <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 14 }}>📈 Ingreso (+)</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Entrada IA Rápida */}
       <View style={styles.aiCard}>
         <Text style={styles.aiLabel}>⚡ ENTRADA POR IA LOCAL</Text>
