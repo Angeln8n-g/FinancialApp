@@ -1,20 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { fetchWithAuth } from '@/constants/Api';
 
 export default function MobileCommitmentsScreen() {
-  const [debts, setDebts] = useState([
-    { id: '1', name: 'Préstamo Vehículo SUV', remaining: 180000, total: 350000, rate: 12 },
-    { id: '2', name: 'Tarjeta Crédito Gold', remaining: 45000, total: 100000, rate: 18 },
-    { id: '3', name: 'Hipoteca Vivienda', remaining: 2800000, total: 3500000, rate: 8.5 },
-  ]);
+  const [debts, setDebts] = useState<any[]>([]);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
 
-  const [subscriptions, setSubscriptions] = useState([
-    { id: '1', name: 'Netflix 4K', cost: 15.99, date: '15 de cada mes' },
-    { id: '2', name: 'Spotify Familiar', cost: 9.99, date: '20 de cada mes' },
-    { id: '3', name: 'ChatGPT Plus', cost: 20.00, date: '01 de cada mes' },
-    { id: '4', name: 'Amazon Prime', cost: 14.99, date: '12 de cada mes' },
-    { id: '5', name: 'Hosting Cloud Server', cost: 35.00, date: '05 de cada mes' },
-  ]);
+  const loadData = async () => {
+    try {
+      const res = await fetchWithAuth('/api/commitments');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const dList = data.filter((c: any) => c.type === 'DEBT').map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            remaining: item.amount || 0,
+            total: (item.amount || 0) * 1.5,
+            rate: 12,
+          }));
+          const sList = data.filter((c: any) => c.type === 'SUBSCRIPTION').map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            cost: item.amount || 0,
+            date: item.dueDate ? `Día ${new Date(item.dueDate).getDate()}` : 'Mensual',
+          }));
+          if (dList.length > 0) setDebts(dList);
+          if (sList.length > 0) setSubscriptions(sList);
+        }
+      }
+    } catch (e) {
+      console.log('Error cargando compromisos:', e);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   // Modales
   const [showDebtModal, setShowDebtModal] = useState(false);

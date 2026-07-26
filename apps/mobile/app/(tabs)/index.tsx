@@ -11,24 +11,24 @@ import {
   RefreshControl,
   Modal,
 } from 'react-native';
-import { API_URL } from '@/constants/Api';
+import { useRouter } from 'expo-router';
+import { API_URL, fetchWithAuth, getUser, getHousehold, logout } from '@/constants/Api';
 import Logo from '@/components/Logo';
 
 export default function MobileDashboardScreen() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [summary, setSummary] = useState({ totalBalance: 70700, monthlyIncome: 0, monthlyExpense: 2600 });
+  const [user, setUserState] = useState<any>(null);
+  const [household, setHouseholdState] = useState<any>(null);
+
+  const [summary, setSummary] = useState({ totalBalance: 0, monthlyIncome: 0, monthlyExpense: 0 });
   const [reminders, setReminders] = useState<any[]>([
     { id: '1', title: 'Pago de luz', amount: 2500, dueDate: '2026-07-26', isPaid: true },
     { id: '2', title: 'Pago del colegio', amount: 8500, dueDate: '2026-07-29', isPaid: false },
     { id: '3', title: 'Tarjeta de Crédito', amount: 15000, dueDate: '2026-08-02', isPaid: false },
-    { id: '4', title: 'Hipoteca Vivienda', amount: 28000, dueDate: '2026-08-05', isPaid: false },
-    { id: '5', title: 'Impuestos Municipales', amount: 4200, dueDate: '2026-08-10', isPaid: false },
   ]);
-  const [transactions, setTransactions] = useState<any[]>([
-    { id: '1', title: 'Pago de luz', amount: 2500, type: 'EXPENSE', category: '💡 Servicios' },
-    { id: '2', title: 'Supermercado', amount: 100, type: 'EXPENSE', category: '🛒 Comida' },
-  ]);
+  const [transactions, setTransactions] = useState<any[]>([]);
 
   const [naturalInput, setNaturalInput] = useState('');
   const [isProcessingAi, setIsProcessingAi] = useState(false);
@@ -42,13 +42,24 @@ export default function MobileDashboardScreen() {
 
   const loadData = async () => {
     try {
-      const resSum = await fetch(`${API_URL}/api/transactions/summary`);
+      setUserState(getUser());
+      setHouseholdState(getHousehold());
+
+      const [resSum, resTx] = await Promise.all([
+        fetchWithAuth('/api/transactions/summary'),
+        fetchWithAuth('/api/transactions?limit=10'),
+      ]);
+
       if (resSum.ok) {
         const sumData = await resSum.json();
         setSummary(sumData);
       }
+      if (resTx.ok) {
+        const txData = await resTx.json();
+        if (Array.isArray(txData)) setTransactions(txData);
+      }
     } catch (err) {
-      console.log('Modo Móvil Autónomo / Offline');
+      console.log('Error conectando con la API en producción:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -58,6 +69,20 @@ export default function MobileDashboardScreen() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleLogout = () => {
+    Alert.alert('Cerrar Sesión', '¿Deseas salir de la aplicación?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Cerrar Sesión',
+        style: 'destructive',
+        onPress: () => {
+          logout();
+          router.replace('/login' as any);
+        },
+      },
+    ]);
+  };
 
   const handleToggleReminder = (id: string) => {
     setReminders((prev) =>
@@ -200,19 +225,26 @@ export default function MobileDashboardScreen() {
       contentContainerStyle={styles.contentContainer}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor="#c084fc" />}
     >
-      {/* Header Mobile con Campana de Notificaciones 🔔 */}
+      {/* Header Mobile con Logo, Notificaciones 🔔 y Logout 🚪 */}
       <View style={styles.header}>
         <Logo size="sm" showText={true} />
 
-        {/* 🔔 Botón de Notificaciones */}
-        <TouchableOpacity style={styles.notifBellBtn} onPress={() => setShowNotifModal(true)}>
-          <Text style={{ fontSize: 18 }}>🔔</Text>
-          {pendingCount > 0 && (
-            <View style={styles.notifBadge}>
-              <Text style={styles.notifBadgeText}>{pendingCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          {/* 🔔 Botón de Notificaciones */}
+          <TouchableOpacity style={styles.notifBellBtn} onPress={() => setShowNotifModal(true)}>
+            <Text style={{ fontSize: 18 }}>🔔</Text>
+            {pendingCount > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>{pendingCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* 🚪 Botón Cerrar Sesión */}
+          <TouchableOpacity style={styles.notifBellBtn} onPress={handleLogout}>
+            <Text style={{ fontSize: 16 }}>🚪</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Entrada IA Rápida */}

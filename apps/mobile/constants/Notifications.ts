@@ -1,17 +1,21 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-// Configurar comportamiento por defecto de notificaciones
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+let Notifications: any = null;
+try {
+  Notifications = require('expo-notifications');
+  if (Notifications && Notifications.setNotificationHandler) {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
+  }
+} catch (e) {}
 
 export async function requestNotificationPermissions() {
-  if (Platform.OS === 'web') return true;
+  if (Platform.OS === 'web' || !Notifications) return true;
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
@@ -25,8 +29,8 @@ export async function requestNotificationPermissions() {
 }
 
 export async function sendLocalNotification(title: string, body: string) {
-  if (Platform.OS === 'web') {
-    console.log(`[Push Notification Web] ${title}: ${body}`);
+  if (Platform.OS === 'web' || !Notifications) {
+    console.log(`[Push Notification] ${title}: ${body}`);
     return;
   }
 
@@ -36,6 +40,6 @@ export async function sendLocalNotification(title: string, body: string) {
       body,
       sound: 'default',
     },
-    trigger: null, // Despacho inmediato
+    trigger: null,
   });
 }

@@ -1,18 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { fetchWithAuth } from '@/constants/Api';
 
 export default function MobileBudgetsScreen() {
-  const [budgets, setBudgets] = useState([
-    { id: '1', name: 'Supermercado', icon: '🛒', limit: 18000, spent: 12960, percentage: 72 },
-    { id: '2', name: 'Servicios Básicos', icon: '💡', limit: 10000, spent: 8500, percentage: 85 },
-    { id: '3', name: 'Entretenimiento', icon: '🍿', limit: 5000, spent: 2100, percentage: 42 },
-  ]);
+  const [budgets, setBudgets] = useState<any[]>([]);
+  const [goals, setGoals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [goals, setGoals] = useState([
-    { id: '1', name: 'Comprar carro', target: 500000, current: 180000, percentage: 36, suggested: 15000, targetDate: '2027-01-15' },
-    { id: '2', name: 'Viaje familiar', target: 120000, current: 45000, percentage: 37, suggested: 7500, targetDate: '2026-12-01' },
-    { id: '3', name: 'Inicial apartamento', target: 1500000, current: 450000, percentage: 30, suggested: 25000, targetDate: '2028-06-01' },
-  ]);
+  const loadData = async () => {
+    try {
+      const [resB, resG] = await Promise.all([
+        fetchWithAuth('/api/budgets/progress'),
+        fetchWithAuth('/api/goals'),
+      ]);
+
+      if (resB.ok) {
+        const bData = await resB.json();
+        if (Array.isArray(bData) && bData.length > 0) {
+          setBudgets(
+            bData.map((item: any) => ({
+              id: item.id || item.category?.id,
+              name: item.category?.name || 'Categoría',
+              icon: item.category?.icon || '📊',
+              limit: item.limitAmount || 0,
+              spent: item.spentAmount || 0,
+              percentage: Math.min(Math.round(item.percentage || 0), 100),
+            }))
+          );
+        }
+      }
+
+      if (resG.ok) {
+        const gData = await resG.json();
+        if (Array.isArray(gData) && gData.length > 0) {
+          setGoals(
+            gData.map((item: any) => ({
+              id: item.id,
+              name: item.name,
+              target: item.targetAmount || 0,
+              current: item.currentAmount || 0,
+              percentage: Math.min(Math.round(((item.currentAmount || 0) / (item.targetAmount || 1)) * 100), 100),
+              targetDate: item.targetDate ? item.targetDate.split('T')[0] : '2026-12-31',
+            }))
+          );
+        }
+      }
+    } catch (e) {
+      console.log('Error cargando presupuestos:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   // Modal Nuevo Presupuesto
   const [showModal, setShowModal] = useState(false);

@@ -1,20 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { fetchWithAuth } from '@/constants/Api';
 
 export default function MobilePatrimonyScreen() {
-  const [assets, setAssets] = useState([
-    { id: '1', name: 'Casa Principal (Inmueble)', type: 'REAL_ESTATE', icon: '🏠', value: 4500000 },
-    { id: '2', name: 'Vehículo SUV', type: 'VEHICLE', icon: '🚗', value: 950000 },
-    { id: '3', name: 'Portafolio Criptomonedas', type: 'CRYPTO', icon: '🪙', value: 320000 },
-    { id: '4', name: 'Fondo de Inversión', type: 'INVESTMENT', icon: '📈', value: 500000 },
-    { id: '5', name: 'Saldo en Cuentas Bancarias', type: 'CASH', icon: '💵', value: 70700 },
-  ]);
+  const [assets, setAssets] = useState<any[]>([]);
+  const [liabilities, setLiabilities] = useState<any[]>([]);
 
-  const [liabilities] = useState([
-    { id: '1', name: 'Hipoteca Vivienda', value: 2800000 },
-    { id: '2', name: 'Préstamo Vehículo', value: 180000 },
-    { id: '3', name: 'Tarjeta Crédito Gold', value: 45000 },
-  ]);
+  const loadData = async () => {
+    try {
+      const res = await fetchWithAuth('/api/accounts');
+      if (res.ok) {
+        const accs = await res.json();
+        if (Array.isArray(accs) && accs.length > 0) {
+          setAssets(
+            accs.map((a: any) => ({
+              id: a.id,
+              name: a.name,
+              type: a.type || 'CASH',
+              icon: a.type === 'SAVINGS' ? '🏦' : a.type === 'INVESTMENT' ? '📈' : '💵',
+              value: a.balance || 0,
+            }))
+          );
+        }
+      }
+    } catch (e) {
+      console.log('Error cargando cuentas:', e);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const [showModal, setShowModal] = useState(false);
   const [assetName, setAssetName] = useState('');
