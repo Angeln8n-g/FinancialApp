@@ -16,7 +16,8 @@ RUN npm install --legacy-peer-deps
 # Generar cliente de Prisma
 RUN npx prisma generate --schema=packages/database/schema.prisma || true
 
-ENV NEXT_PUBLIC_API_URL=http://localhost:3000
+ARG NEXT_PUBLIC_API_URL=https://api-hogariq.kasino21.com
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build --workspace=apps/web
 
 # Stage 2: Production Runner

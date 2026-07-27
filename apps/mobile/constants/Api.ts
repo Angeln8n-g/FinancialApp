@@ -7,7 +7,7 @@ let inMemoryHousehold: any = null;
 let inMemoryApiUrl: string | null = null;
 
 // Inicialización de entorno
-const DEFAULT_ENV_API_URL = process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000');
+const DEFAULT_ENV_API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api-hogariq.kasino21.com';
 
 export function getApiUrl(): string {
   if (inMemoryApiUrl) return inMemoryApiUrl;
