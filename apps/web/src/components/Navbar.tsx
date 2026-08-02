@@ -24,9 +24,10 @@ export default function Navbar({
 
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: '🏠' },
-    { href: '/dashboard/budgets', label: 'Presupuestos & Metas', icon: '🎯' },
+    { href: '/dashboard/calendar', label: 'Calendario', icon: '📅' },
+    { href: '/dashboard/budgets', label: 'Presupuestos', icon: '🎯' },
     { href: '/dashboard/commitments', label: 'Deudas & Suscripciones', icon: '💸' },
-    { href: '/dashboard/patrimony', label: 'Patrimonio Neto', icon: '💎' },
+    { href: '/dashboard/patrimony', label: 'Patrimonio', icon: '💎' },
     { href: '/dashboard/family', label: 'Familia', icon: '👨‍👩‍👧‍👦' },
     { href: '/dashboard/reports', label: 'Reportes', icon: '📊' },
   ];
