@@ -2,6 +2,7 @@
   "expo": {
     "name": "HogarIQ",
     "slug": "hogariq",
+    "owner": "kasino21",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -12,7 +13,7 @@
       "bundleIdentifier": "com.hogariq.app"
     },
     "android": {
-      "package": "com.hogariq.app",
+      "package": "com.kasino21.hogariq",
       "adaptiveIcon": {
         "backgroundColor": "#0F172A",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
@@ -37,6 +38,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bafb3bf2-5f20-46e5-9886-4ce2debbd030"
+      }
     }
   }
 }
