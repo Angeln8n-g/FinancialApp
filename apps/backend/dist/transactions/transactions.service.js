@@ -28,12 +28,15 @@ let TransactionsService = class TransactionsService {
                 account: true,
                 destinationAccount: true,
                 category: true,
+                createdBy: {
+                    select: { id: true, fullName: true, email: true, avatarUrl: true },
+                },
             },
             orderBy: { date: 'desc' },
             take: 50,
         });
     }
-    async create(householdId, dto) {
+    async create(householdId, dto, currentUserId) {
         const { accountId, destinationAccountId, categoryId, type, amount, description, date } = dto;
         if (amount <= 0) {
             throw new common_1.BadRequestException('El monto debe ser mayor que cero');
@@ -63,6 +66,7 @@ let TransactionsService = class TransactionsService {
                     accountId,
                     destinationAccountId: type === client_1.TransactionType.TRANSFER ? destinationAccountId : null,
                     categoryId: categoryId || null,
+                    createdById: currentUserId || null,
                     type,
                     amount,
                     description: description || null,
@@ -72,6 +76,9 @@ let TransactionsService = class TransactionsService {
                     account: true,
                     destinationAccount: true,
                     category: true,
+                    createdBy: {
+                        select: { id: true, fullName: true, email: true, avatarUrl: true },
+                    },
                 },
             });
             if (type === client_1.TransactionType.EXPENSE) {
@@ -94,6 +101,16 @@ let TransactionsService = class TransactionsService {
                 await tx.account.update({
                     where: { id: destinationAccountId },
                     data: { balance: { increment: amount } },
+                });
+            }
+            if (currentUserId) {
+                await tx.auditLog.create({
+                    data: {
+                        userId: currentUserId,
+                        householdId,
+                        action: 'CREATE_TRANSACTION',
+                        details: `Registró un ${type === 'EXPENSE' ? 'gasto' : type === 'INCOME' ? 'ingreso' : 'traslado'} de $${amount} (${description || 'Sin descripción'})`,
+                    },
                 });
             }
             return transaction;

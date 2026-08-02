@@ -804,7 +804,7 @@ export default function DashboardPage() {
                           )}
                         </div>
                         <p className="text-xs text-slate-400 mt-0.5">
-                          {tx.account?.name} • {new Date(tx.date).toLocaleDateString()}
+                          {tx.account?.name} • {new Date(tx.date).toLocaleDateString()} {tx.createdBy?.fullName || tx.createdBy?.email ? `• 👤 ${tx.createdBy?.fullName || tx.createdBy?.email.split('@')[0]}` : ''}
                         </p>
                         {tx.isEdited && tx.editReason && !tx.isVoided && (
                           <p className="text-[11px] text-amber-400/90 italic mt-0.5">Motivo: "{tx.editReason}"</p>

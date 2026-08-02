@@ -30,7 +30,7 @@ let TransactionsController = class TransactionsController {
         return this.transactionsService.getSummary(user.householdId);
     }
     async create(user, dto) {
-        return this.transactionsService.create(user.householdId, dto);
+        return this.transactionsService.create(user.householdId, dto, user.userId);
     }
     async update(user, id, body) {
         return this.transactionsService.update(user.householdId, id, body);

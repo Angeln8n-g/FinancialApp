@@ -77,5 +77,69 @@ export declare class AllowancesController {
         memberId: string;
         spentAmount: import("@prisma/client/runtime/library").Decimal;
     }>;
+    getRequests(user: UserPayload): Promise<({
+        allowance: {
+            id: string;
+            createdAt: Date;
+            householdId: string;
+            period: import(".prisma/client").$Enums.RecurrencePeriod;
+            title: string;
+            limitAmount: import("@prisma/client/runtime/library").Decimal;
+            memberId: string;
+            spentAmount: import("@prisma/client/runtime/library").Decimal;
+        };
+        member: {
+            user: {
+                email: string;
+                id: string;
+                fullName: string | null;
+                avatarUrl: string | null;
+                passwordHash: string | null;
+                createdAt: Date;
+                updatedAt: Date;
+            };
+        } & {
+            id: string;
+            userId: string;
+            householdId: string;
+            role: import(".prisma/client").$Enums.Role;
+            joinedAt: Date;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        householdId: string;
+        amount: import("@prisma/client/runtime/library").Decimal;
+        status: string;
+        memberId: string;
+        reason: string;
+        allowanceId: string;
+    })[]>;
+    createRequest(user: UserPayload, allowanceId: string, body: {
+        memberId: string;
+        amount: number;
+        reason: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        householdId: string;
+        amount: import("@prisma/client/runtime/library").Decimal;
+        status: string;
+        memberId: string;
+        reason: string;
+        allowanceId: string;
+    }>;
+    respondRequest(user: UserPayload, requestId: string, body: {
+        status: 'APPROVED' | 'REJECTED';
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        householdId: string;
+        amount: import("@prisma/client/runtime/library").Decimal;
+        status: string;
+        memberId: string;
+        reason: string;
+        allowanceId: string;
+    }>;
     remove(user: UserPayload, id: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
 }

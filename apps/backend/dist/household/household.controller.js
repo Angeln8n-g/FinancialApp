@@ -29,6 +29,15 @@ let HouseholdController = class HouseholdController {
     async inviteMember(user, dto) {
         return this.householdService.inviteMember(user.userId, user.householdId, dto);
     }
+    async getInvitations(user) {
+        return this.householdService.getInvitations(user.householdId);
+    }
+    async joinByCode(user, code) {
+        return this.householdService.joinByCode(user.userId, code);
+    }
+    async getActivityFeed(user) {
+        return this.householdService.getActivityFeed(user.householdId);
+    }
     async updateRole(user, memberId, dto) {
         return this.householdService.updateRole(user.userId, user.householdId, memberId, dto);
     }
@@ -49,6 +58,28 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, household_dto_1.InviteMemberDto]),
     __metadata("design:returntype", Promise)
 ], HouseholdController.prototype, "inviteMember", null);
+__decorate([
+    (0, common_1.Get)('invitations'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
+    __metadata("design:returntype", Promise)
+], HouseholdController.prototype, "getInvitations", null);
+__decorate([
+    (0, common_1.Post)('join/:code'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('code')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
+    __metadata("design:returntype", Promise)
+], HouseholdController.prototype, "joinByCode", null);
+__decorate([
+    (0, common_1.Get)('activity'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
+    __metadata("design:returntype", Promise)
+], HouseholdController.prototype, "getActivityFeed", null);
 __decorate([
     (0, common_1.Put)('members/:id/role'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),

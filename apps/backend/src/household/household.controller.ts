@@ -19,6 +19,21 @@ export class HouseholdController {
     return this.householdService.inviteMember(user.userId, user.householdId, dto);
   }
 
+  @Get('invitations')
+  async getInvitations(@CurrentUser() user: UserPayload) {
+    return this.householdService.getInvitations(user.householdId);
+  }
+
+  @Post('join/:code')
+  async joinByCode(@CurrentUser() user: UserPayload, @Param('code') code: string) {
+    return this.householdService.joinByCode(user.userId, code);
+  }
+
+  @Get('activity')
+  async getActivityFeed(@CurrentUser() user: UserPayload) {
+    return this.householdService.getActivityFeed(user.householdId);
+  }
+
   @Put('members/:id/role')
   async updateRole(
     @CurrentUser() user: UserPayload,

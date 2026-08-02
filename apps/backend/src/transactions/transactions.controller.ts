@@ -21,7 +21,7 @@ export class TransactionsController {
 
   @Post()
   async create(@CurrentUser() user: UserPayload, @Body() dto: CreateTransactionDto) {
-    return this.transactionsService.create(user.householdId, dto);
+    return this.transactionsService.create(user.householdId, dto, user.userId);
   }
 
   @Put(':id')

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InviteMemberDto, UpdateRoleDto } from './household.dto';
 import { Role } from '@prisma/client';
@@ -48,6 +48,10 @@ export class HouseholdService {
       throw new ForbiddenException('Solo los administradores pueden invitar nuevos miembros');
     }
 
+    // Generar código único de invitación (ej. HOGAR-X7Y9)
+    const code = 'HIQ-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
+
     let targetUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -74,16 +78,116 @@ export class HouseholdService {
       throw new ConflictException('El usuario ya pertenece a este hogar');
     }
 
-    return this.prisma.householdMember.create({
+    const member = await this.prisma.householdMember.create({
       data: {
         userId: targetUser.id,
         householdId,
         role: dto.role || Role.COLLABORATOR,
       },
-      include: {
-        user: true,
+      include: { user: true },
+    });
+
+    const invitation = await this.prisma.householdInvitation.create({
+      data: {
+        householdId,
+        email: dto.email,
+        role: dto.role || Role.COLLABORATOR,
+        code,
+        expiresAt,
       },
     });
+
+    // Registrar en AuditLog
+    await this.prisma.auditLog.create({
+      data: {
+        userId: currentUserId,
+        householdId,
+        action: 'INVITE_MEMBER',
+        details: `Invitó a ${dto.email} como ${dto.role || Role.COLLABORATOR} (Código: ${code})`,
+      },
+    });
+
+    return {
+      member,
+      invitationCode: code,
+      inviteLink: `http://localhost:3001/invite/${code}`,
+    };
+  }
+
+  async getInvitations(householdId: string) {
+    return this.prisma.householdInvitation.findMany({
+      where: { householdId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async joinByCode(userId: string, code: string) {
+    const invitation = await this.prisma.householdInvitation.findUnique({
+      where: { code },
+    });
+
+    if (!invitation || invitation.status !== 'PENDING') {
+      throw new NotFoundException('Invitación no válida o expirada');
+    }
+
+    const existingMembership = await this.prisma.householdMember.findUnique({
+      where: {
+        userId_householdId: {
+          userId,
+          householdId: invitation.householdId,
+        },
+      },
+    });
+
+    if (existingMembership) {
+      return { message: 'Ya eres miembro de este hogar', householdId: invitation.householdId };
+    }
+
+    await this.prisma.householdMember.create({
+      data: {
+        userId,
+        householdId: invitation.householdId,
+        role: invitation.role,
+      },
+    });
+
+    await this.prisma.householdInvitation.update({
+      where: { id: invitation.id },
+      data: { status: 'ACCEPTED' },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId,
+        householdId: invitation.householdId,
+        action: 'JOIN_HOUSEHOLD',
+        details: `Se unió al hogar mediante código de invitación`,
+      },
+    });
+
+    return { message: '¡Te has unido con éxito al hogar!', householdId: invitation.householdId };
+  }
+
+  async getActivityFeed(householdId: string) {
+    const logs = await this.prisma.auditLog.findMany({
+      where: { householdId },
+      include: {
+        user: {
+          select: { id: true, fullName: true, email: true, avatarUrl: true },
+        },
+      },
+      orderBy: { timestamp: 'desc' },
+      take: 30,
+    });
+
+    return logs.map((l) => ({
+      id: l.id,
+      userName: l.user.fullName || l.user.email.split('@')[0],
+      userEmail: l.user.email,
+      action: l.action,
+      details: l.details,
+      timestamp: l.timestamp,
+    }));
   }
 
   async updateRole(currentUserId: string, householdId: string, memberId: string, dto: UpdateRoleDto) {
@@ -108,9 +212,21 @@ export class HouseholdService {
       throw new NotFoundException('Miembro no encontrado en este hogar');
     }
 
-    return this.prisma.householdMember.update({
+    const updated = await this.prisma.householdMember.update({
       where: { id: memberId },
       data: { role: dto.role },
+      include: { user: true },
     });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: currentUserId,
+        householdId,
+        action: 'UPDATE_ROLE',
+        details: `Cambió el rol de ${updated.user.fullName || updated.user.email} a ${dto.role}`,
+      },
+    });
+
+    return updated;
   }
 }

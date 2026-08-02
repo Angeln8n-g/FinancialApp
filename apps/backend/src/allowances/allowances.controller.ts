@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { AllowancesService } from './allowances.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, UserPayload } from '../auth/get-user.decorator';
@@ -43,6 +43,29 @@ export class AllowancesController {
   @Post(':id/reset')
   async reset(@CurrentUser() user: UserPayload, @Param('id') id: string) {
     return this.allowancesService.reset(user.householdId, id);
+  }
+
+  @Get('requests')
+  async getRequests(@CurrentUser() user: UserPayload) {
+    return this.allowancesService.getRequests(user.householdId);
+  }
+
+  @Post(':id/request')
+  async createRequest(
+    @CurrentUser() user: UserPayload,
+    @Param('id') allowanceId: string,
+    @Body() body: { memberId: string; amount: number; reason: string },
+  ) {
+    return this.allowancesService.createRequest(user.householdId, body.memberId, allowanceId, body.amount, body.reason);
+  }
+
+  @Put('requests/:id')
+  async respondRequest(
+    @CurrentUser() user: UserPayload,
+    @Param('id') requestId: string,
+    @Body() body: { status: 'APPROVED' | 'REJECTED' },
+  ) {
+    return this.allowancesService.respondRequest(user.householdId, requestId, body.status);
   }
 
   @Delete(':id')

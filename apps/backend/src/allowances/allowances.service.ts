@@ -114,6 +114,52 @@ export class AllowancesService {
     });
   }
 
+  async createRequest(householdId: string, memberId: string, allowanceId: string, amount: number, reason: string) {
+    return this.prisma.allowanceRequest.create({
+      data: {
+        householdId,
+        memberId,
+        allowanceId,
+        amount,
+        reason,
+        status: 'PENDING',
+      },
+    });
+  }
+
+  async getRequests(householdId: string) {
+    return this.prisma.allowanceRequest.findMany({
+      where: { householdId },
+      include: {
+        member: { include: { user: true } },
+        allowance: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async respondRequest(householdId: string, requestId: string, status: 'APPROVED' | 'REJECTED') {
+    const req = await this.prisma.allowanceRequest.findFirst({
+      where: { id: requestId, householdId },
+    });
+    if (!req) throw new NotFoundException('Solicitud no encontrada');
+
+    const updated = await this.prisma.allowanceRequest.update({
+      where: { id: requestId },
+      data: { status },
+    });
+
+    if (status === 'APPROVED') {
+      // Incrementar límite de la mesada por el monto aprobado
+      await this.prisma.allowance.update({
+        where: { id: req.allowanceId },
+        data: { limitAmount: { increment: req.amount } },
+      });
+    }
+
+    return updated;
+  }
+
   async remove(id: string, householdId: string) {
     return this.prisma.allowance.deleteMany({
       where: { id, householdId },

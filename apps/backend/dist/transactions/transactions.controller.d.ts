@@ -33,6 +33,12 @@ export declare class TransactionsController {
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
         } | null;
+        createdBy: {
+            email: string;
+            id: string;
+            fullName: string | null;
+            avatarUrl: string | null;
+        } | null;
     } & {
         id: string;
         createdAt: Date;
@@ -43,6 +49,7 @@ export declare class TransactionsController {
         accountId: string;
         destinationAccountId: string | null;
         categoryId: string | null;
+        createdById: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
         isCleared: boolean;
@@ -90,6 +97,12 @@ export declare class TransactionsController {
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
         } | null;
+        createdBy: {
+            email: string;
+            id: string;
+            fullName: string | null;
+            avatarUrl: string | null;
+        } | null;
     } & {
         id: string;
         createdAt: Date;
@@ -100,6 +113,7 @@ export declare class TransactionsController {
         accountId: string;
         destinationAccountId: string | null;
         categoryId: string | null;
+        createdById: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
         isCleared: boolean;
@@ -157,6 +171,7 @@ export declare class TransactionsController {
         accountId: string;
         destinationAccountId: string | null;
         categoryId: string | null;
+        createdById: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
         isCleared: boolean;
@@ -210,6 +225,7 @@ export declare class TransactionsController {
         accountId: string;
         destinationAccountId: string | null;
         categoryId: string | null;
+        createdById: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
         isCleared: boolean;

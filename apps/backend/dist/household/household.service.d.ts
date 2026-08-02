@@ -13,6 +13,49 @@ export declare class HouseholdService {
         joinedAt: Date;
     }[]>;
     inviteMember(currentUserId: string, householdId: string, dto: InviteMemberDto): Promise<{
+        member: {
+            user: {
+                email: string;
+                id: string;
+                fullName: string | null;
+                avatarUrl: string | null;
+                passwordHash: string | null;
+                createdAt: Date;
+                updatedAt: Date;
+            };
+        } & {
+            id: string;
+            userId: string;
+            householdId: string;
+            role: import(".prisma/client").$Enums.Role;
+            joinedAt: Date;
+        };
+        invitationCode: string;
+        inviteLink: string;
+    }>;
+    getInvitations(householdId: string): Promise<{
+        email: string;
+        id: string;
+        createdAt: Date;
+        householdId: string;
+        role: import(".prisma/client").$Enums.Role;
+        code: string;
+        status: string;
+        expiresAt: Date;
+    }[]>;
+    joinByCode(userId: string, code: string): Promise<{
+        message: string;
+        householdId: string;
+    }>;
+    getActivityFeed(householdId: string): Promise<{
+        id: string;
+        userName: string;
+        userEmail: string;
+        action: string;
+        details: string | null;
+        timestamp: Date;
+    }[]>;
+    updateRole(currentUserId: string, householdId: string, memberId: string, dto: UpdateRoleDto): Promise<{
         user: {
             email: string;
             id: string;
@@ -23,13 +66,6 @@ export declare class HouseholdService {
             updatedAt: Date;
         };
     } & {
-        id: string;
-        userId: string;
-        householdId: string;
-        role: import(".prisma/client").$Enums.Role;
-        joinedAt: Date;
-    }>;
-    updateRole(currentUserId: string, householdId: string, memberId: string, dto: UpdateRoleDto): Promise<{
         id: string;
         userId: string;
         householdId: string;

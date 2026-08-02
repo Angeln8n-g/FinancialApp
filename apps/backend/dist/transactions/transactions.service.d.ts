@@ -34,6 +34,12 @@ export declare class TransactionsService {
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
         } | null;
+        createdBy: {
+            email: string;
+            id: string;
+            fullName: string | null;
+            avatarUrl: string | null;
+        } | null;
     } & {
         id: string;
         createdAt: Date;
@@ -44,6 +50,7 @@ export declare class TransactionsService {
         accountId: string;
         destinationAccountId: string | null;
         categoryId: string | null;
+        createdById: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
         isCleared: boolean;
@@ -56,7 +63,7 @@ export declare class TransactionsService {
         voidReason: string | null;
         voidedAt: Date | null;
     })[]>;
-    create(householdId: string, dto: CreateTransactionDto): Promise<{
+    create(householdId: string, dto: CreateTransactionDto, currentUserId?: string): Promise<{
         account: {
             id: string;
             createdAt: Date;
@@ -85,6 +92,12 @@ export declare class TransactionsService {
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
         } | null;
+        createdBy: {
+            email: string;
+            id: string;
+            fullName: string | null;
+            avatarUrl: string | null;
+        } | null;
     } & {
         id: string;
         createdAt: Date;
@@ -95,6 +108,7 @@ export declare class TransactionsService {
         accountId: string;
         destinationAccountId: string | null;
         categoryId: string | null;
+        createdById: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
         isCleared: boolean;
@@ -162,6 +176,7 @@ export declare class TransactionsService {
         accountId: string;
         destinationAccountId: string | null;
         categoryId: string | null;
+        createdById: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
         isCleared: boolean;
@@ -215,6 +230,7 @@ export declare class TransactionsService {
         accountId: string;
         destinationAccountId: string | null;
         categoryId: string | null;
+        createdById: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
         isCleared: boolean;

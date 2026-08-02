@@ -18,13 +18,16 @@ export class TransactionsService {
         account: true,
         destinationAccount: true,
         category: true,
+        createdBy: {
+          select: { id: true, fullName: true, email: true, avatarUrl: true },
+        },
       },
       orderBy: { date: 'desc' },
       take: 50,
     });
   }
 
-  async create(householdId: string, dto: CreateTransactionDto) {
+  async create(householdId: string, dto: CreateTransactionDto, currentUserId?: string) {
     const { accountId, destinationAccountId, categoryId, type, amount, description, date } = dto;
 
     if (amount <= 0) {
@@ -62,6 +65,7 @@ export class TransactionsService {
           accountId,
           destinationAccountId: type === TransactionType.TRANSFER ? destinationAccountId : null,
           categoryId: categoryId || null,
+          createdById: currentUserId || null,
           type,
           amount,
           description: description || null,
@@ -71,6 +75,9 @@ export class TransactionsService {
           account: true,
           destinationAccount: true,
           category: true,
+          createdBy: {
+            select: { id: true, fullName: true, email: true, avatarUrl: true },
+          },
         },
       });
 
@@ -92,6 +99,17 @@ export class TransactionsService {
         await tx.account.update({
           where: { id: destinationAccountId },
           data: { balance: { increment: amount } },
+        });
+      }
+
+      if (currentUserId) {
+        await tx.auditLog.create({
+          data: {
+            userId: currentUserId,
+            householdId,
+            action: 'CREATE_TRANSACTION',
+            details: `Registró un ${type === 'EXPENSE' ? 'gasto' : type === 'INCOME' ? 'ingreso' : 'traslado'} de $${amount} (${description || 'Sin descripción'})`,
+          },
         });
       }
 

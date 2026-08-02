@@ -37,6 +37,15 @@ let AllowancesController = class AllowancesController {
     async reset(user, id) {
         return this.allowancesService.reset(user.householdId, id);
     }
+    async getRequests(user) {
+        return this.allowancesService.getRequests(user.householdId);
+    }
+    async createRequest(user, allowanceId, body) {
+        return this.allowancesService.createRequest(user.householdId, body.memberId, allowanceId, body.amount, body.reason);
+    }
+    async respondRequest(user, requestId, body) {
+        return this.allowancesService.respondRequest(user.householdId, requestId, body.status);
+    }
     async remove(user, id) {
         return this.allowancesService.remove(id, user.householdId);
     }
@@ -83,6 +92,31 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
     __metadata("design:returntype", Promise)
 ], AllowancesController.prototype, "reset", null);
+__decorate([
+    (0, common_1.Get)('requests'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
+    __metadata("design:returntype", Promise)
+], AllowancesController.prototype, "getRequests", null);
+__decorate([
+    (0, common_1.Post)(':id/request'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
+    __metadata("design:returntype", Promise)
+], AllowancesController.prototype, "createRequest", null);
+__decorate([
+    (0, common_1.Put)('requests/:id'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
+    __metadata("design:returntype", Promise)
+], AllowancesController.prototype, "respondRequest", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),

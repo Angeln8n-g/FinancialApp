@@ -26,6 +26,8 @@ export default function MobileDashboardScreen() {
   const [reminders, setReminders] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
+  const [myAllowance, setMyAllowance] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string>('COLLABORATOR');
 
   const [naturalInput, setNaturalInput] = useState('');
   const [isProcessingAi, setIsProcessingAi] = useState(false);
@@ -68,20 +70,21 @@ export default function MobileDashboardScreen() {
 
   const loadData = async () => {
     try {
-      setUserState(getUser());
-      setHouseholdState(getHousehold());
+      const u = getUser();
+      const h = getHousehold();
+      setUserState(u);
+      setHouseholdState(h);
 
-      const [resSum, resTx, resRem, resAcc] = await Promise.all([
+      const [resSum, resTx, resRem, resMem, resAllow, resAcc] = await Promise.all([
         fetchWithAuth('/api/transactions/summary'),
         fetchWithAuth('/api/transactions?limit=10'),
         fetchWithAuth('/api/reminders'),
+        fetchWithAuth('/api/household/members'),
+        fetchWithAuth('/api/allowances'),
         fetchWithAuth('/api/accounts'),
       ]);
 
-      if (resSum.ok) {
-        const sumData = await resSum.json();
-        setSummary(sumData);
-      }
+      if (resSum.ok) setSummary(await resSum.json());
       if (resTx.ok) {
         const txData = await resTx.json();
         if (Array.isArray(txData)) setTransactions(txData);
@@ -89,6 +92,17 @@ export default function MobileDashboardScreen() {
       if (resRem.ok) {
         const remData = await resRem.json();
         if (Array.isArray(remData)) setReminders(remData);
+      }
+      if (resMem.ok) {
+        const members = await resMem.json();
+        const me = members.find((m: any) => m.userId === u?.id);
+        if (me) setUserRole(me.role);
+      }
+      if (resAllow.ok) {
+        const allows = await resAllow.json();
+        if (Array.isArray(allows) && allows.length > 0) {
+          setMyAllowance(allows[0]);
+        }
       }
       if (resAcc.ok) {
         const accData = await resAcc.json();
@@ -390,26 +404,85 @@ export default function MobileDashboardScreen() {
         </View>
       </View>
 
-      {/* KPI Cards */}
-      <View style={styles.kpiContainer}>
-        <View style={styles.kpiCardMain}>
-          <Text style={styles.kpiTitle}>BALANCE CONSOLIDADO</Text>
-          <Text style={styles.kpiValueMain}>${summary.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
-          <Text style={styles.kpiSub}>Suma de todas las cuentas activas</Text>
-        </View>
+      {/* KPI Cards / Perfil Adaptado Dependiente */}
+      {userRole === 'DEPENDENT' ? (
+        <View style={[styles.kpiContainer, { backgroundColor: 'rgba(147, 51, 234, 0.15)', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#9333ea', marginBottom: 16 }]}>
+          <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#c084fc', textTransform: 'uppercase' }}>
+            👦 Perfil Adaptado: Mi Mesada Personal
+          </Text>
+          <Text style={{ fontSize: 24, fontWeight: 'black', color: '#ffffff', marginTop: 4 }}>
+            ${myAllowance ? (myAllowance.limitAmount - myAllowance.spentAmount).toFixed(2) : '0.00'}
+          </Text>
+          <Text style={{ fontSize: 11, color: '#cbd5e1', marginTop: 2 }}>
+            Disponible de ${myAllowance?.limitAmount || 0} ({myAllowance?.title || 'Mesada'})
+          </Text>
 
-        <View style={styles.kpiRow}>
-          <View style={[styles.kpiCardHalf, styles.incomeCard]}>
-            <Text style={styles.incomeTitle}>INGRESOS MES</Text>
-            <Text style={styles.incomeValue}>+${summary.monthlyIncome.toFixed(2)}</Text>
+          {/* Barra de Progreso Personal */}
+          <View style={{ height: 8, backgroundColor: '#1e293b', borderRadius: 4, marginTop: 10, overflow: 'hidden' }}>
+            <View
+              style={{
+                height: '100%',
+                width: `${myAllowance?.percentageUsed || 0}%`,
+                backgroundColor: (myAllowance?.percentageUsed || 0) > 85 ? '#f43f5e' : '#34d399',
+              }}
+            />
           </View>
 
-          <View style={[styles.kpiCardHalf, styles.expenseCard]}>
-            <Text style={styles.expenseTitle}>GASTOS MES</Text>
-            <Text style={styles.expenseValue}>-${summary.monthlyExpense.toFixed(2)}</Text>
+          {/* Botón Solicitar Recarga Extra */}
+          <TouchableOpacity
+            onPress={() => {
+              Alert.prompt(
+                '🙋‍♂️ Solicitar Dinero Extra',
+                'Ingresa el monto que necesitas y el motivo para tus padres:',
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  {
+                    text: 'Enviar Solicitud',
+                    onPress: async (reason?: string) => {
+                      if (!reason || !myAllowance) return;
+                      try {
+                        const res = await fetchWithAuth(`/api/allowances/${myAllowance.id}/request`, {
+                          method: 'POST',
+                          body: JSON.stringify({ memberId: myAllowance.memberId, amount: 20, reason }),
+                        });
+                        if (res.ok) {
+                          Alert.alert('✅ Solicitud Enviada', 'Tus padres recibirán la solicitud de recarga.');
+                        }
+                      } catch (e) {
+                        Alert.alert('Error', 'No se pudo enviar la solicitud.');
+                      }
+                    },
+                  },
+                ],
+                'plain-text'
+              );
+            }}
+            style={{ marginTop: 12, backgroundColor: '#9333ea', paddingVertical: 10, borderRadius: 10, alignItems: 'center' }}
+          >
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>🙋‍♂️ Solicitar Recarga Extra a Padres</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.kpiContainer}>
+          <View style={styles.kpiCardMain}>
+            <Text style={styles.kpiTitle}>BALANCE CONSOLIDADO</Text>
+            <Text style={styles.kpiValueMain}>${summary.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
+            <Text style={styles.kpiSub}>Suma de todas las cuentas activas</Text>
+          </View>
+
+          <View style={styles.kpiRow}>
+            <View style={[styles.kpiCardHalf, styles.incomeCard]}>
+              <Text style={styles.incomeTitle}>INGRESOS MES</Text>
+              <Text style={styles.incomeValue}>+${summary.monthlyIncome.toFixed(2)}</Text>
+            </View>
+
+            <View style={[styles.kpiCardHalf, styles.expenseCard]}>
+              <Text style={styles.expenseTitle}>GASTOS MES</Text>
+              <Text style={styles.expenseValue}>-${summary.monthlyExpense.toFixed(2)}</Text>
+            </View>
           </View>
         </View>
-      </View>
+      )}
 
       {/* ⏰ RECORDATORIOS DE PAGO PRÓXIMOS */}
       <View style={styles.sectionHeader}>
@@ -475,7 +548,7 @@ export default function MobileDashboardScreen() {
               </View>
 
               <Text style={styles.txSub}>
-                {tx.account?.name || 'Cuenta'} {tx.category ? `• ${tx.category?.name || tx.category}` : ''}
+                {tx.account?.name || 'Cuenta'} {tx.category ? `• ${tx.category?.name || tx.category}` : ''} {tx.createdBy?.fullName || tx.createdBy?.email ? `• 👤 ${tx.createdBy?.fullName || tx.createdBy?.email.split('@')[0]}` : ''}
               </Text>
 
               {tx.isEdited && tx.editReason && !tx.isVoided && (

@@ -38,6 +38,12 @@ export default function FamilyPage() {
   const [disburseAccountId, setDisburseAccountId] = useState('');
   const [disburseAmount, setDisburseAmount] = useState('');
 
+  // Estados Actividad & Invitaciones por Link
+  const [activities, setActivities] = useState<any[]>([]);
+  const [invitations, setInvitations] = useState<any[]>([]);
+  const [allowanceRequests, setAllowanceRequests] = useState<any[]>([]);
+  const [lastInviteLink, setLastInviteLink] = useState('');
+
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
   const getToken = () => localStorage.getItem('hogariq_token');
@@ -62,6 +68,45 @@ export default function FamilyPage() {
       console.error('Error cargando miembros:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchActivity = async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/household/activity`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setActivities(await res.json());
+    } catch (e) {
+      console.log('Error cargando actividad:', e);
+    }
+  };
+
+  const fetchInvitations = async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/household/invitations`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setInvitations(await res.json());
+    } catch (e) {
+      console.log('Error cargando invitaciones:', e);
+    }
+  };
+
+  const fetchAllowanceRequests = async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/allowances/requests`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setAllowanceRequests(await res.json());
+    } catch (e) {
+      console.log('Error cargando solicitudes:', e);
     }
   };
 
@@ -112,6 +157,9 @@ export default function FamilyPage() {
     fetchMembers();
     fetchAllowances();
     fetchAccounts();
+    fetchActivity();
+    fetchInvitations();
+    fetchAllowanceRequests();
   }, []);
 
   const handleCreateAllowance = async (e: React.FormEvent) => {
@@ -244,13 +292,39 @@ export default function FamilyPage() {
         throw new Error(data.message || 'Error al invitar al familiar');
       }
 
-      setMsg({ type: 'success', text: `¡Invitación enviada a ${inviteEmail}!` });
+      setMsg({ type: 'success', text: `¡Invitación enviada a ${inviteEmail}! Código: ${data.invitationCode}` });
+      if (data.inviteLink) {
+        setLastInviteLink(data.inviteLink);
+      }
       setInviteEmail('');
       fetchMembers();
+      fetchInvitations();
+      fetchActivity();
     } catch (err: any) {
       setMsg({ type: 'error', text: err.message });
     } finally {
       setInviteLoading(false);
+    }
+  };
+
+  const handleRespondRequest = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/api/allowances/requests/${requestId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        fetchAllowanceRequests();
+        fetchAllowances();
+        fetchActivity();
+      }
+    } catch (e) {
+      console.error('Error respondiendo solicitud:', e);
     }
   };
 
@@ -319,6 +393,7 @@ export default function FamilyPage() {
               <option value="COLLABORATOR">Colaborador (Editar)</option>
               <option value="ADMIN">Administrador (Control Total)</option>
               <option value="VIEWER">Espectador (Solo Ver)</option>
+              <option value="DEPENDENT">👦 Hijo / Dependiente (Solo su Mesada)</option>
             </select>
 
             <button
@@ -326,9 +401,27 @@ export default function FamilyPage() {
               disabled={inviteLoading}
               className="px-5 py-2.5 glow-button text-xs font-bold text-white rounded-xl cursor-pointer disabled:opacity-50 shrink-0"
             >
-              {inviteLoading ? 'Enviando...' : 'Enviar Invitación'}
+              {inviteLoading ? 'Enviando...' : 'Generar Invitación'}
             </button>
           </form>
+
+          {lastInviteLink && (
+            <div className="p-3 bg-purple-950/40 border border-purple-500/40 rounded-xl flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-purple-400 uppercase">Enlace Directo de Invitación</span>
+                <p className="text-xs text-purple-200 font-mono font-bold">{lastInviteLink}</p>
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(lastInviteLink);
+                  alert('¡Enlace copiado al portapapeles! Puedes enviarlo por WhatsApp.');
+                }}
+                className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs cursor-pointer"
+              >
+                📋 Copiar Link
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Lista de Miembros */}
@@ -358,15 +451,50 @@ export default function FamilyPage() {
                       <option value="ADMIN">ADMIN</option>
                       <option value="COLLABORATOR">COLLABORATOR</option>
                       <option value="VIEWER">VIEWER</option>
+                      <option value="DEPENDENT">DEPENDENT</option>
                     </select>
                   ) : (
-                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${m.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>
-                      {m.role}
+                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${m.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : m.role === 'DEPENDENT' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>
+                      {m.role === 'DEPENDENT' ? '👦 DEPENDIENTE' : m.role}
                     </span>
                   )}
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* 📜 Historial de Actividad Reciente del Hogar */}
+        <div className="glass-card p-6 border border-slate-800 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              📜 Feed de Actividad Reciente ("Quién Hizo Qué")
+            </h3>
+            <span className="text-xs text-slate-400">{activities.length} registros</span>
+          </div>
+
+          <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+            {activities.length === 0 ? (
+              <p className="text-xs text-slate-500 italic">No hay actividad reciente registrada.</p>
+            ) : (
+              activities.map((act) => (
+                <div key={act.id} className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between text-xs">
+                  <div className="flex items-center space-x-3">
+                    <span className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-purple-400">
+                      {act.userName.charAt(0).toUpperCase()}
+                    </span>
+                    <div>
+                      <p className="text-slate-200 font-semibold">
+                        <strong className="text-white">{act.userName}</strong>: {act.details}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

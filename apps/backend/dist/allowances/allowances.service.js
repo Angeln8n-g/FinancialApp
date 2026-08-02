@@ -111,6 +111,46 @@ let AllowancesService = class AllowancesService {
             data: { spentAmount: 0 },
         });
     }
+    async createRequest(householdId, memberId, allowanceId, amount, reason) {
+        return this.prisma.allowanceRequest.create({
+            data: {
+                householdId,
+                memberId,
+                allowanceId,
+                amount,
+                reason,
+                status: 'PENDING',
+            },
+        });
+    }
+    async getRequests(householdId) {
+        return this.prisma.allowanceRequest.findMany({
+            where: { householdId },
+            include: {
+                member: { include: { user: true } },
+                allowance: true,
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+    async respondRequest(householdId, requestId, status) {
+        const req = await this.prisma.allowanceRequest.findFirst({
+            where: { id: requestId, householdId },
+        });
+        if (!req)
+            throw new common_1.NotFoundException('Solicitud no encontrada');
+        const updated = await this.prisma.allowanceRequest.update({
+            where: { id: requestId },
+            data: { status },
+        });
+        if (status === 'APPROVED') {
+            await this.prisma.allowance.update({
+                where: { id: req.allowanceId },
+                data: { limitAmount: { increment: req.amount } },
+            });
+        }
+        return updated;
+    }
     async remove(id, householdId) {
         return this.prisma.allowance.deleteMany({
             where: { id, householdId },
