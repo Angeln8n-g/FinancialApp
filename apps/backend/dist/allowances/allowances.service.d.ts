@@ -23,6 +23,7 @@ export declare class AllowancesService {
             userId: string;
             householdId: string;
             role: import(".prisma/client").$Enums.Role;
+            customTitle: string | null;
             joinedAt: Date;
         };
         id: string;
@@ -110,6 +111,7 @@ export declare class AllowancesService {
             userId: string;
             householdId: string;
             role: import(".prisma/client").$Enums.Role;
+            customTitle: string | null;
             joinedAt: Date;
         };
     } & {

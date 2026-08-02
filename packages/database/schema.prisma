@@ -105,6 +105,7 @@ model HouseholdMember {
   userId       String
   householdId  String
   role         Role       @default(COLLABORATOR)
+  customTitle  String?    // Ej: "👑 Esposa (Jefa de Finanzas)", "👨‍💼 Esposo"
   joinedAt     DateTime   @default(now())
   
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)

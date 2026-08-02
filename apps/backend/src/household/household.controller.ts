@@ -42,4 +42,13 @@ export class HouseholdController {
   ) {
     return this.householdService.updateRole(user.userId, user.householdId, memberId, dto);
   }
+
+  @Put('members/:id/title')
+  async updateCustomTitle(
+    @CurrentUser() user: UserPayload,
+    @Param('id') memberId: string,
+    @Body() body: { customTitle: string },
+  ) {
+    return this.householdService.updateCustomTitle(user.userId, user.householdId, memberId, body.customTitle);
+  }
 }

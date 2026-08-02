@@ -30,6 +30,7 @@ export class HouseholdService {
       fullName: m.user.fullName,
       avatarUrl: m.user.avatarUrl,
       role: m.role,
+      customTitle: m.customTitle,
       joinedAt: m.joinedAt,
     }));
   }
@@ -224,6 +225,33 @@ export class HouseholdService {
         householdId,
         action: 'UPDATE_ROLE',
         details: `Cambió el rol de ${updated.user.fullName || updated.user.email} a ${dto.role}`,
+      },
+    });
+
+    return updated;
+  }
+
+  async updateCustomTitle(currentUserId: string, householdId: string, memberId: string, customTitle: string) {
+    const memberToUpdate = await this.prisma.householdMember.findFirst({
+      where: { id: memberId, householdId },
+    });
+
+    if (!memberToUpdate) {
+      throw new NotFoundException('Miembro no encontrado en este hogar');
+    }
+
+    const updated = await this.prisma.householdMember.update({
+      where: { id: memberId },
+      data: { customTitle },
+      include: { user: true },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: currentUserId,
+        householdId,
+        action: 'UPDATE_TITLE',
+        details: `Asignó el título "${customTitle}" a ${updated.user.fullName || updated.user.email}`,
       },
     });
 

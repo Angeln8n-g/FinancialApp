@@ -342,9 +342,30 @@ export default function FamilyPage() {
 
       if (res.ok) {
         fetchMembers();
+        fetchActivity();
       }
     } catch (err) {
-      console.error('Error cambiando rol:', err);
+      console.error('Error al cambiar rol:', err);
+    }
+  };
+
+  const handleChangeCustomTitle = async (memberId: string, customTitle: string) => {
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/api/household/members/${memberId}/title`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ customTitle }),
+      });
+      if (res.ok) {
+        fetchMembers();
+        fetchActivity();
+      }
+    } catch (err) {
+      console.error('Error al cambiar título personalizado:', err);
     }
   };
 
@@ -430,18 +451,38 @@ export default function FamilyPage() {
 
           <div className="space-y-3">
             {members.map((m) => (
-              <div key={m.id} className="glass-card p-4 flex items-center justify-between hover:bg-slate-800/40 transition-colors">
+              <div key={m.id} className="glass-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-800/40 transition-colors">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center font-bold text-purple-300">
                     {m.fullName.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white">{m.fullName}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-white">{m.fullName}</p>
+                      {m.customTitle && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                          {m.customTitle}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-400">{m.email}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Selector Título Personalizado */}
+                  <select
+                    value={m.customTitle || ''}
+                    onChange={(e) => handleChangeCustomTitle(m.id, e.target.value)}
+                    className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-amber-300 font-bold focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="">+ Título Personalizado</option>
+                    <option value="👑 Esposa (Jefa de Finanzas)">👑 Esposa (Jefa de Finanzas)</option>
+                    <option value="👨‍💼 Esposo (Co-Administrador)">👨‍💼 Esposo (Co-Administrador)</option>
+                    <option value="👦 Hijo/a (Estudiante)">👦 Hijo/a (Estudiante)</option>
+                    <option value="👨‍👩‍👧 Integrante del Hogar">👨‍👩‍👧 Integrante del Hogar</option>
+                  </select>
+
                   {household?.role === 'ADMIN' && m.userId !== currentUser?.id ? (
                     <select
                       value={m.role}

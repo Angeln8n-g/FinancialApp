@@ -10,6 +10,7 @@ export declare class HouseholdService {
         fullName: string | null;
         avatarUrl: string | null;
         role: import(".prisma/client").$Enums.Role;
+        customTitle: string | null;
         joinedAt: Date;
     }[]>;
     inviteMember(currentUserId: string, householdId: string, dto: InviteMemberDto): Promise<{
@@ -28,6 +29,7 @@ export declare class HouseholdService {
             userId: string;
             householdId: string;
             role: import(".prisma/client").$Enums.Role;
+            customTitle: string | null;
             joinedAt: Date;
         };
         invitationCode: string;
@@ -70,6 +72,25 @@ export declare class HouseholdService {
         userId: string;
         householdId: string;
         role: import(".prisma/client").$Enums.Role;
+        customTitle: string | null;
+        joinedAt: Date;
+    }>;
+    updateCustomTitle(currentUserId: string, householdId: string, memberId: string, customTitle: string): Promise<{
+        user: {
+            email: string;
+            id: string;
+            fullName: string | null;
+            avatarUrl: string | null;
+            passwordHash: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+        };
+    } & {
+        id: string;
+        userId: string;
+        householdId: string;
+        role: import(".prisma/client").$Enums.Role;
+        customTitle: string | null;
         joinedAt: Date;
     }>;
 }
