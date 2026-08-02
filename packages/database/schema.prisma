@@ -47,10 +47,12 @@ model User {
   passwordHash     String?           // Soporte para autenticación local en desarrollo
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
+  pushToken        String?
   memberships      HouseholdMember[]
   auditLogs        AuditLog[]
   sessions         Session[]
   createdTransactions Transaction[] @relation("TransactionCreatedBy")
+  notifications    Notification[]
 }
 
 model Household {
@@ -71,6 +73,7 @@ model Household {
   auditLogs     AuditLog[]
   invitations   HouseholdInvitation[]
   allowanceRequests AllowanceRequest[]
+  notifications    Notification[]
 }
 
 model Reminder {
@@ -300,4 +303,19 @@ model AllowanceRequest {
   household     Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
   allowance     Allowance         @relation(fields: [allowanceId], references: [id], onDelete: Cascade)
   member        HouseholdMember   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id          String    @id @default(uuid())
+  userId      String
+  householdId String
+  title       String
+  body        String
+  type        String    @default("GENERAL") // REMINDER_DUE, ALLOWANCE_REQUEST, TRANSACTION_VOIDED, MEMBER_JOINED
+  isRead      Boolean   @default(false)
+  metadata    String?   @db.Text
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
 }

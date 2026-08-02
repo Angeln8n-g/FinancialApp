@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Logo from './Logo';
@@ -10,6 +10,107 @@ interface NavbarProps {
   household?: any;
   unreadNotifications?: number;
   onOpenChat?: () => void;
+}
+
+function NotificationBell() {
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('hogariq_token') : null;
+
+  const fetchNotifs = async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/notifications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setNotifications(await res.json());
+      }
+    } catch (e) {
+      console.log('Error cargando notificaciones:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 15000); // Polling suave cada 15s
+    return () => clearInterval(interval);
+  }, []);
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const handleMarkAllRead = async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      await fetch(`${API_URL}/api/notifications/read-all`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchNotifs();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs transition-colors cursor-pointer relative"
+        title="Notificaciones"
+      >
+        🔔
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full animate-pulse">
+            {unreadCount}
+          </span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 glass-card p-4 border border-purple-500/40 shadow-2xl z-50 rounded-2xl bg-slate-900/95 backdrop-blur-xl">
+          <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+            <span className="text-xs font-bold text-white flex items-center gap-1.5">
+              🔔 Notificaciones del Hogar ({notifications.length})
+            </span>
+            {unreadCount > 0 && (
+              <button
+                onClick={handleMarkAllRead}
+                className="text-[10px] font-bold text-purple-400 hover:underline cursor-pointer"
+              >
+                Marcar leídas
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+            {notifications.length === 0 ? (
+              <p className="text-xs text-slate-500 text-center py-4">No hay notificaciones sin leer.</p>
+            ) : (
+              notifications.map((n) => (
+                <div
+                  key={n.id}
+                  className={`p-3 rounded-xl border text-xs transition-colors ${
+                    n.isRead ? 'bg-slate-900/50 border-slate-800 opacity-60' : 'bg-purple-950/30 border-purple-500/30 font-semibold'
+                  }`}
+                >
+                  <p className="font-bold text-white text-xs">{n.title}</p>
+                  <p className="text-slate-300 text-[11px] mt-0.5">{n.body}</p>
+                  <span className="text-[9px] text-slate-500 mt-1 block">
+                    {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function Navbar({
@@ -76,6 +177,9 @@ export default function Navbar({
 
           {/* Right Action Icons & Controls */}
           <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Notification Bell Button */}
+            <NotificationBell />
+
             {/* AI Assistant Chat Button */}
             {onOpenChat && (
               <button

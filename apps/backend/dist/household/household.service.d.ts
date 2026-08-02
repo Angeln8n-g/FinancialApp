@@ -23,6 +23,7 @@ export declare class HouseholdService {
                 passwordHash: string | null;
                 createdAt: Date;
                 updatedAt: Date;
+                pushToken: string | null;
             };
         } & {
             id: string;
@@ -66,6 +67,7 @@ export declare class HouseholdService {
             passwordHash: string | null;
             createdAt: Date;
             updatedAt: Date;
+            pushToken: string | null;
         };
     } & {
         id: string;
@@ -84,6 +86,7 @@ export declare class HouseholdService {
             passwordHash: string | null;
             createdAt: Date;
             updatedAt: Date;
+            pushToken: string | null;
         };
     } & {
         id: string;

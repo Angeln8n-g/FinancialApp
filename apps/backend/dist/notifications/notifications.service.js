@@ -12,47 +12,58 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const events_gateway_1 = require("../events/events.gateway");
 let NotificationsService = class NotificationsService {
     prisma;
-    constructor(prisma) {
+    eventsGateway;
+    constructor(prisma, eventsGateway) {
         this.prisma = prisma;
+        this.eventsGateway = eventsGateway;
     }
-    async findAll(householdId) {
-        const notifications = [];
-        const pendingReminders = await this.prisma.reminder.findMany({
-            where: { householdId, isPaid: false },
-            orderBy: { dueDate: 'asc' },
+    async getUserNotifications(userId) {
+        return this.prisma.notification.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+            take: 30,
         });
-        pendingReminders.forEach((r) => {
-            notifications.push({
-                id: `rem-${r.id}`,
-                title: `⏰ Recordatorio Próximo: ${r.title}`,
-                message: `El pago de RD$${Number(r.amount).toLocaleString()} vence el ${new Date(r.dueDate).toLocaleDateString()}.`,
-                type: 'WARNING',
-                createdAt: r.createdAt,
-                isRead: false,
-            });
+    }
+    async createNotification(data) {
+        const notif = await this.prisma.notification.create({
+            data: {
+                userId: data.userId,
+                householdId: data.householdId,
+                title: data.title,
+                body: data.body,
+                type: data.type || 'GENERAL',
+                metadata: data.metadata ? JSON.stringify(data.metadata) : null,
+            },
         });
-        const activeSubs = await this.prisma.subscription.findMany({
-            where: { householdId, isActive: true },
+        this.eventsGateway.notifyHouseholdChange(data.householdId, 'notification', 'CREATE');
+        return notif;
+    }
+    async markAsRead(id, userId) {
+        return this.prisma.notification.updateMany({
+            where: { id, userId },
+            data: { isRead: true },
         });
-        if (activeSubs.length > 0) {
-            const totalCost = activeSubs.reduce((sum, s) => sum + Number(s.cost), 0);
-            notifications.push({
-                id: 'sub-summary',
-                title: '📺 Resumen de Suscripciones',
-                message: `Tienes ${activeSubs.length} suscripciones activas acumulando $${totalCost.toFixed(2)}/mes.`,
-                type: 'INFO',
-                createdAt: new Date(),
-                isRead: false,
-            });
-        }
-        return notifications;
+    }
+    async markAllAsRead(userId) {
+        return this.prisma.notification.updateMany({
+            where: { userId, isRead: false },
+            data: { isRead: true },
+        });
+    }
+    async registerPushToken(userId, pushToken) {
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: { pushToken },
+        });
     }
 };
 exports.NotificationsService = NotificationsService;
 exports.NotificationsService = NotificationsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        events_gateway_1.EventsGateway])
 ], NotificationsService);
 //# sourceMappingURL=notifications.service.js.map

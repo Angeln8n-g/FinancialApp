@@ -115,7 +115,7 @@ export class AllowancesService {
   }
 
   async createRequest(householdId: string, memberId: string, allowanceId: string, amount: number, reason: string) {
-    return this.prisma.allowanceRequest.create({
+    const req = await this.prisma.allowanceRequest.create({
       data: {
         householdId,
         memberId,
@@ -124,7 +124,31 @@ export class AllowancesService {
         reason,
         status: 'PENDING',
       },
+      include: {
+        member: { include: { user: true } },
+      },
     });
+
+    // Notificar a administradores del hogar
+    const admins = await this.prisma.householdMember.findMany({
+      where: { householdId, role: 'ADMIN' },
+    });
+
+    const requesterName = req.member.user.fullName || req.member.user.email.split('@')[0];
+
+    for (const admin of admins) {
+      await this.prisma.notification.create({
+        data: {
+          userId: admin.userId,
+          householdId,
+          title: '🙋‍♂️ Solicitud de Dinero Extra',
+          body: `${requesterName} solicita $${amount} para: "${reason}"`,
+          type: 'ALLOWANCE_REQUEST',
+        },
+      });
+    }
+
+    return req;
   }
 
   async getRequests(householdId: string) {

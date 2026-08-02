@@ -28,6 +28,7 @@ export default function MobileDashboardScreen() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [myAllowance, setMyAllowance] = useState<any>(null);
   const [userRole, setUserRole] = useState<string>('COLLABORATOR');
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   const [naturalInput, setNaturalInput] = useState('');
   const [isProcessingAi, setIsProcessingAi] = useState(false);
@@ -46,7 +47,10 @@ export default function MobileDashboardScreen() {
   const [editAmount, setEditAmount] = useState('');
 
   const handleConfirmVoidTx = async () => {
-    if (!selectedTxForVoid || !voidReason.trim()) return;
+    if (!selectedTxForVoid || !voidReason.trim()) {
+      Alert.alert('Error', 'Debes ingresar el motivo obligatorio de anulación.');
+      return;
+    }
     try {
       const res = await fetchWithAuth(`/api/transactions/${selectedTxForVoid.id}/void`, {
         method: 'PUT',
@@ -75,13 +79,14 @@ export default function MobileDashboardScreen() {
       setUserState(u);
       setHouseholdState(h);
 
-      const [resSum, resTx, resRem, resMem, resAllow, resAcc] = await Promise.all([
+      const [resSum, resTx, resRem, resMem, resAllow, resAcc, resNotif] = await Promise.all([
         fetchWithAuth('/api/transactions/summary'),
         fetchWithAuth('/api/transactions?limit=10'),
         fetchWithAuth('/api/reminders'),
         fetchWithAuth('/api/household/members'),
         fetchWithAuth('/api/allowances'),
         fetchWithAuth('/api/accounts'),
+        fetchWithAuth('/api/notifications'),
       ]);
 
       if (resSum.ok) setSummary(await resSum.json());
@@ -110,6 +115,10 @@ export default function MobileDashboardScreen() {
           setAccounts(accData);
           if (accData.length > 0) setSelectedPayAccountId(accData[0].id);
         }
+      }
+      if (resNotif.ok) {
+        const notifData = await resNotif.json();
+        if (Array.isArray(notifData)) setNotifications(notifData);
       }
     } catch (err) {
       console.log('Error conectando con la API en producción:', err);
@@ -596,17 +605,22 @@ export default function MobileDashboardScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={{ maxHeight: 300 }}>
-              {reminders
-                .filter((r) => !r.isPaid)
-                .map((r) => (
-                  <View key={r.id} style={styles.notifItem}>
-                    <Text style={styles.notifItemTitle}>⏰ Recordatorio Próximo: {r.title}</Text>
-                    <Text style={styles.notifItemBody}>
-                      El pago de RD${r.amount.toLocaleString()} vence el {r.dueDate}.
+            <ScrollView style={{ maxHeight: 320 }}>
+              {notifications.length === 0 ? (
+                <Text style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', marginVertical: 20 }}>
+                  No tienes notificaciones pendientes.
+                </Text>
+              ) : (
+                notifications.map((n) => (
+                  <View key={n.id} style={[styles.notifItem, n.isRead && { opacity: 0.5 }]}>
+                    <Text style={styles.notifItemTitle}>{n.title}</Text>
+                    <Text style={styles.notifItemBody}>{n.body}</Text>
+                    <Text style={{ color: '#64748b', fontSize: 9, marginTop: 4 }}>
+                      {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </Text>
                   </View>
-                ))}
+                ))
+              )}
             </ScrollView>
           </View>
         </View>

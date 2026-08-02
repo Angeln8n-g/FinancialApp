@@ -94,6 +94,37 @@ export default function MobileFamilyScreen() {
     }
   };
 
+  const handleJoinByCode = async () => {
+    Alert.prompt(
+      '🔑 Unirme con Código',
+      'Ingresa el código de invitación que te compartió el administrador (ej: HIQ-A7X9):',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Unirme al Hogar',
+          onPress: async (code?: string) => {
+            if (!code || !code.trim()) return;
+            try {
+              const res = await fetchWithAuth(`/api/household/join/${code.trim().toUpperCase()}`, {
+                method: 'POST',
+              });
+              const data = await res.json();
+              if (res.ok) {
+                Alert.alert('🎉 ¡Éxito!', 'Te has unido correctamente al hogar.');
+                loadData();
+              } else {
+                Alert.alert('Error', data.message || 'Código no válido o expirado.');
+              }
+            } catch (e) {
+              Alert.alert('Error', 'No se pudo procesar el código de invitación.');
+            }
+          },
+        },
+      ],
+      'plain-text'
+    );
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.headerRow}>
@@ -101,9 +132,14 @@ export default function MobileFamilyScreen() {
           <Text style={styles.screenTitle}>Familia & Mesadas</Text>
           <Text style={styles.screenSub}>Gestión de integrantes y presupuestos</Text>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={() => setShowInviteModal(true)}>
-          <Text style={styles.addButtonText}>+ Invitar</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          <TouchableOpacity style={[styles.addButton, { backgroundColor: '#059669' }]} onPress={handleJoinByCode}>
+            <Text style={styles.addButtonText}>🔑 Código</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addButton} onPress={() => setShowInviteModal(true)}>
+            <Text style={styles.addButtonText}>+ Invitar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 👨‍👩‍👧‍👦 MIEMBROS DEL HOGAR */}

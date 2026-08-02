@@ -1,48 +1,64 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventsGateway: EventsGateway,
+  ) {}
 
-  async findAll(householdId: string) {
-    // Generar notificaciones dinámicas basadas en el estado del hogar
-    const notifications: any[] = [];
+  async getUserNotifications(userId: string) {
+    return this.prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+    });
+  }
 
-    // 1. Alertar sobre recordatorios próximos no pagados
-    const pendingReminders = await this.prisma.reminder.findMany({
-      where: { householdId, isPaid: false },
-      orderBy: { dueDate: 'asc' },
+  async createNotification(data: {
+    userId: string;
+    householdId: string;
+    title: string;
+    body: string;
+    type?: string;
+    metadata?: any;
+  }) {
+    const notif = await this.prisma.notification.create({
+      data: {
+        userId: data.userId,
+        householdId: data.householdId,
+        title: data.title,
+        body: data.body,
+        type: data.type || 'GENERAL',
+        metadata: data.metadata ? JSON.stringify(data.metadata) : null,
+      },
     });
 
-    pendingReminders.forEach((r) => {
-      notifications.push({
-        id: `rem-${r.id}`,
-        title: `⏰ Recordatorio Próximo: ${r.title}`,
-        message: `El pago de RD$${Number(r.amount).toLocaleString()} vence el ${new Date(r.dueDate).toLocaleDateString()}.`,
-        type: 'WARNING',
-        createdAt: r.createdAt,
-        isRead: false,
-      });
+    // Notificar por WebSockets en tiempo real
+    this.eventsGateway.notifyHouseholdChange(data.householdId, 'notification', 'CREATE');
+    return notif;
+  }
+
+  async markAsRead(id: string, userId: string) {
+    return this.prisma.notification.updateMany({
+      where: { id, userId },
+      data: { isRead: true },
     });
+  }
 
-    // 2. Alertar sobre suscripciones activas
-    const activeSubs = await this.prisma.subscription.findMany({
-      where: { householdId, isActive: true },
+  async markAllAsRead(userId: string) {
+    return this.prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
     });
+  }
 
-    if (activeSubs.length > 0) {
-      const totalCost = activeSubs.reduce((sum, s) => sum + Number(s.cost), 0);
-      notifications.push({
-        id: 'sub-summary',
-        title: '📺 Resumen de Suscripciones',
-        message: `Tienes ${activeSubs.length} suscripciones activas acumulando $${totalCost.toFixed(2)}/mes.`,
-        type: 'INFO',
-        createdAt: new Date(),
-        isRead: false,
-      });
-    }
-
-    return notifications;
+  async registerPushToken(userId: string, pushToken: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { pushToken },
+    });
   }
 }

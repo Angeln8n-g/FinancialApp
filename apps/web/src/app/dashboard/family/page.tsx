@@ -15,10 +15,12 @@ export default function FamilyPage() {
   const [household, setHousehold] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Formulario Invitación
+  // Formulario Invitación & Unirme
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('COLLABORATOR');
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [joinLoading, setJoinLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Formulario Crear Mesada
@@ -307,6 +309,39 @@ export default function FamilyPage() {
     }
   };
 
+  const handleJoinByCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!joinCode.trim()) return;
+
+    setJoinLoading(true);
+    setMsg(null);
+    const token = getToken();
+
+    try {
+      const formattedCode = joinCode.trim().toUpperCase();
+      const res = await fetch(`${API_URL}/api/household/join/${formattedCode}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Código de invitación inválido o expirado');
+      }
+
+      setMsg({ type: 'success', text: '🎉 ¡Te has unido con éxito al hogar!' });
+      setJoinCode('');
+      fetchMembers();
+      fetchActivity();
+    } catch (err: any) {
+      setMsg({ type: 'error', text: err.message });
+    } finally {
+      setJoinLoading(false);
+    }
+  };
+
   const handleRespondRequest = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
     const token = getToken();
     try {
@@ -427,7 +462,7 @@ export default function FamilyPage() {
           </form>
 
           {lastInviteLink && (
-            <div className="p-3 bg-purple-950/40 border border-purple-500/40 rounded-xl flex items-center justify-between">
+            <div className="p-3 mt-4 bg-purple-950/40 border border-purple-500/40 rounded-xl flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold text-purple-400 uppercase">Enlace Directo de Invitación</span>
                 <p className="text-xs text-purple-200 font-mono font-bold">{lastInviteLink}</p>
@@ -443,6 +478,31 @@ export default function FamilyPage() {
               </button>
             </div>
           )}
+
+          {/* Formulario Unirme a un Hogar con Código */}
+          <div className="pt-6 mt-6 border-t border-slate-800">
+            <h3 className="text-sm font-bold text-white mb-1">🔑 ¿Te invitaron a un Hogar? Únete con un Código</h3>
+            <p className="text-xs text-slate-400 mb-3">
+              Ingresa el código de 6 caracteres que te compartió el administrador (ej: <code className="text-purple-300 font-mono">HIQ-A7X9</code>).
+            </p>
+            <form onSubmit={handleJoinByCode} className="flex gap-3 max-w-md">
+              <input
+                type="text"
+                required
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value)}
+                placeholder="HIQ-XXXXXX"
+                className="flex-1 px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-purple-500 uppercase"
+              />
+              <button
+                type="submit"
+                disabled={joinLoading || !joinCode.trim()}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl cursor-pointer disabled:opacity-50"
+              >
+                {joinLoading ? 'Uniéndote...' : 'Unirme al Hogar'}
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* Lista de Miembros */}

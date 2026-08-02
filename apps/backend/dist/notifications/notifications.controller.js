@@ -22,8 +22,17 @@ let NotificationsController = class NotificationsController {
     constructor(notificationsService) {
         this.notificationsService = notificationsService;
     }
-    async findAll(user) {
-        return this.notificationsService.findAll(user.householdId);
+    async getUserNotifications(user) {
+        return this.notificationsService.getUserNotifications(user.userId);
+    }
+    async markAsRead(user, id) {
+        return this.notificationsService.markAsRead(id, user.userId);
+    }
+    async markAllAsRead(user) {
+        return this.notificationsService.markAllAsRead(user.userId);
+    }
+    async registerPushToken(user, body) {
+        return this.notificationsService.registerPushToken(user.userId, body.pushToken);
     }
 };
 exports.NotificationsController = NotificationsController;
@@ -33,7 +42,30 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
     __metadata("design:returntype", Promise)
-], NotificationsController.prototype, "findAll", null);
+], NotificationsController.prototype, "getUserNotifications", null);
+__decorate([
+    (0, common_1.Put)(':id/read'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
+    __metadata("design:returntype", Promise)
+], NotificationsController.prototype, "markAsRead", null);
+__decorate([
+    (0, common_1.Put)('read-all'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
+    __metadata("design:returntype", Promise)
+], NotificationsController.prototype, "markAllAsRead", null);
+__decorate([
+    (0, common_1.Post)('register-token'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
+    __metadata("design:returntype", Promise)
+], NotificationsController.prototype, "registerPushToken", null);
 exports.NotificationsController = NotificationsController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('api/notifications'),

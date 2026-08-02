@@ -17,6 +17,7 @@ export declare class AllowancesService {
                 passwordHash: string | null;
                 createdAt: Date;
                 updatedAt: Date;
+                pushToken: string | null;
             };
         } & {
             id: string;
@@ -76,6 +77,26 @@ export declare class AllowancesService {
         spentAmount: import("@prisma/client/runtime/library").Decimal;
     }>;
     createRequest(householdId: string, memberId: string, allowanceId: string, amount: number, reason: string): Promise<{
+        member: {
+            user: {
+                email: string;
+                id: string;
+                fullName: string | null;
+                avatarUrl: string | null;
+                passwordHash: string | null;
+                createdAt: Date;
+                updatedAt: Date;
+                pushToken: string | null;
+            };
+        } & {
+            id: string;
+            userId: string;
+            householdId: string;
+            role: import(".prisma/client").$Enums.Role;
+            customTitle: string | null;
+            joinedAt: Date;
+        };
+    } & {
         id: string;
         createdAt: Date;
         householdId: string;
@@ -105,6 +126,7 @@ export declare class AllowancesService {
                 passwordHash: string | null;
                 createdAt: Date;
                 updatedAt: Date;
+                pushToken: string | null;
             };
         } & {
             id: string;
