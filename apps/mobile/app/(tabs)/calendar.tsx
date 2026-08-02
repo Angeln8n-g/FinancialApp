@@ -187,7 +187,7 @@ export default function MobileCalendarScreen() {
               ) : (
                 dayTxs.map((tx) => (
                   <View key={tx.id} style={styles.detailCard}>
-                    <View>
+                    <View style={{ flex: 1, marginRight: 8 }}>
                       <Text style={[styles.detailTitle, tx.isVoided && { textDecorationLine: 'line-through' }]}>
                         {tx.description || tx.title || 'Movimiento'}
                       </Text>
