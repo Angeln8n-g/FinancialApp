@@ -38,13 +38,47 @@ export default function MobileDashboardScreen() {
   const [showPayModal, setShowPayModal] = useState(false);
   const [showEditReminderModal, setShowEditReminderModal] = useState(false);
   const [showVoidTxModal, setShowVoidTxModal] = useState(false);
+  const [showEditTxModal, setShowEditTxModal] = useState(false);
   const [payingReminder, setPayingReminder] = useState<any>(null);
   const [selectedPayAccountId, setSelectedPayAccountId] = useState('');
   const [selectedReminder, setSelectedReminder] = useState<any>(null);
   const [selectedTxForVoid, setSelectedTxForVoid] = useState<any>(null);
+  const [selectedTxForEdit, setSelectedTxForEdit] = useState<any>(null);
   const [voidReason, setVoidReason] = useState('');
   const [editTitle, setEditTitle] = useState('');
   const [editAmount, setEditAmount] = useState('');
+  const [editTxDescription, setEditTxDescription] = useState('');
+  const [editTxAmount, setEditTxAmount] = useState('');
+  const [editTxReason, setEditTxReason] = useState('');
+
+  const handleConfirmEditTx = async () => {
+    if (!selectedTxForEdit || !editTxReason.trim()) {
+      Alert.alert('Error', 'Debes ingresar el motivo obligatorio de edición.');
+      return;
+    }
+    try {
+      const res = await fetchWithAuth(`/api/transactions/${selectedTxForEdit.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: editTxDescription.trim(),
+          amount: parseFloat(editTxAmount),
+          editReason: editTxReason.trim(),
+        }),
+      });
+      if (res.ok) {
+        setShowEditTxModal(false);
+        setSelectedTxForEdit(null);
+        Alert.alert('✏️ Movimiento Editado', 'La transacción fue actualizada con su motivo de auditoría.');
+        loadData();
+      } else {
+        const err = await res.json();
+        Alert.alert('Error', err.message || 'No se pudo editar el movimiento.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Error de conexión al editar.');
+    }
+  };
 
   const handleConfirmVoidTx = async () => {
     if (!selectedTxForVoid || !voidReason.trim()) {
@@ -579,16 +613,31 @@ export default function MobileDashboardScreen() {
             </Text>
 
             {!tx.isVoided && (
-              <TouchableOpacity
-                onPress={() => {
-                  setSelectedTxForVoid(tx);
-                  setVoidReason('');
-                  setShowVoidTxModal(true);
-                }}
-                style={{ padding: 4, borderRadius: 6, backgroundColor: '#1e293b' }}
-              >
-                <Text style={{ fontSize: 11 }}>🚫</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedTxForEdit(tx);
+                    setEditTxDescription(tx.title || tx.description || '');
+                    setEditTxAmount(String(tx.amount || ''));
+                    setEditTxReason('');
+                    setShowEditTxModal(true);
+                  }}
+                  style={{ padding: 4, borderRadius: 6, backgroundColor: '#1e293b' }}
+                >
+                  <Text style={{ fontSize: 11 }}>✏️</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedTxForVoid(tx);
+                    setVoidReason('');
+                    setShowVoidTxModal(true);
+                  }}
+                  style={{ padding: 4, borderRadius: 6, backgroundColor: '#1e293b' }}
+                >
+                  <Text style={{ fontSize: 11 }}>🚫</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         </View>
@@ -734,7 +783,46 @@ export default function MobileDashboardScreen() {
                 <Text style={styles.cancelBtnText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.saveBtn, { backgroundColor: '#f43f5e' }]} onPress={handleConfirmVoidTx}>
-                <Text style={styles.saveBtnText}>🚫 Anular</Text>
+                <Text style={styles.saveBtnText}>Confirmar Anulación</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ✏️ MODAL EDITAR TRANSACCIÓN */}
+      <Modal visible={showEditTxModal} transparent animationType="slide">
+        <View style={styles.modalBg}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>✏️ Editar Transacción</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={editTxDescription}
+              onChangeText={setEditTxDescription}
+              placeholder="Descripción / Concepto"
+              placeholderTextColor="#94a3b8"
+            />
+            <TextInput
+              style={styles.modalInput}
+              value={editTxAmount}
+              onChangeText={setEditTxAmount}
+              placeholder="Monto ($)"
+              keyboardType="numeric"
+              placeholderTextColor="#94a3b8"
+            />
+            <TextInput
+              style={styles.modalInput}
+              value={editTxReason}
+              onChangeText={setEditTxReason}
+              placeholder="Motivo del cambio (Obligatorio) *"
+              placeholderTextColor="#94a3b8"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowEditTxModal(false)}>
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: '#f59e0b' }]} onPress={handleConfirmEditTx}>
+                <Text style={styles.saveBtnText}>Guardar Edición</Text>
               </TouchableOpacity>
             </View>
           </View>

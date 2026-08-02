@@ -96,4 +96,7 @@ export declare class HouseholdService {
         role: import(".prisma/client").$Enums.Role;
         customTitle: string | null;
     }>;
+    removeMember(currentUserId: string, householdId: string, memberId: string): Promise<{
+        message: string;
+    }>;
 }

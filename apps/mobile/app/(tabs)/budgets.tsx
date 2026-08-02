@@ -7,6 +7,11 @@ export default function MobileBudgetsScreen() {
   const [goals, setGoals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fmt = (n: any) => {
+    const val = Number(n);
+    return isNaN(val) ? '0' : val.toLocaleString();
+  };
+
   const loadData = async () => {
     try {
       const [resB, resG] = await Promise.all([
@@ -16,14 +21,14 @@ export default function MobileBudgetsScreen() {
 
       if (resB.ok) {
         const bData = await resB.json();
-        if (Array.isArray(bData) && bData.length > 0) {
+        if (Array.isArray(bData)) {
           setBudgets(
             bData.map((item: any) => ({
               id: item.id || item.category?.id,
-              name: item.category?.name || 'Categoría',
+              name: item.category?.name || item.name || 'Categoría',
               icon: item.category?.icon || '📊',
-              limit: item.limitAmount || 0,
-              spent: item.spentAmount || 0,
+              limit: Number(item.limitAmount || item.limit || 0),
+              spent: Number(item.spentAmount || item.spent || 0),
               percentage: Math.min(Math.round(item.percentage || 0), 100),
             }))
           );
@@ -32,16 +37,22 @@ export default function MobileBudgetsScreen() {
 
       if (resG.ok) {
         const gData = await resG.json();
-        if (Array.isArray(gData) && gData.length > 0) {
+        if (Array.isArray(gData)) {
           setGoals(
-            gData.map((item: any) => ({
-              id: item.id,
-              name: item.name,
-              target: item.targetAmount || 0,
-              current: item.currentAmount || 0,
-              percentage: Math.min(Math.round(((item.currentAmount || 0) / (item.targetAmount || 1)) * 100), 100),
-              targetDate: item.targetDate ? item.targetDate.split('T')[0] : '2026-12-31',
-            }))
+            gData.map((item: any) => {
+              const target = Number(item.targetAmount || item.target || 0);
+              const current = Number(item.currentAmount || item.current || 0);
+              const remaining = Math.max(0, target - current);
+              return {
+                id: item.id,
+                name: item.name || 'Meta de Ahorro',
+                target,
+                current,
+                percentage: Math.min(Math.round((current / (target || 1)) * 100), 100),
+                suggested: Math.round(remaining / 6),
+                targetDate: item.targetDate ? item.targetDate.split('T')[0] : '2026-12-31',
+              };
+            })
           );
         }
       }
@@ -95,56 +106,64 @@ export default function MobileBudgetsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 📊 PRESTUPUESTOS MENSUALES */}
+      {/* 📊 PRESUPUESTOS MENSUALES */}
       <Text style={styles.sectionHeader}>Presupuestos Mensuales</Text>
-      {budgets.map((b) => (
-        <View key={b.id} style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderLeft}>
-              <Text style={styles.cardIcon}>{b.icon}</Text>
-              <View>
-                <Text style={styles.cardTitle}>{b.name}</Text>
-                <Text style={styles.cardSub}>
-                  Consumo: RD${b.spent.toLocaleString()} / RD${b.limit.toLocaleString()}
-                </Text>
+      {budgets.length === 0 ? (
+        <Text style={{ color: '#94a3b8', fontSize: 12, marginVertical: 8 }}>No hay presupuestos activos este mes.</Text>
+      ) : (
+        budgets.map((b) => (
+          <View key={b.id} style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardHeaderLeft}>
+                <Text style={styles.cardIcon}>{b.icon}</Text>
+                <View>
+                  <Text style={styles.cardTitle}>{b.name}</Text>
+                  <Text style={styles.cardSub}>
+                    Consumo: RD${fmt(b.spent)} / RD${fmt(b.limit)}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.percentBadge}>
+                <Text style={styles.percentText}>{b.percentage}%</Text>
               </View>
             </View>
-            <View style={styles.percentBadge}>
-              <Text style={styles.percentText}>{b.percentage}%</Text>
+
+            {/* Progress Bar */}
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, { width: `${Math.max(b.percentage, 5)}%` }]} />
             </View>
           </View>
-
-          {/* Progress Bar */}
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: `${Math.max(b.percentage, 5)}%` }]} />
-          </View>
-        </View>
-      ))}
+        ))
+      )}
 
       {/* 🎯 METAS DE AHORRO */}
       <Text style={styles.sectionHeader}>Metas de Ahorro Familiares</Text>
-      {goals.map((g) => (
-        <View key={g.id} style={[styles.card, styles.goalCard]}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>{g.name}</Text>
-            <Text style={styles.goalBadge}>{g.percentage}%</Text>
-          </View>
+      {goals.length === 0 ? (
+        <Text style={{ color: '#94a3b8', fontSize: 12, marginVertical: 8 }}>No hay metas de ahorro registradas.</Text>
+      ) : (
+        goals.map((g) => (
+          <View key={g.id} style={[styles.card, styles.goalCard]}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>{g.name}</Text>
+              <Text style={styles.goalBadge}>{g.percentage}%</Text>
+            </View>
 
-          <Text style={styles.goalCurrent}>
-            RD${g.current.toLocaleString()}{' '}
-            <Text style={styles.goalTarget}>/ RD${g.target.toLocaleString()}</Text>
-          </Text>
+            <Text style={styles.goalCurrent}>
+              RD${fmt(g.current)}{' '}
+              <Text style={styles.goalTarget}>/ RD${fmt(g.target)}</Text>
+            </Text>
 
-          <View style={styles.goalFooter}>
-            <Text style={styles.goalFooterText}>Ahorro mensual sugerido:</Text>
-            <Text style={styles.goalSuggested}>RD${g.suggested.toLocaleString()}/mes</Text>
-          </View>
+            <View style={styles.goalFooter}>
+              <Text style={styles.goalFooterText}>Ahorro mensual sugerido:</Text>
+              <Text style={styles.goalSuggested}>RD${fmt(g.suggested)}/mes</Text>
+            </View>
 
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, styles.goalProgressFill, { width: `${Math.max(g.percentage, 5)}%` }]} />
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, styles.goalProgressFill, { width: `${Math.max(g.percentage, 5)}%` }]} />
+            </View>
           </View>
-        </View>
-      ))}
+        ))
+      )}
 
       {/* Modal Crear Presupuesto */}
       <Modal visible={showModal} transparent animationType="slide">

@@ -44,6 +44,9 @@ let HouseholdController = class HouseholdController {
     async updateCustomTitle(user, memberId, body) {
         return this.householdService.updateCustomTitle(user.userId, user.householdId, memberId, body.customTitle);
     }
+    async removeMember(user, memberId) {
+        return this.householdService.removeMember(user.userId, user.householdId, memberId);
+    }
 };
 exports.HouseholdController = HouseholdController;
 __decorate([
@@ -101,6 +104,14 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
     __metadata("design:returntype", Promise)
 ], HouseholdController.prototype, "updateCustomTitle", null);
+__decorate([
+    (0, common_1.Delete)('members/:id'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
+    __metadata("design:returntype", Promise)
+], HouseholdController.prototype, "removeMember", null);
 exports.HouseholdController = HouseholdController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('api/household'),

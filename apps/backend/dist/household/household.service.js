@@ -231,6 +231,41 @@ let HouseholdService = class HouseholdService {
         });
         return updated;
     }
+    async removeMember(currentUserId, householdId, memberId) {
+        const currentMember = await this.prisma.householdMember.findUnique({
+            where: {
+                userId_householdId: {
+                    userId: currentUserId,
+                    householdId,
+                },
+            },
+        });
+        if (!currentMember || currentMember.role !== client_1.Role.ADMIN) {
+            throw new common_1.ForbiddenException('Solo los administradores pueden eliminar integrantes');
+        }
+        const memberToDelete = await this.prisma.householdMember.findFirst({
+            where: { id: memberId, householdId },
+            include: { user: true },
+        });
+        if (!memberToDelete) {
+            throw new common_1.NotFoundException('Miembro no encontrado en este hogar');
+        }
+        if (memberToDelete.userId === currentUserId) {
+            throw new common_1.BadRequestException('No puedes eliminarte a ti mismo del hogar');
+        }
+        await this.prisma.householdMember.delete({
+            where: { id: memberId },
+        });
+        await this.prisma.auditLog.create({
+            data: {
+                userId: currentUserId,
+                householdId,
+                action: 'REMOVE_MEMBER',
+                details: `Eliminó a ${memberToDelete.user.fullName || memberToDelete.user.email} del hogar`,
+            },
+        });
+        return { message: 'Integrante eliminado correctamente' };
+    }
 };
 exports.HouseholdService = HouseholdService;
 exports.HouseholdService = HouseholdService = __decorate([

@@ -404,6 +404,31 @@ export default function FamilyPage() {
     }
   };
 
+  const handleRemoveMember = async (memberId: string, memberName: string) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar a ${memberName} de este hogar?`)) return;
+
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/api/household/members/${memberId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        fetchMembers();
+        fetchActivity();
+        alert('Integrante eliminado del hogar correctamente.');
+      } else {
+        const data = await res.json();
+        alert(data.message || 'No se pudo eliminar al integrante.');
+      }
+    } catch (err) {
+      console.error('Error al eliminar integrante:', err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0f172a] text-slate-100 flex items-center justify-center">
@@ -558,6 +583,16 @@ export default function FamilyPage() {
                     <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${m.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : m.role === 'DEPENDENT' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>
                       {m.role === 'DEPENDENT' ? '👦 DEPENDIENTE' : m.role}
                     </span>
+                  )}
+
+                  {household?.role === 'ADMIN' && m.userId !== currentUser?.id && (
+                    <button
+                      onClick={() => handleRemoveMember(m.id, m.fullName || m.email)}
+                      className="p-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer"
+                      title="Eliminar Integrante del Hogar"
+                    >
+                      🗑️
+                    </button>
                   )}
                 </div>
               </div>

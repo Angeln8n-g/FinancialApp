@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { HouseholdService } from './household.service';
 import { InviteMemberDto, UpdateRoleDto } from './household.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -50,5 +50,10 @@ export class HouseholdController {
     @Body() body: { customTitle: string },
   ) {
     return this.householdService.updateCustomTitle(user.userId, user.householdId, memberId, body.customTitle);
+  }
+
+  @Delete('members/:id')
+  async removeMember(@CurrentUser() user: UserPayload, @Param('id') memberId: string) {
+    return this.householdService.removeMember(user.userId, user.householdId, memberId);
   }
 }

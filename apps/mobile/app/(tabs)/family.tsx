@@ -125,6 +125,36 @@ export default function MobileFamilyScreen() {
     );
   };
 
+  const handleRemoveMember = async (memberId: string, memberName: string) => {
+    Alert.alert(
+      'Eliminar Integrante',
+      `¿Deseas eliminar a ${memberName} de este hogar?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await fetchWithAuth(`/api/household/members/${memberId}`, {
+                method: 'DELETE',
+              });
+              if (res.ok) {
+                Alert.alert('Eliminado', 'El integrante fue eliminado del hogar.');
+                loadData();
+              } else {
+                const err = await res.json();
+                Alert.alert('Error', err.message || 'No se pudo eliminar al integrante.');
+              }
+            } catch (e) {
+              Alert.alert('Error', 'No se pudo eliminar al integrante.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.headerRow}>
@@ -155,8 +185,18 @@ export default function MobileFamilyScreen() {
               <Text style={styles.memberEmail}>{m.email}</Text>
             </View>
           </View>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{m.role}</Text>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleText}>{m.role}</Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => handleRemoveMember(m.id, m.fullName || m.email)}
+              style={{ padding: 6, borderRadius: 8, backgroundColor: 'rgba(244, 63, 94, 0.15)' }}
+            >
+              <Text style={{ fontSize: 12 }}>🗑️</Text>
+            </TouchableOpacity>
           </View>
         </View>
       ))}

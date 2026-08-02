@@ -99,4 +99,7 @@ export declare class HouseholdController {
         role: import(".prisma/client").$Enums.Role;
         customTitle: string | null;
     }>;
+    removeMember(user: UserPayload, memberId: string): Promise<{
+        message: string;
+    }>;
 }
