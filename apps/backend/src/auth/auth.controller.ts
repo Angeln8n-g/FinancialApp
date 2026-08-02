@@ -23,4 +23,10 @@ export class AuthController {
   async getMe(@CurrentUser() user: UserPayload) {
     return this.authService.getMe(user.userId, user.householdId);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('switch-household')
+  async switchHousehold(@CurrentUser() user: UserPayload, @Body() body: { householdId: string }) {
+    return this.authService.switchHousehold(user.userId, body.householdId);
+  }
 }

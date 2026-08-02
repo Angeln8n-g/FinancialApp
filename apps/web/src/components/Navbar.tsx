@@ -113,6 +113,78 @@ function NotificationBell() {
   );
 }
 
+function HouseholdSelector({ currentHousehold }: { currentHousehold?: any }) {
+  const [availableHouseholds, setAvailableHouseholds] = useState<any[]>([]);
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('hogariq_token') : null;
+
+  useEffect(() => {
+    const fetchMe = async () => {
+      const token = getToken();
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.availableHouseholds) setAvailableHouseholds(data.availableHouseholds);
+        }
+      } catch (e) {
+        console.log('Error fetching available households:', e);
+      }
+    };
+    fetchMe();
+  }, []);
+
+  const handleSwitchHousehold = async (targetHouseholdId: string) => {
+    const token = getToken();
+    if (!token || targetHouseholdId === currentHousehold?.id) return;
+    try {
+      const res = await fetch(`${API_URL}/api/auth/switch-household`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ householdId: targetHouseholdId }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('hogariq_token', data.accessToken);
+        localStorage.setItem('hogariq_user', JSON.stringify(data.user));
+        localStorage.setItem('hogariq_household', JSON.stringify(data.household));
+        window.location.reload();
+      }
+    } catch (e) {
+      console.error('Error cambiando de hogar:', e);
+    }
+  };
+
+  if (availableHouseholds.length <= 1) {
+    return (
+      <span className="hidden xl:inline-block px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-[11px] text-purple-300 font-bold">
+        🏠 {currentHousehold?.name || 'Hogar'}
+      </span>
+    );
+  }
+
+  return (
+    <select
+      value={currentHousehold?.id || ''}
+      onChange={(e) => handleSwitchHousehold(e.target.value)}
+      className="hidden xl:inline-block px-2.5 py-1 rounded-xl bg-purple-950/60 border border-purple-500/40 text-[11px] text-purple-200 font-bold focus:outline-none cursor-pointer"
+    >
+      {availableHouseholds.map((h) => (
+        <option key={h.id} value={h.id} className="bg-slate-900 text-white">
+          🏠 {h.name} ({h.role})
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export default function Navbar({
   user,
   household,
@@ -148,9 +220,7 @@ export default function Navbar({
           <div className="flex items-center space-x-4 lg:space-x-6">
             <Link href="/dashboard" className="flex items-center space-x-2">
               <Logo size="md" showText={true} />
-              <span className="hidden xl:inline-block px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-[11px] text-slate-300">
-                {household?.name || 'Hogar'}
-              </span>
+              <HouseholdSelector currentHousehold={household} />
             </Link>
 
             {/* Desktop Navigation Links */}

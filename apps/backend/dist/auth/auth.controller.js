@@ -32,6 +32,9 @@ let AuthController = class AuthController {
     async getMe(user) {
         return this.authService.getMe(user.userId, user.householdId);
     }
+    async switchHousehold(user, body) {
+        return this.authService.switchHousehold(user.userId, body.householdId);
+    }
 };
 exports.AuthController = AuthController;
 __decorate([
@@ -56,6 +59,15 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "getMe", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Post)('switch-household'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "switchHousehold", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('api/auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])

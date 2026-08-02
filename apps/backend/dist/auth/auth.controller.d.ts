@@ -17,6 +17,12 @@ export declare class AuthController {
             name: string;
             role: import(".prisma/client").$Enums.Role;
         } | null;
+        availableHouseholds: {
+            id: string;
+            name: string;
+            role: import(".prisma/client").$Enums.Role;
+            memberCount: number;
+        }[];
     }>;
     register(registerDto: RegisterDto): Promise<{
         accessToken: string;
@@ -29,7 +35,7 @@ export declare class AuthController {
             id: string;
             name: string;
             role: import(".prisma/client").$Enums.Role;
-        };
+        } | null;
     }>;
     getMe(user: UserPayload): Promise<{
         user: {
@@ -43,5 +49,27 @@ export declare class AuthController {
             name: string;
             role: import(".prisma/client").$Enums.Role;
         } | null;
+        availableHouseholds: {
+            id: string;
+            name: string;
+            role: import(".prisma/client").$Enums.Role;
+            memberCount: number;
+        }[];
+    }>;
+    switchHousehold(user: UserPayload, body: {
+        householdId: string;
+    }): Promise<{
+        accessToken: string;
+        user: {
+            id: string;
+            email: string;
+            fullName: string | null;
+            avatarUrl: string | null;
+        };
+        household: {
+            id: string;
+            name: string;
+            role: import(".prisma/client").$Enums.Role;
+        };
     }>;
 }

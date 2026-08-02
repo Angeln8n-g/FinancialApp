@@ -24,14 +24,19 @@ export class AuthService {
       include: {
         memberships: {
           include: {
-            household: true,
+            household: {
+              include: {
+                members: true,
+              },
+            },
           },
+          orderBy: { joinedAt: 'desc' },
         },
       },
     });
 
     if (!user || !user.passwordHash) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException('Credenciales inválidas o cuenta no activada');
     }
 
     const hashedPassword = this.hashPassword(password);
@@ -39,7 +44,9 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const primaryMembership = user.memberships[0];
+    // Seleccionar la membresía compartida con más miembros o la más reciente
+    const sharedMembership = user.memberships.find(m => m.household.members.length > 1);
+    const primaryMembership = sharedMembership || user.memberships[0];
     const householdId = primaryMembership ? primaryMembership.householdId : null;
 
     const payload = {
@@ -63,6 +70,12 @@ export class AuthService {
         name: primaryMembership.household.name,
         role: primaryMembership.role,
       } : null,
+      availableHouseholds: user.memberships.map(m => ({
+        id: m.household.id,
+        name: m.household.name,
+        role: m.role,
+        memberCount: m.household.members.length,
+      })),
     };
   }
 
@@ -71,14 +84,61 @@ export class AuthService {
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
+      include: {
+        memberships: {
+          include: { household: true },
+        },
+      },
     });
-
-    if (existingUser) {
-      throw new ConflictException('El correo ya se encuentra registrado');
-    }
 
     const passwordHash = this.hashPassword(password);
 
+    // Caso A: Usuario fue pre-creado vía invitación sin clave aún
+    if (existingUser) {
+      if (existingUser.passwordHash) {
+        throw new ConflictException('El correo ya se encuentra registrado. Por favor inicia sesión.');
+      }
+
+      // Activar cuenta del usuario invitado
+      const updatedUser = await this.prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          fullName: fullName || existingUser.fullName,
+          passwordHash,
+        },
+        include: {
+          memberships: {
+            include: { household: true },
+            orderBy: { joinedAt: 'desc' },
+          },
+        },
+      });
+
+      const primaryMembership = updatedUser.memberships[0];
+      const payload = {
+        sub: updatedUser.id,
+        email: updatedUser.email,
+        householdId: primaryMembership ? primaryMembership.householdId : null,
+      };
+
+      const token = this.jwtService.sign(payload);
+
+      return {
+        accessToken: token,
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          fullName: updatedUser.fullName,
+        },
+        household: primaryMembership?.household ? {
+          id: primaryMembership.household.id,
+          name: primaryMembership.household.name,
+          role: primaryMembership.role,
+        } : null,
+      };
+    }
+
+    // Caso B: Nuevo usuario independiente
     const result = await this.prisma.$transaction(async (tx) => {
       const household = await tx.household.create({
         data: {
@@ -147,14 +207,59 @@ export class AuthService {
     };
   }
 
+  async switchHousehold(userId: string, targetHouseholdId: string) {
+    const membership = await this.prisma.householdMember.findUnique({
+      where: {
+        userId_householdId: {
+          userId,
+          householdId: targetHouseholdId,
+        },
+      },
+      include: {
+        user: true,
+        household: true,
+      },
+    });
+
+    if (!membership) {
+      throw new UnauthorizedException('No perteneces a este hogar');
+    }
+
+    const payload = {
+      sub: membership.userId,
+      email: membership.user.email,
+      householdId: targetHouseholdId,
+    };
+
+    const token = this.jwtService.sign(payload);
+
+    return {
+      accessToken: token,
+      user: {
+        id: membership.user.id,
+        email: membership.user.email,
+        fullName: membership.user.fullName,
+        avatarUrl: membership.user.avatarUrl,
+      },
+      household: {
+        id: membership.household.id,
+        name: membership.household.name,
+        role: membership.role,
+      },
+    };
+  }
+
   async getMe(userId: string, householdId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
         memberships: {
           include: {
-            household: true,
+            household: {
+              include: { members: true },
+            },
           },
+          orderBy: { joinedAt: 'desc' },
         },
       },
     });
@@ -177,6 +282,12 @@ export class AuthService {
         name: currentMembership.household.name,
         role: currentMembership.role,
       } : null,
+      availableHouseholds: user.memberships.map(m => ({
+        id: m.household.id,
+        name: m.household.name,
+        role: m.role,
+        memberCount: m.household.members.length,
+      })),
     };
   }
 }

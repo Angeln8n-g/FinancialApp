@@ -21,11 +21,11 @@ export declare class AllowancesService {
             };
         } & {
             id: string;
+            joinedAt: Date;
             userId: string;
             householdId: string;
             role: import(".prisma/client").$Enums.Role;
             customTitle: string | null;
-            joinedAt: Date;
         };
         id: string;
         createdAt: Date;
@@ -90,11 +90,11 @@ export declare class AllowancesService {
             };
         } & {
             id: string;
+            joinedAt: Date;
             userId: string;
             householdId: string;
             role: import(".prisma/client").$Enums.Role;
             customTitle: string | null;
-            joinedAt: Date;
         };
     } & {
         id: string;
@@ -130,11 +130,11 @@ export declare class AllowancesService {
             };
         } & {
             id: string;
+            joinedAt: Date;
             userId: string;
             householdId: string;
             role: import(".prisma/client").$Enums.Role;
             customTitle: string | null;
-            joinedAt: Date;
         };
     } & {
         id: string;

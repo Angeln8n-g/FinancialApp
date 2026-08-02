@@ -65,19 +65,25 @@ let AuthService = class AuthService {
             include: {
                 memberships: {
                     include: {
-                        household: true,
+                        household: {
+                            include: {
+                                members: true,
+                            },
+                        },
                     },
+                    orderBy: { joinedAt: 'desc' },
                 },
             },
         });
         if (!user || !user.passwordHash) {
-            throw new common_1.UnauthorizedException('Credenciales inválidas');
+            throw new common_1.UnauthorizedException('Credenciales inválidas o cuenta no activada');
         }
         const hashedPassword = this.hashPassword(password);
         if (user.passwordHash !== hashedPassword) {
             throw new common_1.UnauthorizedException('Credenciales inválidas');
         }
-        const primaryMembership = user.memberships[0];
+        const sharedMembership = user.memberships.find(m => m.household.members.length > 1);
+        const primaryMembership = sharedMembership || user.memberships[0];
         const householdId = primaryMembership ? primaryMembership.householdId : null;
         const payload = {
             sub: user.id,
@@ -98,17 +104,63 @@ let AuthService = class AuthService {
                 name: primaryMembership.household.name,
                 role: primaryMembership.role,
             } : null,
+            availableHouseholds: user.memberships.map(m => ({
+                id: m.household.id,
+                name: m.household.name,
+                role: m.role,
+                memberCount: m.household.members.length,
+            })),
         };
     }
     async register(registerDto) {
         const { email, password, fullName } = registerDto;
         const existingUser = await this.prisma.user.findUnique({
             where: { email },
+            include: {
+                memberships: {
+                    include: { household: true },
+                },
+            },
         });
-        if (existingUser) {
-            throw new common_1.ConflictException('El correo ya se encuentra registrado');
-        }
         const passwordHash = this.hashPassword(password);
+        if (existingUser) {
+            if (existingUser.passwordHash) {
+                throw new common_1.ConflictException('El correo ya se encuentra registrado. Por favor inicia sesión.');
+            }
+            const updatedUser = await this.prisma.user.update({
+                where: { id: existingUser.id },
+                data: {
+                    fullName: fullName || existingUser.fullName,
+                    passwordHash,
+                },
+                include: {
+                    memberships: {
+                        include: { household: true },
+                        orderBy: { joinedAt: 'desc' },
+                    },
+                },
+            });
+            const primaryMembership = updatedUser.memberships[0];
+            const payload = {
+                sub: updatedUser.id,
+                email: updatedUser.email,
+                householdId: primaryMembership ? primaryMembership.householdId : null,
+            };
+            const token = this.jwtService.sign(payload);
+            return {
+                accessToken: token,
+                user: {
+                    id: updatedUser.id,
+                    email: updatedUser.email,
+                    fullName: updatedUser.fullName,
+                },
+                household: primaryMembership?.household ? {
+                    id: primaryMembership.household.id,
+                    name: primaryMembership.household.name,
+                    role: primaryMembership.role,
+                } : null,
+            };
+        }
         const result = await this.prisma.$transaction(async (tx) => {
             const household = await tx.household.create({
                 data: {
@@ -168,14 +220,54 @@ let AuthService = class AuthService {
             },
         };
     }
+    async switchHousehold(userId, targetHouseholdId) {
+        const membership = await this.prisma.householdMember.findUnique({
+            where: {
+                userId_householdId: {
+                    userId,
+                    householdId: targetHouseholdId,
+                },
+            },
+            include: {
+                user: true,
+                household: true,
+            },
+        });
+        if (!membership) {
+            throw new common_1.UnauthorizedException('No perteneces a este hogar');
+        }
+        const payload = {
+            sub: membership.userId,
+            email: membership.user.email,
+            householdId: targetHouseholdId,
+        };
+        const token = this.jwtService.sign(payload);
+        return {
+            accessToken: token,
+            user: {
+                id: membership.user.id,
+                email: membership.user.email,
+                fullName: membership.user.fullName,
+                avatarUrl: membership.user.avatarUrl,
+            },
+            household: {
+                id: membership.household.id,
+                name: membership.household.name,
+                role: membership.role,
+            },
+        };
+    }
     async getMe(userId, householdId) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
             include: {
                 memberships: {
                     include: {
-                        household: true,
+                        household: {
+                            include: { members: true },
+                        },
                     },
+                    orderBy: { joinedAt: 'desc' },
                 },
             },
         });
@@ -195,6 +287,12 @@ let AuthService = class AuthService {
                 name: currentMembership.household.name,
                 role: currentMembership.role,
             } : null,
+            availableHouseholds: user.memberships.map(m => ({
+                id: m.household.id,
+                name: m.household.name,
+                role: m.role,
+                memberCount: m.household.members.length,
+            })),
         };
     }
 };

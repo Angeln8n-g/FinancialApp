@@ -28,11 +28,11 @@ export declare class HouseholdController {
             };
         } & {
             id: string;
+            joinedAt: Date;
             userId: string;
             householdId: string;
             role: import(".prisma/client").$Enums.Role;
             customTitle: string | null;
-            joinedAt: Date;
         };
         invitationCode: string;
         inviteLink: string;
@@ -72,11 +72,11 @@ export declare class HouseholdController {
         };
     } & {
         id: string;
+        joinedAt: Date;
         userId: string;
         householdId: string;
         role: import(".prisma/client").$Enums.Role;
         customTitle: string | null;
-        joinedAt: Date;
     }>;
     updateCustomTitle(user: UserPayload, memberId: string, body: {
         customTitle: string;
@@ -93,10 +93,10 @@ export declare class HouseholdController {
         };
     } & {
         id: string;
+        joinedAt: Date;
         userId: string;
         householdId: string;
         role: import(".prisma/client").$Enums.Role;
         customTitle: string | null;
-        joinedAt: Date;
     }>;
 }
