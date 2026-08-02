@@ -161,6 +161,7 @@ export class TransactionsService {
     let monthlyExpense = 0;
 
     for (const t of monthlyTransactions) {
+      if (t.isVoided) continue; // 🚫 Ignorar transacciones anuladas del cálculo mensual
       if (t.type === TransactionType.INCOME) {
         monthlyIncome += Number(t.amount);
       } else if (t.type === TransactionType.EXPENSE) {
@@ -174,5 +175,158 @@ export class TransactionsService {
       monthlyExpense,
       accountsCount: accounts.length,
     };
+  }
+
+  async update(
+    householdId: string,
+    id: string,
+    dto: {
+      amount?: number;
+      description?: string;
+      categoryId?: string;
+      accountId?: string;
+      editReason: string;
+    },
+  ) {
+    if (!dto.editReason || !dto.editReason.trim()) {
+      throw new BadRequestException('Se requiere una razón/comentario obligatorio para editar la transacción');
+    }
+
+    const existing = await this.prisma.transaction.findFirst({
+      where: { id, householdId },
+    });
+    if (!existing) throw new NotFoundException('Transacción no encontrada');
+
+    if (existing.isVoided) {
+      throw new BadRequestException('No se puede editar una transacción anulada');
+    }
+
+    const oldAmount = Number(existing.amount);
+    const newAmount = dto.amount !== undefined ? dto.amount : oldAmount;
+    const oldAccountId = existing.accountId;
+    const newAccountId = dto.accountId || oldAccountId;
+
+    const updatedTx = await this.prisma.$transaction(async (tx) => {
+      // 1. Ajustar saldos de las cuentas por la diferencia o por cambio de cuenta
+      if (existing.type === TransactionType.EXPENSE) {
+        if (oldAccountId === newAccountId) {
+          const diff = newAmount - oldAmount;
+          if (diff !== 0) {
+            await tx.account.update({
+              where: { id: oldAccountId },
+              data: { balance: { decrement: diff } },
+            });
+          }
+        } else {
+          await tx.account.update({
+            where: { id: oldAccountId },
+            data: { balance: { increment: oldAmount } },
+          });
+          await tx.account.update({
+            where: { id: newAccountId },
+            data: { balance: { decrement: newAmount } },
+          });
+        }
+      } else if (existing.type === TransactionType.INCOME) {
+        if (oldAccountId === newAccountId) {
+          const diff = newAmount - oldAmount;
+          if (diff !== 0) {
+            await tx.account.update({
+              where: { id: oldAccountId },
+              data: { balance: { increment: diff } },
+            });
+          }
+        } else {
+          await tx.account.update({
+            where: { id: oldAccountId },
+            data: { balance: { decrement: oldAmount } },
+          });
+          await tx.account.update({
+            where: { id: newAccountId },
+            data: { balance: { increment: newAmount } },
+          });
+        }
+      }
+
+      // 2. Marcar transacción como editada con la razón
+      return tx.transaction.update({
+        where: { id },
+        data: {
+          ...(dto.amount !== undefined && { amount: newAmount }),
+          ...(dto.description !== undefined && { description: dto.description }),
+          ...(dto.categoryId !== undefined && { categoryId: dto.categoryId || null }),
+          ...(dto.accountId && { accountId: newAccountId }),
+          isEdited: true,
+          editReason: dto.editReason.trim(),
+          editedAt: new Date(),
+        },
+        include: {
+          account: true,
+          destinationAccount: true,
+          category: true,
+        },
+      });
+    });
+
+    this.eventsGateway.notifyHouseholdChange(householdId, 'transaction', 'UPDATE');
+    return updatedTx;
+  }
+
+  async voidTransaction(householdId: string, id: string, dto: { voidReason: string }) {
+    if (!dto.voidReason || !dto.voidReason.trim()) {
+      throw new BadRequestException('Se requiere un motivo obligatorio para anular el movimiento');
+    }
+
+    const existing = await this.prisma.transaction.findFirst({
+      where: { id, householdId },
+    });
+    if (!existing) throw new NotFoundException('Transacción no encontrada');
+
+    if (existing.isVoided) {
+      throw new BadRequestException('La transacción ya se encuentra anulada');
+    }
+
+    const amount = Number(existing.amount);
+
+    const voidedTx = await this.prisma.$transaction(async (tx) => {
+      // Revertir el impacto financiero
+      if (existing.type === TransactionType.EXPENSE) {
+        await tx.account.update({
+          where: { id: existing.accountId },
+          data: { balance: { increment: amount } },
+        });
+      } else if (existing.type === TransactionType.INCOME) {
+        await tx.account.update({
+          where: { id: existing.accountId },
+          data: { balance: { decrement: amount } },
+        });
+      } else if (existing.type === TransactionType.TRANSFER && existing.destinationAccountId) {
+        await tx.account.update({
+          where: { id: existing.accountId },
+          data: { balance: { increment: amount } },
+        });
+        await tx.account.update({
+          where: { id: existing.destinationAccountId },
+          data: { balance: { decrement: amount } },
+        });
+      }
+
+      return tx.transaction.update({
+        where: { id },
+        data: {
+          isVoided: true,
+          voidReason: dto.voidReason.trim(),
+          voidedAt: new Date(),
+        },
+        include: {
+          account: true,
+          destinationAccount: true,
+          category: true,
+        },
+      });
+    });
+
+    this.eventsGateway.notifyHouseholdChange(householdId, 'transaction', 'VOID');
+    return voidedTx;
   }
 }

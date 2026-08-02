@@ -34,11 +34,37 @@ export default function MobileDashboardScreen() {
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [showEditReminderModal, setShowEditReminderModal] = useState(false);
+  const [showVoidTxModal, setShowVoidTxModal] = useState(false);
   const [payingReminder, setPayingReminder] = useState<any>(null);
   const [selectedPayAccountId, setSelectedPayAccountId] = useState('');
   const [selectedReminder, setSelectedReminder] = useState<any>(null);
+  const [selectedTxForVoid, setSelectedTxForVoid] = useState<any>(null);
+  const [voidReason, setVoidReason] = useState('');
   const [editTitle, setEditTitle] = useState('');
   const [editAmount, setEditAmount] = useState('');
+
+  const handleConfirmVoidTx = async () => {
+    if (!selectedTxForVoid || !voidReason.trim()) return;
+    try {
+      const res = await fetchWithAuth(`/api/transactions/${selectedTxForVoid.id}/void`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voidReason: voidReason.trim() }),
+      });
+      if (res.ok) {
+        setShowVoidTxModal(false);
+        setSelectedTxForVoid(null);
+        setVoidReason('');
+        Alert.alert('🚫 Movimiento Anulado', 'El dinero se ha devuelto a la cuenta correctamente.');
+        loadData();
+      } else {
+        const err = await res.json();
+        Alert.alert('Error', err.message || 'No se pudo anular la transacción.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo anular el movimiento.');
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -428,15 +454,61 @@ export default function MobileDashboardScreen() {
       </View>
 
       {transactions.map((tx) => (
-        <View key={tx.id} style={styles.txCard}>
+        <View key={tx.id} style={[styles.txCard, tx.isVoided && { opacity: 0.5, backgroundColor: 'rgba(15, 23, 42, 0.6)' }]}>
           <View style={styles.txLeft}>
-            <Text style={styles.txIcon}>{tx.category.split(' ')[0]}</Text>
-            <View>
-              <Text style={styles.txTitle}>{tx.title}</Text>
-              <Text style={styles.txSub}>{tx.category}</Text>
+            <Text style={styles.txIcon}>{tx.category?.icon || (tx.type === 'INCOME' ? '💰' : '💸')}</Text>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <Text style={[styles.txTitle, tx.isVoided && { textDecorationLine: 'line-through', color: '#94a3b8' }]}>
+                  {tx.title || tx.description || 'Movimiento'}
+                </Text>
+                {tx.isVoided && (
+                  <View style={{ backgroundColor: 'rgba(244, 63, 94, 0.2)', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                    <Text style={{ color: '#fda4af', fontSize: 9, fontWeight: 'bold' }}>🚫 Anulado</Text>
+                  </View>
+                )}
+                {!tx.isVoided && tx.isEdited && (
+                  <View style={{ backgroundColor: 'rgba(245, 158, 11, 0.2)', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                    <Text style={{ color: '#fde047', fontSize: 9, fontWeight: 'bold' }}>✏️ Editado</Text>
+                  </View>
+                )}
+              </View>
+
+              <Text style={styles.txSub}>
+                {tx.account?.name || 'Cuenta'} {tx.category ? `• ${tx.category?.name || tx.category}` : ''}
+              </Text>
+
+              {tx.isEdited && tx.editReason && !tx.isVoided && (
+                <Text style={{ fontSize: 10, color: '#f59e0b', fontStyle: 'italic', marginTop: 2 }}>
+                  Motivo: "{tx.editReason}"
+                </Text>
+              )}
+              {tx.isVoided && tx.voidReason && (
+                <Text style={{ fontSize: 10, color: '#f43f5e', fontStyle: 'italic', marginTop: 2 }}>
+                  Motivo anulación: "{tx.voidReason}"
+                </Text>
+              )}
             </View>
           </View>
-          <Text style={styles.txAmount}>-${tx.amount.toFixed(2)}</Text>
+
+          <View style={{ alignItems: 'flex-end', gap: 4 }}>
+            <Text style={[styles.txAmount, tx.isVoided && { textDecorationLine: 'line-through', color: '#64748b' }, tx.type === 'INCOME' && !tx.isVoided && { color: '#34d399' }]}>
+              {tx.type === 'INCOME' ? '+' : '-'}${Number(tx.amount).toFixed(2)}
+            </Text>
+
+            {!tx.isVoided && (
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedTxForVoid(tx);
+                  setVoidReason('');
+                  setShowVoidTxModal(true);
+                }}
+                style={{ padding: 4, borderRadius: 6, backgroundColor: '#1e293b' }}
+              >
+                <Text style={{ fontSize: 11 }}>🚫</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       ))}
 
@@ -539,6 +611,43 @@ export default function MobileDashboardScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn} onPress={handleConfirmPayReminder}>
                 <Text style={styles.saveBtnText}>✓ Confirmar Pago</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🚫 MODAL ANULAR TRANSACCIÓN */}
+      <Modal visible={showVoidTxModal} transparent animationType="slide">
+        <View style={styles.modalBg}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>🚫 Anular Transacción</Text>
+            {selectedTxForVoid && (
+              <View style={{ backgroundColor: '#1e293b', padding: 12, borderRadius: 10, marginBottom: 12 }}>
+                <Text style={{ color: '#94a3b8', fontSize: 11 }}>Movimiento:</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 13 }}>
+                  {selectedTxForVoid.title || selectedTxForVoid.description || 'Sin descripción'}
+                </Text>
+                <Text style={{ color: '#fb7185', fontWeight: 'bold', fontSize: 16, marginTop: 2 }}>
+                  ${Number(selectedTxForVoid.amount).toFixed(2)}
+                </Text>
+              </View>
+            )}
+
+            <TextInput
+              style={styles.modalInput}
+              value={voidReason}
+              onChangeText={setVoidReason}
+              placeholder="Motivo de la anulación (Obligatorio) *"
+              placeholderTextColor="#94a3b8"
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowVoidTxModal(false)}>
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: '#f43f5e' }]} onPress={handleConfirmVoidTx}>
+                <Text style={styles.saveBtnText}>🚫 Anular</Text>
               </TouchableOpacity>
             </View>
           </View>

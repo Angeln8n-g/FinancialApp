@@ -32,6 +32,12 @@ let TransactionsController = class TransactionsController {
     async create(user, dto) {
         return this.transactionsService.create(user.householdId, dto);
     }
+    async update(user, id, body) {
+        return this.transactionsService.update(user.householdId, id, body);
+    }
+    async voidTransaction(user, id, body) {
+        return this.transactionsService.voidTransaction(user.householdId, id, body);
+    }
     async importBankStatement(user, body) {
         return this.transactionsService.importBankStatement(user.householdId, body.rawContent);
     }
@@ -59,6 +65,24 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, transactions_dto_1.CreateTransactionDto]),
     __metadata("design:returntype", Promise)
 ], TransactionsController.prototype, "create", null);
+__decorate([
+    (0, common_1.Put)(':id'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
+    __metadata("design:returntype", Promise)
+], TransactionsController.prototype, "update", null);
+__decorate([
+    (0, common_1.Put)(':id/void'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
+    __metadata("design:returntype", Promise)
+], TransactionsController.prototype, "voidTransaction", null);
 __decorate([
     (0, common_1.Post)('import'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, UseGuards } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './transactions.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -22,6 +22,24 @@ export class TransactionsController {
   @Post()
   async create(@CurrentUser() user: UserPayload, @Body() dto: CreateTransactionDto) {
     return this.transactionsService.create(user.householdId, dto);
+  }
+
+  @Put(':id')
+  async update(
+    @CurrentUser() user: UserPayload,
+    @Param('id') id: string,
+    @Body() body: { amount?: number; description?: string; categoryId?: string; accountId?: string; editReason: string },
+  ) {
+    return this.transactionsService.update(user.householdId, id, body);
+  }
+
+  @Put(':id/void')
+  async voidTransaction(
+    @CurrentUser() user: UserPayload,
+    @Param('id') id: string,
+    @Body() body: { voidReason: string },
+  ) {
+    return this.transactionsService.voidTransaction(user.householdId, id, body);
   }
 
   @Post('import')

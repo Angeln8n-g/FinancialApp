@@ -51,6 +51,20 @@ export default function DashboardPage() {
   const [remSubscriptionId, setRemSubscriptionId] = useState('');
   const [remDebtId, setRemDebtId] = useState('');
 
+  // Estados Edición Auditada de Transacción
+  const [showEditTxModal, setShowEditTxModal] = useState(false);
+  const [selectedTxForEdit, setSelectedTxForEdit] = useState<any>(null);
+  const [editTxAmount, setEditTxAmount] = useState('');
+  const [editTxDescription, setEditTxDescription] = useState('');
+  const [editTxAccountId, setEditTxAccountId] = useState('');
+  const [editTxCategoryId, setEditTxCategoryId] = useState('');
+  const [editReason, setEditReason] = useState('');
+
+  // Estados Anulación de Transacción
+  const [showVoidTxModal, setShowVoidTxModal] = useState(false);
+  const [selectedTxForVoid, setSelectedTxForVoid] = useState<any>(null);
+  const [voidReason, setVoidReason] = useState('');
+
   // IA Local Estados
   const [naturalText, setNaturalText] = useState('');
   const [aiParsing, setAiParsing] = useState(false);
@@ -420,6 +434,88 @@ export default function DashboardPage() {
     }
   };
 
+  const handleOpenEditTx = (tx: any) => {
+    setSelectedTxForEdit(tx);
+    setEditTxAmount(tx.amount.toString());
+    setEditTxDescription(tx.description || '');
+    setEditTxAccountId(tx.accountId);
+    setEditTxCategoryId(tx.categoryId || '');
+    setEditReason('');
+    setShowEditTxModal(true);
+  };
+
+  const handleSaveEditTx = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTxForEdit || !editReason.trim()) {
+      alert('Debes ingresar la razón obligatoria del cambio');
+      return;
+    }
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/api/transactions/${selectedTxForEdit.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          amount: parseFloat(editTxAmount),
+          description: editTxDescription,
+          accountId: editTxAccountId,
+          categoryId: editTxCategoryId || null,
+          editReason: editReason.trim(),
+        }),
+      });
+      if (res.ok) {
+        setShowEditTxModal(false);
+        setSelectedTxForEdit(null);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.message || 'Error al editar transacción');
+      }
+    } catch (err) {
+      console.error('Error editando transacción:', err);
+    }
+  };
+
+  const handleOpenVoidTx = (tx: any) => {
+    setSelectedTxForVoid(tx);
+    setVoidReason('');
+    setShowVoidTxModal(true);
+  };
+
+  const handleConfirmVoidTx = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTxForVoid || !voidReason.trim()) {
+      alert('Debes ingresar el motivo obligatorio de anulación');
+      return;
+    }
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/api/transactions/${selectedTxForVoid.id}/void`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          voidReason: voidReason.trim(),
+        }),
+      });
+      if (res.ok) {
+        setShowVoidTxModal(false);
+        setSelectedTxForVoid(null);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.message || 'Error al anular transacción');
+      }
+    } catch (err) {
+      console.error('Error anulando transacción:', err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0f172a] text-slate-100 flex items-center justify-center">
@@ -675,23 +771,76 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-3">
                 {transactions.map((tx) => (
-                  <div key={tx.id} className="glass-card p-4 flex items-center justify-between hover:bg-slate-800/40 transition-colors">
+                  <div
+                    key={tx.id}
+                    className={`glass-card p-4 flex items-center justify-between transition-colors ${
+                      tx.isVoided ? 'opacity-50 bg-slate-900/50 border-slate-800' : 'hover:bg-slate-800/40'
+                    }`}
+                  >
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-800/80 flex items-center justify-center text-lg border border-slate-700">
+                      <div className="w-10 h-10 rounded-xl bg-slate-800/80 flex items-center justify-center text-lg border border-slate-700 shrink-0">
                         {tx.category?.icon || (tx.type === 'INCOME' ? '💰' : '💸')}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-white">{tx.description || tx.category?.name || 'Movimiento'}</p>
-                        <p className="text-xs text-slate-400">
+                        <div className="flex items-center space-x-2">
+                          <p className={`text-sm font-bold ${tx.isVoided ? 'line-through text-slate-400' : 'text-white'}`}>
+                            {tx.description || tx.category?.name || 'Movimiento'}
+                          </p>
+                          {tx.isVoided && (
+                            <span
+                              className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 cursor-help"
+                              title={`Anulado: "${tx.voidReason}" el ${new Date(tx.voidedAt).toLocaleDateString()}`}
+                            >
+                              🚫 Anulado
+                            </span>
+                          )}
+                          {!tx.isVoided && tx.isEdited && (
+                            <span
+                              className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 cursor-help"
+                              title={`Motivo cambio: "${tx.editReason}"`}
+                            >
+                              ✏️ Editado
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">
                           {tx.account?.name} • {new Date(tx.date).toLocaleDateString()}
                         </p>
+                        {tx.isEdited && tx.editReason && !tx.isVoided && (
+                          <p className="text-[11px] text-amber-400/90 italic mt-0.5">Motivo: "{tx.editReason}"</p>
+                        )}
+                        {tx.isVoided && tx.voidReason && (
+                          <p className="text-[11px] text-rose-400/90 italic mt-0.5">Motivo anulación: "{tx.voidReason}"</p>
+                        )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`text-base font-black ${tx.type === 'INCOME' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {tx.type === 'INCOME' ? '+' : '-'}${Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </p>
-                      <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">{tx.type}</span>
+
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <p className={`text-base font-black ${tx.isVoided ? 'line-through text-slate-500' : tx.type === 'INCOME' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {tx.type === 'INCOME' ? '+' : '-'}${Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </p>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">{tx.type}</span>
+                      </div>
+
+                      {!tx.isVoided && (
+                        <div className="flex items-center space-x-1">
+                          <button
+                            onClick={() => handleOpenEditTx(tx)}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-amber-300 transition-colors text-xs cursor-pointer"
+                            title="Editar Transacción"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => handleOpenVoidTx(tx)}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 transition-colors text-xs cursor-pointer"
+                            title="Anular Transacción"
+                          >
+                            🚫
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1115,6 +1264,152 @@ export default function DashboardPage() {
                   className="px-5 py-2.5 rounded-xl glow-button text-white text-xs font-bold cursor-pointer"
                 >
                   Crear Cuenta
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Modal Editar Transacción Auditada */}
+      {showEditTxModal && selectedTxForEdit && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md p-6 relative border border-amber-500/40">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <span>✏️</span> Editar Transacción
+              </h3>
+              <button onClick={() => setShowEditTxModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveEditTx} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Monto ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={editTxAmount}
+                  onChange={(e) => setEditTxAmount(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Descripción</label>
+                <input
+                  type="text"
+                  value={editTxDescription}
+                  onChange={(e) => setEditTxDescription(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-500 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Cuenta</label>
+                <select
+                  value={editTxAccountId}
+                  onChange={(e) => setEditTxAccountId(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-500 text-xs"
+                >
+                  {accounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>{acc.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Categoría</label>
+                <select
+                  value={editTxCategoryId}
+                  onChange={(e) => setEditTxCategoryId(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-500 text-xs"
+                >
+                  <option value="">Sin Categoría</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1">
+                <label className="block text-xs font-extrabold text-amber-300 uppercase">
+                  Motivo / Razón del Cambio (Obligatorio) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editReason}
+                  onChange={(e) => setEditReason(e.target.value)}
+                  placeholder="Ej. Ajuste de valor según recibo físico"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-amber-500/50 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditTxModal(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-xs font-bold text-white rounded-xl cursor-pointer"
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Anular Transacción (Reversión Transparente) */}
+      {showVoidTxModal && selectedTxForVoid && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md p-6 relative border border-rose-500/40">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <span>🚫</span> Anular Transacción
+              </h3>
+              <button onClick={() => setShowVoidTxModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
+            </div>
+
+            <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 mb-4 text-xs space-y-1">
+              <p className="text-slate-400">Movimiento: <strong className="text-white">{selectedTxForVoid.description || 'Sin descripción'}</strong></p>
+              <p className="text-slate-400">Monto: <strong className="text-rose-400">${Number(selectedTxForVoid.amount).toFixed(2)}</strong></p>
+              <p className="text-[11px] text-slate-500 mt-1">El monto se revertirá automáticamente a la cuenta de origen.</p>
+            </div>
+
+            <form onSubmit={handleConfirmVoidTx} className="space-y-4">
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl space-y-1">
+                <label className="block text-xs font-extrabold text-rose-300 uppercase">
+                  Motivo de la Anulación (Obligatorio) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={voidReason}
+                  onChange={(e) => setVoidReason(e.target.value)}
+                  placeholder="Ej. Registro duplicado por error"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-rose-500/50 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowVoidTxModal(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white rounded-xl cursor-pointer"
+                >
+                  🚫 Confirmar Anulación
                 </button>
               </div>
             </form>

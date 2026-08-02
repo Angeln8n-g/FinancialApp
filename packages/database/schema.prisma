@@ -151,6 +151,12 @@ model Transaction {
   isCleared         Boolean         @default(true)
   ocrProcessed      Boolean         @default(false)
   ocrTextRaw        String?         @db.Text
+  isEdited          Boolean         @default(false)
+  editReason        String?
+  editedAt          DateTime?
+  isVoided          Boolean         @default(false)
+  voidReason        String?
+  voidedAt          DateTime?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
