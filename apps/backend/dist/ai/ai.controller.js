@@ -35,6 +35,9 @@ let AiController = class AiController {
     async forecastWhatIf(user, body) {
         return this.aiService.forecastWhatIf(user.householdId, body.simulateExpense || 0);
     }
+    async detectSpendingAnomalies(user) {
+        return this.aiService.detectSpendingAnomalies(user.householdId);
+    }
 };
 exports.AiController = AiController;
 __decorate([
@@ -67,6 +70,13 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
     __metadata("design:returntype", Promise)
 ], AiController.prototype, "forecastWhatIf", null);
+__decorate([
+    (0, common_1.Get)('anomalies'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
+    __metadata("design:returntype", Promise)
+], AiController.prototype, "detectSpendingAnomalies", null);
 exports.AiController = AiController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('api/ai'),

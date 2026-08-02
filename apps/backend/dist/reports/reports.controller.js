@@ -31,6 +31,12 @@ let ReportsController = class ReportsController {
         res.setHeader('Content-Disposition', `attachment; filename=hogariq_transacciones_${new Date().toISOString().split('T')[0]}.csv`);
         return res.send(csv);
     }
+    async getPdfReport(user, res) {
+        const htmlPdf = await this.reportsService.generatePdfReport(user.householdId);
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Content-Disposition', `inline; filename=hogariq_informe_${new Date().toISOString().split('T')[0]}.html`);
+        return res.send(htmlPdf);
+    }
 };
 exports.ReportsController = ReportsController;
 __decorate([
@@ -48,6 +54,14 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
     __metadata("design:returntype", Promise)
 ], ReportsController.prototype, "exportCsv", null);
+__decorate([
+    (0, common_1.Get)('pdf'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
+    __metadata("design:returntype", Promise)
+], ReportsController.prototype, "getPdfReport", null);
 exports.ReportsController = ReportsController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('api/reports'),

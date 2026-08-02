@@ -14,13 +14,20 @@ export class RemindersController {
   }
 
   @Post()
-  async create(@CurrentUser() user: UserPayload, @Body() body: { title: string; amount: number; dueDate: string }) {
+  async create(
+    @CurrentUser() user: UserPayload,
+    @Body() body: { title: string; amount: number; dueDate: string; subscriptionId?: string; debtId?: string },
+  ) {
     return this.remindersService.create(user.householdId, body);
   }
 
   @Put(':id/toggle')
-  async togglePaid(@CurrentUser() user: UserPayload, @Param('id') id: string) {
-    return this.remindersService.togglePaid(user.householdId, id);
+  async togglePaid(
+    @CurrentUser() user: UserPayload,
+    @Param('id') id: string,
+    @Body() body?: { accountId?: string },
+  ) {
+    return this.remindersService.togglePaid(user.householdId, id, body?.accountId);
   }
 
   @Delete(':id')

@@ -27,6 +27,7 @@ const debts_module_1 = require("./debts/debts.module");
 const subscriptions_module_1 = require("./subscriptions/subscriptions.module");
 const patrimony_module_1 = require("./patrimony/patrimony.module");
 const notifications_module_1 = require("./notifications/notifications.module");
+const allowances_module_1 = require("./allowances/allowances.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -53,6 +54,7 @@ exports.AppModule = AppModule = __decorate([
             subscriptions_module_1.SubscriptionsModule,
             patrimony_module_1.PatrimonyModule,
             notifications_module_1.NotificationsModule,
+            allowances_module_1.AllowancesModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

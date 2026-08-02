@@ -12,37 +12,43 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RemindersController = void 0;
+exports.AllowancesController = void 0;
 const common_1 = require("@nestjs/common");
-const reminders_service_1 = require("./reminders.service");
+const allowances_service_1 = require("./allowances.service");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const get_user_decorator_1 = require("../auth/get-user.decorator");
-let RemindersController = class RemindersController {
-    remindersService;
-    constructor(remindersService) {
-        this.remindersService = remindersService;
+let AllowancesController = class AllowancesController {
+    allowancesService;
+    constructor(allowancesService) {
+        this.allowancesService = allowancesService;
     }
     async findAll(user) {
-        return this.remindersService.findAll(user.householdId);
+        return this.allowancesService.findAll(user.householdId);
     }
     async create(user, body) {
-        return this.remindersService.create(user.householdId, body);
+        return this.allowancesService.create(user.householdId, body);
     }
-    async togglePaid(user, id, body) {
-        return this.remindersService.togglePaid(user.householdId, id, body?.accountId);
+    async recordExpense(user, id, body) {
+        return this.allowancesService.recordExpense(user.householdId, id, body.amount);
     }
-    async delete(user, id) {
-        return this.remindersService.delete(user.householdId, id);
+    async disburse(user, id, body) {
+        return this.allowancesService.disburse(user.householdId, id, body);
+    }
+    async reset(user, id) {
+        return this.allowancesService.reset(user.householdId, id);
+    }
+    async remove(user, id) {
+        return this.allowancesService.remove(id, user.householdId);
     }
 };
-exports.RemindersController = RemindersController;
+exports.AllowancesController = AllowancesController;
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
     __metadata("design:returntype", Promise)
-], RemindersController.prototype, "findAll", null);
+], AllowancesController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Post)(),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
@@ -50,16 +56,33 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
     __metadata("design:returntype", Promise)
-], RemindersController.prototype, "create", null);
+], AllowancesController.prototype, "create", null);
 __decorate([
-    (0, common_1.Put)(':id/toggle'),
+    (0, common_1.Post)(':id/expense'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)('id')),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
     __metadata("design:returntype", Promise)
-], RemindersController.prototype, "togglePaid", null);
+], AllowancesController.prototype, "recordExpense", null);
+__decorate([
+    (0, common_1.Post)(':id/disburse'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
+    __metadata("design:returntype", Promise)
+], AllowancesController.prototype, "disburse", null);
+__decorate([
+    (0, common_1.Post)(':id/reset'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
+    __metadata("design:returntype", Promise)
+], AllowancesController.prototype, "reset", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
@@ -67,10 +90,10 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
     __metadata("design:returntype", Promise)
-], RemindersController.prototype, "delete", null);
-exports.RemindersController = RemindersController = __decorate([
+], AllowancesController.prototype, "remove", null);
+exports.AllowancesController = AllowancesController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Controller)('api/reminders'),
-    __metadata("design:paramtypes", [reminders_service_1.RemindersService])
-], RemindersController);
-//# sourceMappingURL=reminders.controller.js.map
+    (0, common_1.Controller)('api/allowances'),
+    __metadata("design:paramtypes", [allowances_service_1.AllowancesService])
+], AllowancesController);
+//# sourceMappingURL=allowances.controller.js.map

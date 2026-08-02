@@ -23,19 +23,19 @@ export default function MobileDashboardScreen() {
   const [household, setHouseholdState] = useState<any>(null);
 
   const [summary, setSummary] = useState({ totalBalance: 0, monthlyIncome: 0, monthlyExpense: 0 });
-  const [reminders, setReminders] = useState<any[]>([
-    { id: '1', title: 'Pago de luz', amount: 2500, dueDate: '2026-07-26', isPaid: true },
-    { id: '2', title: 'Pago del colegio', amount: 8500, dueDate: '2026-07-29', isPaid: false },
-    { id: '3', title: 'Tarjeta de Crédito', amount: 15000, dueDate: '2026-08-02', isPaid: false },
-  ]);
+  const [reminders, setReminders] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
 
   const [naturalInput, setNaturalInput] = useState('');
   const [isProcessingAi, setIsProcessingAi] = useState(false);
 
-  // Modales Notificaciones & Edición
+  // Modales Notificaciones, Pago & Edición
   const [showNotifModal, setShowNotifModal] = useState(false);
+  const [showPayModal, setShowPayModal] = useState(false);
   const [showEditReminderModal, setShowEditReminderModal] = useState(false);
+  const [payingReminder, setPayingReminder] = useState<any>(null);
+  const [selectedPayAccountId, setSelectedPayAccountId] = useState('');
   const [selectedReminder, setSelectedReminder] = useState<any>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editAmount, setEditAmount] = useState('');
@@ -45,9 +45,11 @@ export default function MobileDashboardScreen() {
       setUserState(getUser());
       setHouseholdState(getHousehold());
 
-      const [resSum, resTx] = await Promise.all([
+      const [resSum, resTx, resRem, resAcc] = await Promise.all([
         fetchWithAuth('/api/transactions/summary'),
         fetchWithAuth('/api/transactions?limit=10'),
+        fetchWithAuth('/api/reminders'),
+        fetchWithAuth('/api/accounts'),
       ]);
 
       if (resSum.ok) {
@@ -57,6 +59,17 @@ export default function MobileDashboardScreen() {
       if (resTx.ok) {
         const txData = await resTx.json();
         if (Array.isArray(txData)) setTransactions(txData);
+      }
+      if (resRem.ok) {
+        const remData = await resRem.json();
+        if (Array.isArray(remData)) setReminders(remData);
+      }
+      if (resAcc.ok) {
+        const accData = await resAcc.json();
+        if (Array.isArray(accData)) {
+          setAccounts(accData);
+          if (accData.length > 0) setSelectedPayAccountId(accData[0].id);
+        }
       }
     } catch (err) {
       console.log('Error conectando con la API en producción:', err);
@@ -84,28 +97,36 @@ export default function MobileDashboardScreen() {
     ]);
   };
 
-  const handleToggleReminder = (id: string) => {
-    setReminders((prev) =>
-      prev.map((r) => {
-        if (r.id === id) {
-          const nextPaid = !r.isPaid;
-          if (nextPaid) {
-            setSummary((s) => ({
-              ...s,
-              monthlyExpense: s.monthlyExpense + r.amount,
-              totalBalance: s.totalBalance - r.amount,
-            }));
-            setTransactions((t) => [
-              { id: Date.now().toString(), title: `Pago: ${r.title}`, amount: r.amount, type: 'EXPENSE', category: '💡 Servicios' },
-              ...t,
-            ]);
-            Alert.alert('✓ Pago Registrado', `Se registró "${r.title}" como gasto de $${r.amount}.`);
-          }
-          return { ...r, isPaid: nextPaid };
-        }
-        return r;
-      })
-    );
+  const handleToggleReminder = (r: any) => {
+    if (!r.isPaid) {
+      setPayingReminder(r);
+      setSelectedPayAccountId(accounts[0]?.id || '');
+      setShowPayModal(true);
+    } else {
+      fetchWithAuth(`/api/reminders/${r.id}/toggle`, { method: 'PUT' })
+        .then(() => loadData())
+        .catch((err) => console.log('Error desmarcando recordatorio:', err));
+    }
+  };
+
+  const handleConfirmPayReminder = async () => {
+    if (!payingReminder) return;
+    try {
+      const res = await fetchWithAuth(`/api/reminders/${payingReminder.id}/toggle`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId: selectedPayAccountId }),
+      });
+
+      if (res.ok) {
+        setShowPayModal(false);
+        setPayingReminder(null);
+        Alert.alert('✓ Pago Registrado', `Se descontó el pago de "${payingReminder.title}" correctamente.`);
+        loadData();
+      }
+    } catch (err) {
+      Alert.alert('Error', 'No se pudo completar el registro del pago.');
+    }
   };
 
   const handleDeleteReminder = (id: string) => {
@@ -374,17 +395,17 @@ export default function MobileDashboardScreen() {
         {reminders.map((r) => (
           <View key={r.id} style={[styles.reminderCard, r.isPaid && styles.reminderPaid]}>
             <View style={styles.reminderHeader}>
-              <TouchableOpacity style={{ flex: 1 }} onPress={() => handleToggleReminder(r.id)}>
+              <TouchableOpacity style={{ flex: 1 }} onPress={() => handleToggleReminder(r)}>
                 <Text style={styles.reminderTitle} numberOfLines={1}>{r.title}</Text>
               </TouchableOpacity>
               <Text style={styles.checkIcon}>{r.isPaid ? '✓' : '○'}</Text>
             </View>
 
-            <TouchableOpacity onPress={() => handleToggleReminder(r.id)}>
+            <TouchableOpacity onPress={() => handleToggleReminder(r)}>
               <Text style={[styles.reminderAmount, r.isPaid && styles.reminderAmountPaid]}>
                 ${r.amount.toLocaleString()}
               </Text>
-              <Text style={styles.reminderDate}>Vence: {r.dueDate}</Text>
+              <Text style={styles.reminderDate}>Vence: {new Date(r.dueDate).toLocaleDateString()}</Text>
             </TouchableOpacity>
 
             {/* Acciones Editar / Eliminar */}
@@ -459,6 +480,65 @@ export default function MobileDashboardScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn} onPress={handleSaveEditReminder}>
                 <Text style={styles.saveBtnText}>Guardar Cambios</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 💳 MODAL SELECCIONAR CUENTA DE PAGO */}
+      <Modal visible={showPayModal} transparent animationType="slide">
+        <View style={styles.modalBg}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>💳 Confirmar Pago de Recordatorio</Text>
+            {payingReminder && (
+              <View style={{ backgroundColor: '#1e293b', padding: 12, borderRadius: 10, marginBottom: 16 }}>
+                <Text style={{ color: '#94a3b8', fontSize: 11 }}>Concepto:</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 14 }}>{payingReminder.title}</Text>
+                <Text style={{ color: '#34d399', fontWeight: '900', fontSize: 18, marginTop: 4 }}>
+                  ${Number(payingReminder.amount).toLocaleString()}
+                </Text>
+              </View>
+            )}
+
+            <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: 'bold', marginBottom: 8 }}>
+              ¿Desde cuál cuenta se realizó el pago?
+            </Text>
+
+            <ScrollView style={{ maxHeight: 200, marginBottom: 12 }}>
+              {accounts.map((acc) => (
+                <TouchableOpacity
+                  key={acc.id}
+                  onPress={() => setSelectedPayAccountId(acc.id)}
+                  style={{
+                    padding: 12,
+                    borderRadius: 10,
+                    marginBottom: 6,
+                    backgroundColor: selectedPayAccountId === acc.id ? 'rgba(147, 51, 234, 0.3)' : '#1e293b',
+                    borderWidth: 1,
+                    borderColor: selectedPayAccountId === acc.id ? '#c084fc' : '#334155',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <View>
+                    <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 13 }}>{acc.name}</Text>
+                    <Text style={{ color: '#94a3b8', fontSize: 10 }}>{acc.type}</Text>
+                  </View>
+                  <Text style={{ color: '#34d399', fontWeight: 'bold', fontSize: 12 }}>
+                    ${Number(acc.balance).toLocaleString()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowPayModal(false)}>
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleConfirmPayReminder}>
+                <Text style={styles.saveBtnText}>✓ Confirmar Pago</Text>
               </TouchableOpacity>
             </View>
           </View>

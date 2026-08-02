@@ -14,4 +14,5 @@ export declare class ReportsController {
         }[];
     }>;
     exportCsv(user: UserPayload, res: any): Promise<any>;
+    getPdfReport(user: UserPayload, res: any): Promise<any>;
 }

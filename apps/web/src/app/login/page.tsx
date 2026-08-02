@@ -77,7 +77,7 @@ export default function LoginPage() {
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Ej. Angela Fraga"
+                placeholder="Ej. tu nombre"
                 className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 text-slate-100 focus:outline-none focus:border-purple-500 transition-colors"
               />
             </div>

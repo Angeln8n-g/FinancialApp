@@ -13,4 +13,5 @@ export declare class ReportsService {
         }[];
     }>;
     generateCsv(householdId: string): Promise<string>;
+    generatePdfReport(householdId: string): Promise<string>;
 }

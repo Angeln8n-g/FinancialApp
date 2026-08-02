@@ -17,13 +17,20 @@ export default function DashboardPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [debts, setDebts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modales
   const [showTxModal, setShowTxModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showReminderModal, setShowReminderModal] = useState(false);
+  const [showPayReminderModal, setShowPayReminderModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
+
+  // Pago de Recordatorio
+  const [payingReminder, setPayingReminder] = useState<any>(null);
+  const [selectedPayAccountId, setSelectedPayAccountId] = useState('');
 
   // Formulario Transacción
   const [txType, setTxType] = useState<'EXPENSE' | 'INCOME' | 'TRANSFER'>('EXPENSE');
@@ -41,6 +48,8 @@ export default function DashboardPage() {
   const [remTitle, setRemTitle] = useState('');
   const [remAmount, setRemAmount] = useState('');
   const [remDueDate, setRemDueDate] = useState('');
+  const [remSubscriptionId, setRemSubscriptionId] = useState('');
+  const [remDebtId, setRemDebtId] = useState('');
 
   // IA Local Estados
   const [naturalText, setNaturalText] = useState('');
@@ -69,20 +78,25 @@ export default function DashboardPage() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [resSum, resAcc, resTx, resCat, resRem, resAnom] = await Promise.all([
+      const [resSum, resAcc, resTx, resCat, resRem, resAnom, resSubs, resDebts] = await Promise.all([
         fetch(`${API_URL}/api/transactions/summary`, { headers }),
         fetch(`${API_URL}/api/accounts`, { headers }),
         fetch(`${API_URL}/api/transactions?limit=10`, { headers }),
         fetch(`${API_URL}/api/categories`, { headers }),
         fetch(`${API_URL}/api/reminders`, { headers }),
         fetch(`${API_URL}/api/ai/anomalies`, { headers }),
+        fetch(`${API_URL}/api/subscriptions`, { headers }),
+        fetch(`${API_URL}/api/debts`, { headers }),
       ]);
 
       if (resSum.ok) setSummary(await resSum.json());
       if (resAcc.ok) {
         const accs = await resAcc.json();
         setAccounts(accs);
-        if (accs.length > 0 && !txAccountId) setTxAccountId(accs[0].id);
+        if (accs.length > 0) {
+          if (!txAccountId) setTxAccountId(accs[0].id);
+          if (!selectedPayAccountId) setSelectedPayAccountId(accs[0].id);
+        }
       }
       if (resTx.ok) setTransactions(await resTx.json());
       if (resCat.ok) {
@@ -91,6 +105,11 @@ export default function DashboardPage() {
         if (cats.length > 0 && !txCategoryId) setTxCategoryId(cats[0].id);
       }
       if (resRem.ok) setReminders(await resRem.json());
+      if (resSubs.ok) {
+        const subData = await resSubs.json();
+        setSubscriptions(subData.subscriptions || []);
+      }
+      if (resDebts.ok) setDebts(await resDebts.json());
     } catch (err) {
       console.error('Error cargando datos:', err);
     } finally {
@@ -137,16 +156,46 @@ export default function DashboardPage() {
     router.push('/login');
   };
 
-  const handleToggleReminder = async (id: string) => {
+  const handleToggleReminder = async (r: any) => {
+    if (!r.isPaid) {
+      setPayingReminder(r);
+      setSelectedPayAccountId(accounts[0]?.id || '');
+      setShowPayReminderModal(true);
+      return;
+    }
+
     const token = getToken();
     try {
-      const res = await fetch(`${API_URL}/api/reminders/${id}/toggle`, {
+      const res = await fetch(`${API_URL}/api/reminders/${r.id}/toggle`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) fetchData();
     } catch (err) {
       console.error('Error cambiando recordatorio:', err);
+    }
+  };
+
+  const handleConfirmPayReminder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payingReminder) return;
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/api/reminders/${payingReminder.id}/toggle`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ accountId: selectedPayAccountId }),
+      });
+      if (res.ok) {
+        setShowPayReminderModal(false);
+        setPayingReminder(null);
+        fetchData();
+      }
+    } catch (err) {
+      console.error('Error al confirmar pago de recordatorio:', err);
     }
   };
 
@@ -166,6 +215,8 @@ export default function DashboardPage() {
           title: remTitle,
           amount: parseFloat(remAmount),
           dueDate: remDueDate,
+          subscriptionId: remSubscriptionId || undefined,
+          debtId: remDebtId || undefined,
         }),
       });
 
@@ -174,6 +225,8 @@ export default function DashboardPage() {
         setRemTitle('');
         setRemAmount('');
         setRemDueDate('');
+        setRemSubscriptionId('');
+        setRemDebtId('');
         fetchData();
       }
     } catch (err) {
@@ -519,7 +572,7 @@ export default function DashboardPage() {
             {reminders.map((r) => (
               <div
                 key={r.id}
-                onClick={() => handleToggleReminder(r.id)}
+                onClick={() => handleToggleReminder(r)}
                 className={`p-4 rounded-xl border transition-all cursor-pointer relative group ${r.isPaid ? 'bg-slate-900/40 border-slate-800 opacity-60' : 'bg-slate-800/80 border-slate-700 hover:border-purple-500'}`}
               >
                 <button
@@ -659,6 +712,65 @@ export default function DashboardPage() {
 
             <form onSubmit={handleCreateReminder} className="space-y-4">
               <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Elegir desde Suscripción o Deuda (Opcional)</label>
+                <select
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) {
+                      setRemSubscriptionId('');
+                      setRemDebtId('');
+                      return;
+                    }
+                    const [type, id] = val.split(':');
+                    if (type === 'SUB') {
+                      const sub = subscriptions.find(s => s.id === id);
+                      if (sub) {
+                        setRemTitle(`Suscripción: ${sub.name}`);
+                        setRemAmount(sub.cost.toString());
+                        if (sub.nextBillingDate) {
+                          setRemDueDate(new Date(sub.nextBillingDate).toISOString().split('T')[0]);
+                        }
+                        setRemSubscriptionId(sub.id);
+                        setRemDebtId('');
+                      }
+                    } else if (type === 'DEBT') {
+                      const d = debts.find(debt => debt.id === id);
+                      if (d) {
+                        setRemTitle(`Deuda: ${d.contactName}`);
+                        setRemAmount(d.remainingAmount.toString());
+                        if (d.dueDate) {
+                          setRemDueDate(new Date(d.dueDate).toISOString().split('T')[0]);
+                        }
+                        setRemDebtId(d.id);
+                        setRemSubscriptionId('');
+                      }
+                    }
+                  }}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-purple-500 text-xs"
+                >
+                  <option value="">-- Ingreso manual --</option>
+                  {subscriptions.length > 0 && (
+                    <optgroup label="📺 Suscripciones Recurrentes">
+                      {subscriptions.map(s => (
+                        <option key={s.id} value={`SUB:${s.id}`}>
+                          {s.name} - ${Number(s.cost).toFixed(2)}/mes
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {debts.length > 0 && (
+                    <optgroup label="💸 Deudas y Préstamos">
+                      {debts.map(d => (
+                        <option key={d.id} value={`DEBT:${d.id}`}>
+                          {d.contactName} - RD${Number(d.remainingAmount).toLocaleString()} pendiente
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Título del Pago</label>
                 <input
                   type="text"
@@ -707,6 +819,65 @@ export default function DashboardPage() {
                   className="px-5 py-2.5 rounded-xl glow-button text-white text-xs font-bold cursor-pointer"
                 >
                   Guardar Recordatorio
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmar Pago de Recordatorio */}
+      {showPayReminderModal && payingReminder && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md p-6 relative border border-emerald-500/40">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white flex items-center space-x-2">
+                <span>💳</span>
+                <span>Confirmar Pago de Recordatorio</span>
+              </h3>
+              <button onClick={() => setShowPayReminderModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
+            </div>
+
+            <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 mb-5">
+              <p className="text-xs text-slate-400">Recordatorio a pagar:</p>
+              <p className="text-base font-bold text-white mt-0.5">{payingReminder.title}</p>
+              <p className="text-xl font-black text-emerald-400 mt-1">
+                ${Number(payingReminder.amount).toLocaleString()}
+              </p>
+            </div>
+
+            <form onSubmit={handleConfirmPayReminder} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+                  ¿Desde cuál cuenta se realizó el pago?
+                </label>
+                <select
+                  required
+                  value={selectedPayAccountId}
+                  onChange={(e) => setSelectedPayAccountId(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-500 text-sm font-semibold"
+                >
+                  {accounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name} ({acc.type}) - Saldo: ${Number(acc.balance).toLocaleString()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowPayReminderModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold cursor-pointer shadow-lg"
+                >
+                  ✓ Confirmar y Descontar Pago
                 </button>
               </div>
             </form>

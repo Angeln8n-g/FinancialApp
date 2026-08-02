@@ -10,6 +10,7 @@ export default function FamilyPage() {
 
   const [members, setMembers] = useState<any[]>([]);
   const [allowances, setAllowances] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [household, setHousehold] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -20,11 +21,22 @@ export default function FamilyPage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Formulario Mesada
+  // Formulario Crear Mesada
   const [showAllowModal, setShowAllowModal] = useState(false);
   const [allowMemberId, setAllowMemberId] = useState('');
   const [allowTitle, setAllowTitle] = useState('Mesada Mensual');
   const [allowAmount, setAllowAmount] = useState('150');
+  const [allowPeriod, setAllowPeriod] = useState('MONTHLY');
+
+  // Formulario Registrar Gasto en Mesada
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [selectedAllowance, setSelectedAllowance] = useState<any>(null);
+  const [expenseAmount, setExpenseAmount] = useState('');
+
+  // Formulario Desembolsar Mesada desde Cuenta
+  const [showDisburseModal, setShowDisburseModal] = useState(false);
+  const [disburseAccountId, setDisburseAccountId] = useState('');
+  const [disburseAmount, setDisburseAmount] = useState('');
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -68,6 +80,23 @@ export default function FamilyPage() {
     }
   };
 
+  const fetchAccounts = async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/accounts`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const accs = await res.json();
+        setAccounts(accs);
+        if (accs.length > 0 && !disburseAccountId) setDisburseAccountId(accs[0].id);
+      }
+    } catch (e) {
+      console.log('Error cargando cuentas:', e);
+    }
+  };
+
   useEffect(() => {
     const uStr = localStorage.getItem('hogariq_user');
     const hStr = localStorage.getItem('hogariq_household');
@@ -82,6 +111,7 @@ export default function FamilyPage() {
 
     fetchMembers();
     fetchAllowances();
+    fetchAccounts();
   }, []);
 
   const handleCreateAllowance = async (e: React.FormEvent) => {
@@ -99,6 +129,7 @@ export default function FamilyPage() {
           memberId: allowMemberId,
           title: allowTitle,
           limitAmount: parseFloat(allowAmount),
+          period: allowPeriod,
         }),
       });
       if (res.ok) {
@@ -107,6 +138,72 @@ export default function FamilyPage() {
       }
     } catch (err) {
       console.error('Error creando mesada:', err);
+    }
+  };
+
+  const handleRecordExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAllowance || !expenseAmount) return;
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/api/allowances/${selectedAllowance.id}/expense`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ amount: parseFloat(expenseAmount) }),
+      });
+      if (res.ok) {
+        setShowExpenseModal(false);
+        setExpenseAmount('');
+        setSelectedAllowance(null);
+        fetchAllowances();
+      }
+    } catch (err) {
+      console.error('Error registrando gasto de mesada:', err);
+    }
+  };
+
+  const handleDisburseAllowance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAllowance || !disburseAccountId) return;
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/api/allowances/${selectedAllowance.id}/disburse`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          accountId: disburseAccountId,
+          amount: parseFloat(disburseAmount || selectedAllowance.limitAmount.toString()),
+        }),
+      });
+      if (res.ok) {
+        setShowDisburseModal(false);
+        setDisburseAmount('');
+        setSelectedAllowance(null);
+        fetchAllowances();
+        fetchAccounts();
+        alert('¡Desembolso registrado con éxito en la cuenta!');
+      }
+    } catch (err) {
+      console.error('Error al desembolsar mesada:', err);
+    }
+  };
+
+  const handleResetAllowance = async (id: string) => {
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/api/allowances/${id}/reset`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) fetchAllowances();
+    } catch (err) {
+      console.error('Error reiniciando mesada:', err);
     }
   };
 
@@ -278,7 +375,7 @@ export default function FamilyPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold text-white">💸 Mesadas & Presupuestos para Integrantes</h3>
-              <p className="text-xs text-slate-400">Asigna presupuestos mensuales o mesadas a tus hijos o familiares dependientes.</p>
+              <p className="text-xs text-slate-400">Asigna presupuestos periódicos a tus hijos o familiares dependientes con seguimiento de consumo.</p>
             </div>
             <button
               onClick={() => {
@@ -297,27 +394,86 @@ export default function FamilyPage() {
                 <p className="text-xs text-slate-400">No hay mesadas ni límites asignados aún.</p>
               </div>
             ) : (
-              allowances.map((a) => (
-                <div key={a.id} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400">
-                      {a.member?.user?.fullName || 'Familiar'}
-                    </span>
-                    <h4 className="text-sm font-bold text-white mt-0.5">{a.title}</h4>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Límite: <span className="font-bold text-slate-200">${Number(a.limitAmount).toFixed(2)}</span> / mes
-                    </p>
-                  </div>
+              allowances.map((a) => {
+                const pct = a.percentageUsed || 0;
+                const barColor = pct >= 90 ? 'bg-rose-500' : pct >= 70 ? 'bg-amber-500' : 'bg-emerald-500';
+                const badgeColor = pct >= 90 ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' : pct >= 70 ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
 
-                  <button
-                    onClick={() => handleDeleteAllowance(a.id)}
-                    className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
-                    title="Eliminar Mesada"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              ))
+                return (
+                  <div key={a.id} className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-400">
+                          👤 {a.member?.user?.fullName || 'Familiar'}
+                        </span>
+                        <h4 className="text-base font-bold text-white mt-0.5">{a.title}</h4>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeColor}`}>
+                          {a.period === 'WEEKLY' ? 'Semanal' : 'Mensual'}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteAllowance(a.id)}
+                          className="text-slate-500 hover:text-rose-400 text-xs font-bold cursor-pointer"
+                          title="Eliminar Mesada"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Barra de Progreso */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span className="text-slate-400">Gastado: <strong className="text-white">${Number(a.spentAmount).toFixed(2)}</strong></span>
+                        <span className="text-slate-400">Límite: <strong className="text-purple-300">${Number(a.limitAmount).toFixed(2)}</strong></span>
+                      </div>
+                      <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800">
+                        <div className={`h-full ${barColor} transition-all duration-500`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] pt-0.5">
+                        <span className={`font-bold ${pct >= 90 ? 'text-rose-400' : 'text-slate-400'}`}>
+                          {pct}% consumido {pct >= 100 ? '⚠️ Excedido' : ''}
+                        </span>
+                        <span className="text-emerald-400 font-extrabold">
+                          Disponible: ${Number(a.remainingAmount).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Acciones de Mesada */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+                      <button
+                        onClick={() => {
+                          setSelectedAllowance(a);
+                          setExpenseAmount('');
+                          setShowExpenseModal(true);
+                        }}
+                        className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 cursor-pointer border border-slate-700 transition-colors"
+                      >
+                        📉 Gasto
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedAllowance(a);
+                          setDisburseAmount(a.limitAmount.toString());
+                          setShowDisburseModal(true);
+                        }}
+                        className="flex-1 py-2 px-3 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 text-xs font-bold cursor-pointer border border-purple-500/40 transition-colors"
+                      >
+                        💵 Desembolsar
+                      </button>
+                      <button
+                        onClick={() => handleResetAllowance(a.id)}
+                        className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-bold cursor-pointer border border-slate-700"
+                        title="Reiniciar consumo a $0"
+                      >
+                        🔄
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </section>
@@ -325,7 +481,7 @@ export default function FamilyPage() {
         {/* Modal Crear Mesada */}
         {showAllowModal && (
           <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="glass-card w-full max-w-md p-6 relative">
+            <div className="glass-card w-full max-w-md p-6 relative border border-purple-500/40">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-white">Asignar Mesada Familiar</h3>
                 <button onClick={() => setShowAllowModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
@@ -359,17 +515,30 @@ export default function FamilyPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Límite Mensual ($)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={allowAmount}
-                    onChange={(e) => setAllowAmount(e.target.value)}
-                    placeholder="150.00"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-base font-bold text-white focus:outline-none focus:border-purple-500"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Límite ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={allowAmount}
+                      onChange={(e) => setAllowAmount(e.target.value)}
+                      placeholder="150.00"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-base font-bold text-white focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Frecuencia</label>
+                    <select
+                      value={allowPeriod}
+                      onChange={(e) => setAllowPeriod(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-purple-500"
+                    >
+                      <option value="MONTHLY">Mensual</option>
+                      <option value="WEEKLY">Semanal</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="flex gap-2 pt-2">
@@ -385,6 +554,117 @@ export default function FamilyPage() {
                     className="flex-1 py-2.5 glow-button text-xs font-bold text-white rounded-xl"
                   >
                     Guardar Mesada
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Registrar Gasto en Mesada */}
+        {showExpenseModal && selectedAllowance && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="glass-card w-full max-w-md p-6 relative border border-purple-500/40">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-white">📉 Registrar Gasto en Mesada</h3>
+                <button onClick={() => setShowExpenseModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
+              </div>
+
+              <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 mb-4 text-xs">
+                <p className="text-slate-400">Mesada de: <strong className="text-white">{selectedAllowance.member?.user?.fullName}</strong></p>
+                <p className="text-purple-300 font-bold mt-0.5">{selectedAllowance.title}</p>
+              </div>
+
+              <form onSubmit={handleRecordExpense} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Monto consumido ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={expenseAmount}
+                    onChange={(e) => setExpenseAmount(e.target.value)}
+                    placeholder="Ej. 15.00"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-lg focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowExpenseModal(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white rounded-xl cursor-pointer"
+                  >
+                    Imputar Gasto
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Desembolsar Mesada */}
+        {showDisburseModal && selectedAllowance && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="glass-card w-full max-w-md p-6 relative border border-emerald-500/40">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-white">💵 Desembolsar Mesada</h3>
+                <button onClick={() => setShowDisburseModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
+              </div>
+
+              <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 mb-4 text-xs">
+                <p className="text-slate-400">Integrante: <strong className="text-white">{selectedAllowance.member?.user?.fullName}</strong></p>
+                <p className="text-emerald-400 font-bold mt-0.5">{selectedAllowance.title}</p>
+              </div>
+
+              <form onSubmit={handleDisburseAllowance} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">¿Desde cuál cuenta enviar dinero?</label>
+                  <select
+                    value={disburseAccountId}
+                    onChange={(e) => setDisburseAccountId(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-emerald-500 font-semibold"
+                  >
+                    {accounts.map((acc) => (
+                      <option key={acc.id} value={acc.id}>
+                        {acc.name} ({acc.type}) - Saldo: ${Number(acc.balance).toLocaleString()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Monto del Desembolso ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={disburseAmount}
+                    onChange={(e) => setDisburseAmount(e.target.value)}
+                    placeholder="Monto"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-lg focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDisburseModal(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-xs font-bold text-white rounded-xl cursor-pointer"
+                  >
+                    ✓ Transferir Mesada
                   </button>
                 </div>
               </form>

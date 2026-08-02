@@ -13,22 +13,28 @@ export class RemindersService {
   async findAll(householdId: string) {
     return this.prisma.reminder.findMany({
       where: { householdId },
+      include: { subscription: true, debt: true },
       orderBy: { dueDate: 'asc' },
     });
   }
 
-  async create(householdId: string, data: { title: string; amount: number; dueDate: string }) {
+  async create(
+    householdId: string,
+    data: { title: string; amount: number; dueDate: string; subscriptionId?: string; debtId?: string },
+  ) {
     return this.prisma.reminder.create({
       data: {
         householdId,
         title: data.title,
         amount: data.amount,
         dueDate: new Date(data.dueDate),
+        subscriptionId: data.subscriptionId || null,
+        debtId: data.debtId || null,
       },
     });
   }
 
-  async togglePaid(householdId: string, reminderId: string) {
+  async togglePaid(householdId: string, reminderId: string, accountId?: string) {
     const reminder = await this.prisma.reminder.findFirst({
       where: { id: reminderId, householdId },
     });
@@ -38,11 +44,19 @@ export class RemindersService {
     const newPaidState = !reminder.isPaid;
 
     if (newPaidState) {
-      // 🚀 Al marcar como pagado, registrar un GASTO automáticamente en las cuentas del hogar
-      const account = await this.prisma.account.findFirst({
-        where: { householdId },
-        orderBy: { createdAt: 'asc' },
-      });
+      // 🚀 Al marcar como pagado, registrar un GASTO en la cuenta seleccionada o por defecto
+      let account: any = null;
+      if (accountId) {
+        account = await this.prisma.account.findFirst({
+          where: { id: accountId, householdId },
+        });
+      }
+      if (!account) {
+        account = await this.prisma.account.findFirst({
+          where: { householdId },
+          orderBy: { createdAt: 'asc' },
+        });
+      }
 
       if (account) {
         // Buscar categoría "Servicios" o la primera disponible
@@ -84,7 +98,7 @@ export class RemindersService {
         });
 
         this.eventsGateway.notifyHouseholdChange(householdId, 'reminder', 'PAY');
-        return { isPaid: true, message: 'Pago registrado como gasto con éxito' };
+        return { isPaid: true, message: `Pago registrado como gasto en "${account.name}" con éxito` };
       }
     }
 

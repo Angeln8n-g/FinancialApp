@@ -24,6 +24,7 @@ let RemindersService = class RemindersService {
     async findAll(householdId) {
         return this.prisma.reminder.findMany({
             where: { householdId },
+            include: { subscription: true, debt: true },
             orderBy: { dueDate: 'asc' },
         });
     }
@@ -34,10 +35,12 @@ let RemindersService = class RemindersService {
                 title: data.title,
                 amount: data.amount,
                 dueDate: new Date(data.dueDate),
+                subscriptionId: data.subscriptionId || null,
+                debtId: data.debtId || null,
             },
         });
     }
-    async togglePaid(householdId, reminderId) {
+    async togglePaid(householdId, reminderId, accountId) {
         const reminder = await this.prisma.reminder.findFirst({
             where: { id: reminderId, householdId },
         });
@@ -45,10 +48,18 @@ let RemindersService = class RemindersService {
             throw new common_1.NotFoundException('Recordatorio no encontrado');
         const newPaidState = !reminder.isPaid;
         if (newPaidState) {
-            const account = await this.prisma.account.findFirst({
-                where: { householdId },
-                orderBy: { createdAt: 'asc' },
-            });
+            let account = null;
+            if (accountId) {
+                account = await this.prisma.account.findFirst({
+                    where: { id: accountId, householdId },
+                });
+            }
+            if (!account) {
+                account = await this.prisma.account.findFirst({
+                    where: { householdId },
+                    orderBy: { createdAt: 'asc' },
+                });
+            }
             if (account) {
                 let category = await this.prisma.category.findFirst({
                     where: { householdId, name: { contains: 'Servicios', mode: 'insensitive' } },
@@ -80,7 +91,7 @@ let RemindersService = class RemindersService {
                     });
                 });
                 this.eventsGateway.notifyHouseholdChange(householdId, 'reminder', 'PAY');
-                return { isPaid: true, message: 'Pago registrado como gasto con éxito' };
+                return { isPaid: true, message: `Pago registrado como gasto en "${account.name}" con éxito` };
             }
         }
         const updated = await this.prisma.reminder.update({

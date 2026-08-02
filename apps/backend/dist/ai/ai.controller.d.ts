@@ -35,4 +35,14 @@ export declare class AiController {
         }[];
         aiAdvice: string;
     }>;
+    detectSpendingAnomalies(user: UserPayload): Promise<{
+        hasAnomalies: boolean;
+        anomalies: {
+            category: string;
+            average: number;
+            latest: number;
+            isSpike: boolean;
+            advice: string;
+        }[];
+    }>;
 }

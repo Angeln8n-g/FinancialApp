@@ -38,4 +38,14 @@ export declare class AiService {
         }[];
         aiAdvice: string;
     }>;
+    detectSpendingAnomalies(householdId: string): Promise<{
+        hasAnomalies: boolean;
+        anomalies: {
+            category: string;
+            average: number;
+            latest: number;
+            isSpike: boolean;
+            advice: string;
+        }[];
+    }>;
 }

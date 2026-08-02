@@ -15,6 +15,7 @@ export default function CommitmentsPage() {
   // Modales
   const [showDebtModal, setShowDebtModal] = useState(false);
   const [showSubModal, setShowSubModal] = useState(false);
+  const [showReminderModal, setShowReminderModal] = useState(false);
 
   // Form Deuda
   const [dName, setDName] = useState('');
@@ -26,9 +27,69 @@ export default function CommitmentsPage() {
   const [sName, setSName] = useState('');
   const [sCost, setSCost] = useState('');
 
+  // Form Recordatorio
+  const [remTitle, setRemTitle] = useState('');
+  const [remAmount, setRemAmount] = useState('');
+  const [remDueDate, setRemDueDate] = useState('');
+  const [remSubscriptionId, setRemSubscriptionId] = useState('');
+  const [remDebtId, setRemDebtId] = useState('');
+
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
   const getToken = () => localStorage.getItem('hogariq_token');
+
+  const handleOpenReminderFromDebt = (d: any) => {
+    setRemTitle(`Deuda: ${d.contactName}`);
+    setRemAmount(d.remainingAmount.toString());
+    setRemDueDate(d.dueDate ? new Date(d.dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+    setRemDebtId(d.id);
+    setRemSubscriptionId('');
+    setShowReminderModal(true);
+  };
+
+  const handleOpenReminderFromSub = (s: any) => {
+    setRemTitle(`Suscripción: ${s.name}`);
+    setRemAmount(s.cost.toString());
+    setRemDueDate(s.nextBillingDate ? new Date(s.nextBillingDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+    setRemSubscriptionId(s.id);
+    setRemDebtId('');
+    setShowReminderModal(true);
+  };
+
+  const handleCreateReminder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = getToken();
+    if (!token || !remTitle) return;
+
+    try {
+      const res = await fetch(`${API_URL}/api/reminders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: remTitle,
+          amount: parseFloat(remAmount),
+          dueDate: remDueDate,
+          subscriptionId: remSubscriptionId || undefined,
+          debtId: remDebtId || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        setShowReminderModal(false);
+        setRemTitle('');
+        setRemAmount('');
+        setRemDueDate('');
+        setRemSubscriptionId('');
+        setRemDebtId('');
+        alert('¡Recordatorio programado con éxito!');
+      }
+    } catch (err) {
+      console.error('Error creando recordatorio:', err);
+    }
+  };
 
   const fetchData = async () => {
     const token = getToken();
@@ -205,6 +266,15 @@ export default function CommitmentsPage() {
                     <p className="text-sm font-bold text-slate-300">RD${Number(d.totalAmount).toLocaleString()}</p>
                   </div>
                 </div>
+
+                <div className="pt-2 border-t border-slate-800 flex justify-end">
+                  <button
+                    onClick={() => handleOpenReminderFromDebt(d)}
+                    className="px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all cursor-pointer flex items-center space-x-1"
+                  >
+                    <span>⏰ Programar Recordatorio</span>
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -254,6 +324,15 @@ export default function CommitmentsPage() {
                 <p className="text-[10px] text-slate-400">
                   Próximo cobro: {new Date(s.nextBillingDate).toLocaleDateString()}
                 </p>
+
+                <div className="pt-2 border-t border-slate-800 flex justify-end">
+                  <button
+                    onClick={() => handleOpenReminderFromSub(s)}
+                    className="px-2.5 py-1 rounded-lg bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 text-[11px] font-bold transition-all cursor-pointer flex items-center space-x-1"
+                  >
+                    <span>⏰ Recordatorio</span>
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -387,6 +466,70 @@ export default function CommitmentsPage() {
                   className="px-5 py-2.5 rounded-xl glow-button text-white text-xs font-bold cursor-pointer"
                 >
                   Guardar Suscripción
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Nuevo Recordatorio desde Compromiso */}
+      {showReminderModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md p-6 relative border border-purple-500/40">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-white">Programar Recordatorio</h3>
+              <button onClick={() => setShowReminderModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
+            </div>
+
+            <form onSubmit={handleCreateReminder} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Título del Recordatorio</label>
+                <input
+                  type="text"
+                  required
+                  value={remTitle}
+                  onChange={(e) => setRemTitle(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Monto ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={remAmount}
+                  onChange={(e) => setRemAmount(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-lg focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Fecha de Vencimiento</label>
+                <input
+                  type="date"
+                  required
+                  value={remDueDate}
+                  onChange={(e) => setRemDueDate(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowReminderModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl glow-button text-white text-xs font-bold cursor-pointer"
+                >
+                  Guardar Recordatorio
                 </button>
               </div>
             </form>

@@ -6,27 +6,52 @@ export default function MobileCommitmentsScreen() {
   const [debts, setDebts] = useState<any[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
 
+  // Modales
+  const [showDebtModal, setShowDebtModal] = useState(false);
+  const [showSubModal, setShowSubModal] = useState(false);
+  const [showEditSubModal, setShowEditSubModal] = useState(false);
+  const [showReminderModal, setShowReminderModal] = useState(false);
+
+  const [remTitle, setRemTitle] = useState('');
+  const [remAmount, setRemAmount] = useState('');
+  const [remDueDate, setRemDueDate] = useState('');
+  const [remSubId, setRemSubId] = useState('');
+  const [remDebtId, setRemDebtId] = useState('');
+
   const loadData = async () => {
     try {
-      const res = await fetchWithAuth('/api/commitments');
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          const dList = data.filter((c: any) => c.type === 'DEBT').map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            remaining: item.amount || 0,
-            total: (item.amount || 0) * 1.5,
-            rate: 12,
-          }));
-          const sList = data.filter((c: any) => c.type === 'SUBSCRIPTION').map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            cost: item.amount || 0,
-            date: item.dueDate ? `Día ${new Date(item.dueDate).getDate()}` : 'Mensual',
-          }));
-          if (dList.length > 0) setDebts(dList);
-          if (sList.length > 0) setSubscriptions(sList);
+      const [resDebts, resSubs] = await Promise.all([
+        fetchWithAuth('/api/debts'),
+        fetchWithAuth('/api/subscriptions'),
+      ]);
+
+      if (resDebts.ok) {
+        const dData = await resDebts.json();
+        if (Array.isArray(dData)) {
+          setDebts(
+            dData.map((d: any) => ({
+              id: d.id,
+              name: d.contactName,
+              remaining: Number(d.remainingAmount || 0),
+              total: Number(d.totalAmount || 0),
+              rate: Number(d.interestRate || 0),
+              dueDate: d.dueDate,
+            }))
+          );
+        }
+      }
+      if (resSubs.ok) {
+        const sData = await resSubs.json();
+        if (sData.subscriptions && Array.isArray(sData.subscriptions)) {
+          setSubscriptions(
+            sData.subscriptions.map((s: any) => ({
+              id: s.id,
+              name: s.name,
+              cost: Number(s.cost || 0),
+              date: s.nextBillingDate ? `Cobro: ${new Date(s.nextBillingDate).toLocaleDateString()}` : 'Mensual',
+              nextBillingDate: s.nextBillingDate,
+            }))
+          );
         }
       }
     } catch (e) {
@@ -38,10 +63,50 @@ export default function MobileCommitmentsScreen() {
     loadData();
   }, []);
 
-  // Modales
-  const [showDebtModal, setShowDebtModal] = useState(false);
-  const [showSubModal, setShowSubModal] = useState(false);
-  const [showEditSubModal, setShowEditSubModal] = useState(false);
+  const handleOpenReminderFromDebt = (d: any) => {
+    setRemTitle(`Deuda: ${d.name}`);
+    setRemAmount(d.remaining.toString());
+    setRemDueDate(d.dueDate ? new Date(d.dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+    setRemDebtId(d.id);
+    setRemSubId('');
+    setShowReminderModal(true);
+  };
+
+  const handleOpenReminderFromSub = (s: any) => {
+    setRemTitle(`Suscripción: ${s.name}`);
+    setRemAmount(s.cost.toString());
+    setRemDueDate(s.nextBillingDate ? new Date(s.nextBillingDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+    setRemSubId(s.id);
+    setRemDebtId('');
+    setShowReminderModal(true);
+  };
+
+  const handleCreateReminder = async () => {
+    if (!remTitle || !remAmount) return;
+    try {
+      const res = await fetchWithAuth('/api/reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: remTitle,
+          amount: parseFloat(remAmount),
+          dueDate: remDueDate || new Date().toISOString().split('T')[0],
+          subscriptionId: remSubId || undefined,
+          debtId: remDebtId || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        setShowReminderModal(false);
+        setRemTitle('');
+        setRemAmount('');
+        setRemDueDate('');
+        Alert.alert('¡Éxito!', 'Recordatorio programado con éxito');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo programar el recordatorio.');
+    }
+  };
 
   const [dName, setDName] = useState('');
   const [dAmount, setDAmount] = useState('');
@@ -140,7 +205,15 @@ export default function MobileCommitmentsScreen() {
           </View>
           <Text style={styles.debtLabel}>Saldo Restante</Text>
           <Text style={styles.debtAmount}>RD${d.remaining.toLocaleString()}</Text>
-          <Text style={styles.debtSub}>Monto Inicial: RD${d.total.toLocaleString()}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+            <Text style={styles.debtSub}>Monto Inicial: RD${d.total.toLocaleString()}</Text>
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(147, 51, 234, 0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: '#c084fc' }}
+              onPress={() => handleOpenReminderFromDebt(d)}
+            >
+              <Text style={{ color: '#c084fc', fontSize: 10, fontWeight: 'bold' }}>⏰ Recordatorio</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ))}
 
@@ -163,8 +236,11 @@ export default function MobileCommitmentsScreen() {
               <Text style={styles.subCost}>${s.cost.toFixed(2)}</Text>
             </View>
             <View style={styles.subCardFooter}>
-              <Text style={styles.subDate}>Cobro: {s.date}</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Text style={styles.subDate}>{s.date}</Text>
+              <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                <TouchableOpacity onPress={() => handleOpenReminderFromSub(s)}>
+                  <Text style={{ fontSize: 11, color: '#c084fc', fontWeight: 'bold' }}>⏰</Text>
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => handleOpenEditSub(s)}>
                   <Text style={{ fontSize: 12 }}>✏️</Text>
                 </TouchableOpacity>
@@ -221,6 +297,26 @@ export default function MobileCommitmentsScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn} onPress={handleSaveEditSub}>
                 <Text style={styles.saveBtnText}>Guardar Cambios</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Nuevo Recordatorio */}
+      <Modal visible={showReminderModal} transparent animationType="slide">
+        <View style={styles.modalBg}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Programar Recordatorio</Text>
+            <TextInput style={styles.modalInput} value={remTitle} onChangeText={setRemTitle} placeholder="Título" placeholderTextColor="#94a3b8" />
+            <TextInput style={styles.modalInput} value={remAmount} onChangeText={setRemAmount} placeholder="Monto" keyboardType="numeric" placeholderTextColor="#94a3b8" />
+            <TextInput style={styles.modalInput} value={remDueDate} onChangeText={setRemDueDate} placeholder="YYYY-MM-DD" placeholderTextColor="#94a3b8" />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowReminderModal(false)}>
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleCreateReminder}>
+                <Text style={styles.saveBtnText}>Guardar Recordatorio</Text>
               </TouchableOpacity>
             </View>
           </View>
