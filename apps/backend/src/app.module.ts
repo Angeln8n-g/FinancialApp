@@ -7,7 +7,6 @@ import { AuthModule } from './auth/auth.module';
 import { AccountsModule } from './accounts/accounts.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { CategoriesModule } from './categories/categories.module';
-import { AiModule } from './ai/ai.module';
 import { HouseholdModule } from './household/household.module';
 import { EventsModule } from './events/events.module';
 import { ReportsModule } from './reports/reports.module';
@@ -31,7 +30,6 @@ import { AllowancesModule } from './allowances/allowances.module';
     AccountsModule,
     TransactionsModule,
     CategoriesModule,
-    AiModule,
     HouseholdModule,
     EventsModule,
     ReportsModule,

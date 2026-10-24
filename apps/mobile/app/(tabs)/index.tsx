@@ -30,9 +30,6 @@ export default function MobileDashboardScreen() {
   const [userRole, setUserRole] = useState<string>('COLLABORATOR');
   const [notifications, setNotifications] = useState<any[]>([]);
 
-  const [naturalInput, setNaturalInput] = useState('');
-  const [isProcessingAi, setIsProcessingAi] = useState(false);
-
   // Modales Notificaciones, Pago & Edición
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
@@ -233,91 +230,40 @@ export default function MobileDashboardScreen() {
     Alert.alert('Guardado', 'Recordatorio actualizado correctamente.');
   };
 
-  // ⚡ Procesador de IA Real (Conexión al Backend API)
-  const handleProcessAi = async () => {
-    if (!naturalInput.trim()) return;
-    setIsProcessingAi(true);
+  // ⚡ Registro Rápido Directo
+  const handleQuickAdd = (type: 'EXPENSE' | 'INCOME', val: string) => {
+    if (!val || !val.trim()) return;
 
-    try {
-      let parsedAmount = 0;
-      let parsedDesc = naturalInput;
-      let parsedCat = '🛒 Supermercado';
+    // Extraer número de la cadena enviada
+    const match = val.match(/(\d+([.,]\d{1,2})?)/);
+    const parsedAmount = match ? parseFloat(match[1].replace(',', '.')) : 0;
+    const desc = val.replace(match ? match[0] : '', '').trim() || (type === 'EXPENSE' ? 'Gasto Rápido' : 'Ingreso Rápido');
 
-      // 1. Intentar llamar al backend real de IA
-      const res = await fetch(`${API_URL}/api/ai/parse-natural`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: naturalInput }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        parsedAmount = Number(data.amount || 0);
-        parsedDesc = data.description || naturalInput;
-        if (data.categoryName) parsedCat = `📌 ${data.categoryName}`;
-      } else {
-        // Extraer número dinámico de la cadena enviada
-        const match = naturalInput.match(/(\d+([.,]\d{1,2})?)/);
-        parsedAmount = match ? parseFloat(match[1].replace(',', '.')) : 25.0;
-      }
-
-      // Si el número extraído es 0, intentar buscar de nuevo en el texto
-      if (parsedAmount === 0) {
-        const match = naturalInput.match(/(\d+)/);
-        parsedAmount = match ? parseFloat(match[1]) : 25.0;
-      }
-
+    if (parsedAmount > 0) {
       setSummary((s) => ({
         ...s,
-        monthlyExpense: s.monthlyExpense + parsedAmount,
-        totalBalance: s.totalBalance - parsedAmount,
+        monthlyExpense: type === 'EXPENSE' ? s.monthlyExpense + parsedAmount : s.monthlyExpense,
+        monthlyIncome: type === 'INCOME' ? s.monthlyIncome + parsedAmount : s.monthlyIncome,
+        totalBalance: type === 'EXPENSE' ? s.totalBalance - parsedAmount : s.totalBalance + parsedAmount,
       }));
 
       setTransactions((t) => [
         {
           id: Date.now().toString(),
-          title: parsedDesc,
+          title: desc,
           amount: parsedAmount,
-          type: 'EXPENSE',
-          category: parsedCat,
+          type,
+          category: type === 'EXPENSE' ? '🛒 Compras' : '💼 Ingreso',
         },
         ...t,
       ]);
 
       Alert.alert(
-        '⚡ Procesado por IA',
-        `Se registró "${parsedDesc}" por $${parsedAmount.toFixed(2)} exitosamente.`
+        'Registrado',
+        `Se registró "${desc}" por $${parsedAmount.toFixed(2)} exitosamente.`
       );
-      setNaturalInput('');
-    } catch (err) {
-      // Respaldo dinámico extrayendo cualquier número del texto ingresado
-      const match = naturalInput.match(/(\d+)/);
-      const fallbackAmount = match ? parseFloat(match[1]) : 25.0;
-
-      setSummary((s) => ({
-        ...s,
-        monthlyExpense: s.monthlyExpense + fallbackAmount,
-        totalBalance: s.totalBalance - fallbackAmount,
-      }));
-
-      setTransactions((t) => [
-        {
-          id: Date.now().toString(),
-          title: naturalInput,
-          amount: fallbackAmount,
-          type: 'EXPENSE',
-          category: '🛒 Compras',
-        },
-        ...t,
-      ]);
-
-      Alert.alert(
-        '⚡ Procesado por IA',
-        `Se registró "${naturalInput}" por $${fallbackAmount.toFixed(2)} exitosamente.`
-      );
-      setNaturalInput('');
-    } finally {
-      setIsProcessingAi(false);
+    } else {
+      Alert.alert('Error', 'Por favor ingresa un monto numérico válido.');
     }
   };
 
@@ -363,10 +309,7 @@ export default function MobileDashboardScreen() {
                 {
                   text: 'Registrar Gasto',
                   onPress: (val: any) => {
-                    if (val) {
-                      setNaturalInput(`Gasto ${val}`);
-                      handleProcessAi();
-                    }
+                    if (val) handleQuickAdd('EXPENSE', val);
                   },
                 },
               ],
@@ -397,10 +340,7 @@ export default function MobileDashboardScreen() {
                 {
                   text: 'Registrar Ingreso',
                   onPress: (val: any) => {
-                    if (val) {
-                      setNaturalInput(`Ingreso ${val}`);
-                      handleProcessAi();
-                    }
+                    if (val) handleQuickAdd('INCOME', val);
                   },
                 },
               ],
@@ -420,31 +360,6 @@ export default function MobileDashboardScreen() {
         >
           <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 14 }}>📈 Ingreso (+)</Text>
         </TouchableOpacity>
-      </View>
-
-      {/* Entrada IA Rápida */}
-      <View style={styles.aiCard}>
-        <Text style={styles.aiLabel}>⚡ ENTRADA POR IA LOCAL</Text>
-        <View style={styles.aiInputRow}>
-          <TextInput
-            style={styles.aiInput}
-            value={naturalInput}
-            onChangeText={setNaturalInput}
-            placeholder='Ej. "Compré 150 pesos de plátanos"'
-            placeholderTextColor="#94a3b8"
-          />
-          <TouchableOpacity
-            style={styles.aiButton}
-            onPress={handleProcessAi}
-            disabled={isProcessingAi || !naturalInput.trim()}
-          >
-            {isProcessingAi ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={styles.aiButtonText}>Procesar</Text>
-            )}
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* KPI Cards / Perfil Adaptado Dependiente */}
@@ -844,12 +759,6 @@ const styles = StyleSheet.create({
   notifBellBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#334155' },
   notifBadge: { position: 'absolute', top: -3, right: -3, backgroundColor: '#f43f5e', borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   notifBadgeText: { color: '#ffffff', fontSize: 9, fontWeight: 'bold' },
-  aiCard: { backgroundColor: 'rgba(30, 41, 59, 0.8)', borderRadius: 16, padding: 14, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(168, 85, 247, 0.4)' },
-  aiLabel: { fontSize: 10, fontWeight: 'bold', color: '#c084fc', letterSpacing: 1, marginBottom: 8 },
-  aiInputRow: { flexDirection: 'row', alignItems: 'center' },
-  aiInput: { flex: 1, backgroundColor: '#0f172a', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, color: '#ffffff', fontSize: 13, borderWidth: 1, borderColor: '#334155', marginRight: 8 },
-  aiButton: { backgroundColor: '#9333ea', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, alignItems: 'center', justifyContent: 'center' },
-  aiButtonText: { color: '#ffffff', fontSize: 12, fontWeight: 'bold' },
   kpiContainer: { marginBottom: 20 },
   kpiCardMain: { backgroundColor: 'rgba(30, 41, 59, 0.7)', borderRadius: 20, padding: 20, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' },
   kpiTitle: { fontSize: 10, fontWeight: 'bold', color: '#94a3b8', letterSpacing: 1, marginBottom: 4 },

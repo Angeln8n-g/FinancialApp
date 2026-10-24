@@ -27,13 +27,6 @@ services:
       timeout: 5s
       retries: 10
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: hogariq_ollama
-    restart: always
-    volumes:
-      - ollama_prod_data:/root/.ollama
-
   backend:
     build:
       context: .
@@ -44,8 +37,6 @@ services:
       DATABASE_URL: postgresql://hogariq_user:hogariq_prod_password_9988@db:5432/hogariq_prod_db?schema=public
       REDIS_URL: redis://redis:6379
       JWT_SECRET: hogariq_prod_secret_key_9988_change_me
-      OLLAMA_HOST: http://ollama:11434
-      OLLAMA_MODEL: llama3.2:1b
       PORT: 3000
     ports:
       - "127.0.0.1:3011:3000"
@@ -54,8 +45,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      ollama:
-        condition: service_started
 
   web:
     build:
@@ -75,5 +64,5 @@ services:
 
 volumes:
   postgres_prod_data:
-  ollama_prod_data:
+
 

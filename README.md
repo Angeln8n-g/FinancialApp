@@ -5,12 +5,12 @@
 
 **HogarIQ** es un asistente financiero inteligente y plataforma de administración familiar diseñada para transformar la gestión de las finanzas del hogar. Funciona como un copiloto financiero proactivo, ayudando a las familias a comprender el comportamiento de su dinero, anticipar desafíos de liquidez y alcanzar metas de ahorro compartidas. 
 
-El principio central de la plataforma es la **privacidad absoluta y el control local**, integrando Inteligencia Artificial de forma privada.
+El principio central de la plataforma es la **privacidad absoluta, soberanía de datos y rendimiento ligero**.
 
 ## 🚀 Características Principales
 
 *   **Colaboración Familiar en Tiempo Real:** Multi-perfiles con roles y permisos específicos para organizar presupuestos comunes o cuentas personales.
-*   **Inteligencia Artificial Local:** Procesamiento de lenguaje natural y clasificación de gastos sin enviar datos a la nube (Ollama, pgvector).
+*   **Gestión Financiera Integral:** Control de ingresos, gastos, transferencias, metas de ahorro, deudas y suscripciones.
 *   **Experiencia Offline-First:** Las aplicaciones funcionan sin internet y se sincronizan al volver la conexión.
 *   **Monorepositorio Escalar:** Unifica el código del Backend, la Aplicación Web y la Aplicación Móvil en un solo lugar.
 

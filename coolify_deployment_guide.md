@@ -1,6 +1,6 @@
 # 🚀 Guía Oficial de Despliegue de HogarIQ en Coolify
 
-Esta guía detalla el proceso para desplegar toda la plataforma **HogarIQ** (Backend NestJS, Web Next.js, PostgreSQL con pgvector, Redis y el servidor de IA local Ollama) de forma automatizada en tu panel de **Coolify**.
+Esta guía detalla el proceso para desplegar toda la plataforma **HogarIQ** (Backend NestJS, Web Next.js, PostgreSQL con pgvector y Redis) de forma automatizada en tu panel de **Coolify**.
 
 ---
 
@@ -49,15 +49,6 @@ services:
     ports:
       - "6379:6379"
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: hogariq-prod-ollama
-    restart: always
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_prod_data:/root/.ollama
-
   backend:
     build:
       context: .
@@ -68,15 +59,12 @@ services:
       DATABASE_URL: postgresql://hogariq_user:hogariq_prod_password_9988@db:5432/hogariq_prod_db?schema=public
       REDIS_URL: redis://redis:6379
       JWT_SECRET: hogariq_prod_secret_key_change_me_in_coolify
-      OLLAMA_HOST: http://ollama:11434
-      OLLAMA_MODEL: llama3.2:1b
       PORT: 3000
     ports:
       - "3000:3000"
     depends_on:
       - db
       - redis
-      - ollama
 
   web:
     build:
@@ -94,7 +82,6 @@ services:
 
 volumes:
   postgres_prod_data:
-  ollama_prod_data:
 ```
 
 ---
@@ -102,10 +89,8 @@ volumes:
 ## 🌐 3. Configuración de Dominios en Coolify
 
 En Coolify:
-- **`ollama` / `db` / `redis` (Servicios Internos Privados):** 
-  - **NO necesitan un dominio público.**
-  - En la casilla **Domains / FQDN** de `ollama`, simplemente **déjalo en blanco** o desmarca la opción *"Publicly Accessible"*. El backend de NestJS se comunica con Ollama de forma privada en la red interna de Docker a través de `http://ollama:11434`.
-  - Si Coolify te exige ingresar un valor obligatorio en el campo de texto, puedes colocar `http://ollama.local` o `http://127.0.0.1:11434`.
+- **`db` / `redis` (Servicios Internos Privados):** 
+  - **NO necesitan un dominio público.** Dejar la opción *"Publicly Accessible"* desmarcada.
 
 - **`web` (Aplicación Web Frontend):** Ingresa tu dominio público principal (ejemplo: `https://hogariq.tudominio.com`).
 - **`backend` (API NestJS):** Ingresa tu subdominio de API (ejemplo: `https://api-hogariq.tudominio.com`).
@@ -158,13 +143,6 @@ docker exec -it $(docker ps -q -f name=backend | head -n 1) npx prisma db push -
 docker exec -it $(docker ps -q -f name=backend | head -n 1) node packages/database/seed.js
 ```
 
-### B. Descargar Modelo de Inteligencia Artificial (Ollama):
-Para activar el motor de inteligencia artificial privado en el servidor:
-
-```bash
-docker exec -it $(docker ps -q -f name=ollama | head -n 1) ollama pull llama3.2:1b
-```
-
 ---
 
 ## ✅ 5. Verificación
@@ -173,4 +151,4 @@ docker exec -it $(docker ps -q -f name=ollama | head -n 1) ollama pull llama3.2:
 - Inicia sesión con tus credenciales:
   - **Email:** `angellafraga@gmail.con`
   - **Password:** `admin123`
-- ¡Tu ecosistema financiero con IA Local, WebSockets y gestión total estará funcionando en producción!
+- ¡Tu ecosistema financiero con WebSockets y gestión total estará funcionando en producción!

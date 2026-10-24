@@ -26,7 +26,6 @@ export default function DashboardPage() {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [showPayReminderModal, setShowPayReminderModal] = useState(false);
-  const [showChatModal, setShowChatModal] = useState(false);
 
   // Pago de Recordatorio
   const [payingReminder, setPayingReminder] = useState<any>(null);
@@ -65,19 +64,6 @@ export default function DashboardPage() {
   const [selectedTxForVoid, setSelectedTxForVoid] = useState<any>(null);
   const [voidReason, setVoidReason] = useState('');
 
-  // IA Local Estados
-  const [naturalText, setNaturalText] = useState('');
-  const [aiParsing, setAiParsing] = useState(false);
-  const [ocrLoading, setOcrLoading] = useState(false);
-  const [anomalies, setAnomalies] = useState<any[]>([]);
-
-  // Chat RAG Estados
-  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string }>>([
-    { sender: 'ai', text: '¡Hola! Soy tu asistente financiero privado de HogarIQ. ¿Qué deseas consultar sobre tus finanzas hoy?' },
-  ]);
-  const [chatInput, setChatInput] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
-
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
   const getToken = () => localStorage.getItem('hogariq_token');
@@ -92,13 +78,12 @@ export default function DashboardPage() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [resSum, resAcc, resTx, resCat, resRem, resAnom, resSubs, resDebts] = await Promise.all([
+      const [resSum, resAcc, resTx, resCat, resRem, resSubs, resDebts] = await Promise.all([
         fetch(`${API_URL}/api/transactions/summary`, { headers }),
         fetch(`${API_URL}/api/accounts`, { headers }),
         fetch(`${API_URL}/api/transactions?limit=10`, { headers }),
         fetch(`${API_URL}/api/categories`, { headers }),
         fetch(`${API_URL}/api/reminders`, { headers }),
-        fetch(`${API_URL}/api/ai/anomalies`, { headers }),
         fetch(`${API_URL}/api/subscriptions`, { headers }),
         fetch(`${API_URL}/api/debts`, { headers }),
       ]);
@@ -262,116 +247,6 @@ export default function DashboardPage() {
     }
   };
 
-  // 🤖 1. IA Parsing de Lenguaje Natural
-  const handleParseNatural = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!naturalText.trim()) return;
-
-    setAiParsing(true);
-    const token = getToken();
-
-    try {
-      const res = await fetch(`${API_URL}/api/ai/parse-natural`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ text: naturalText }),
-      });
-
-      if (res.ok) {
-        const parsed = await res.json();
-        setTxAmount(parsed.amount.toString());
-        setTxType(parsed.type);
-        setTxDescription(parsed.description);
-
-        if (parsed.categoryName && categories.length > 0) {
-          const matchedCat = categories.find(c => c.name.toLowerCase().includes(parsed.categoryName.toLowerCase()));
-          if (matchedCat) setTxCategoryId(matchedCat.id);
-        }
-
-        setNaturalText('');
-        setShowTxModal(true);
-      }
-    } catch (err) {
-      console.error('Error procesando IA:', err);
-    } finally {
-      setAiParsing(false);
-    }
-  };
-
-  // 📷 2. IA OCR Procesador de Recibos
-  const handleOcrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setOcrLoading(true);
-    const token = getToken();
-
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64Image = reader.result as string;
-      try {
-        const res = await fetch(`${API_URL}/api/ai/ocr`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ imageBase64: base64Image }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.parsed) {
-            setTxAmount(data.parsed.amount.toString());
-            setTxType(data.parsed.type);
-            setTxDescription(data.parsed.description);
-          }
-        }
-      } catch (err) {
-        console.error('Error procesando OCR:', err);
-      } finally {
-        setOcrLoading(false);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // 💬 3. Chat RAG Financiero Privado
-  const handleSendChatMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-
-    const userMsg = chatInput;
-    setChatInput('');
-    setChatMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
-    setChatLoading(true);
-
-    const token = getToken();
-
-    try {
-      const res = await fetch(`${API_URL}/api/ai/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ message: userMsg }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setChatMessages(prev => [...prev, { sender: 'ai', text: data.reply }]);
-      }
-    } catch (err) {
-      setChatMessages(prev => [...prev, { sender: 'ai', text: 'Error al conectar con la IA local.' }]);
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
   const handleCreateTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = getToken();
@@ -531,7 +406,6 @@ export default function DashboardPage() {
         user={user}
         household={household}
         unreadNotifications={reminders.filter(r => !r.isPaid).length}
-        onOpenChat={() => setShowChatModal(true)}
       />
 
       {/* Main Container */}
@@ -540,7 +414,7 @@ export default function DashboardPage() {
         <section className="glass-card p-5 sm:p-6 border-2 border-purple-500/40 shadow-2xl relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900">
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center space-x-2">
                 <span className="px-2.5 py-1 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[10px] font-extrabold uppercase tracking-wider">
@@ -551,7 +425,7 @@ export default function DashboardPage() {
                 </h2>
               </div>
               <p className="text-xs text-slate-400 mt-1">
-                Registra tus gastos o ingresos en un clic o escribe a la IA Privada del hogar.
+                Registra tus gastos o ingresos fácilmente en un clic.
               </p>
             </div>
 
@@ -580,26 +454,6 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
-
-          {/* Entrada de Lenguaje Natural con IA Privada */}
-          <form onSubmit={handleParseNatural} className="pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-stretch gap-2">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={naturalText}
-                onChange={(e) => setNaturalText(e.target.value)}
-                placeholder='⚡ O escribe en lenguaje natural: Ej. "Compré 45$ en supermercado Mercadona"'
-                className="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-950/80 border border-purple-500/30 text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-purple-400 transition-colors shadow-inner"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={aiParsing || !naturalText.trim()}
-              className="px-5 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center space-x-2 shrink-0 cursor-pointer shadow-md"
-            >
-              <span>{aiParsing ? 'Procesando...' : '⚡ Procesar con IA'}</span>
-            </button>
-          </form>
         </section>
 
         {/* KPI Cards Row */}
@@ -631,20 +485,6 @@ export default function DashboardPage() {
             <p className="text-xs text-slate-400 mt-2">Salidas registradas</p>
           </div>
         </div>
-
-        {/* ⚠️ ALERTAS PROACTIVAS DE IA: FUGAS DE DINERO Y ANOMALÍAS */}
-        {anomalies.length > 0 && (
-          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 space-y-2">
-            <div className="flex items-center space-x-2 text-amber-400 font-extrabold text-xs uppercase tracking-wider">
-              <span>⚠️ Alerta de Inteligencia Privada - Desviación de Gastos:</span>
-            </div>
-            {anomalies.map((anom, idx) => (
-              <p key={idx} className="text-xs font-semibold leading-relaxed">
-                • {anom.advice}
-              </p>
-            ))}
-          </div>
-        )}
 
         {/* ⏰ RECORDATORIOS DE PAGO PRÓXIMOS */}
         <div className="glass-card p-6 border border-purple-500/20 space-y-4">
@@ -1034,60 +874,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 💬 MODAL CHAT IA PRIVADO */}
-      {showChatModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-card w-full max-w-xl p-6 flex flex-col h-[550px] relative border border-purple-500/40">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl">🤖</span>
-                <div>
-                  <h3 className="text-base font-bold text-white">Chat Financiero IA Contextual</h3>
-                  <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">● Procesamiento Local y Privado</span>
-                </div>
-              </div>
-              <button onClick={() => setShowChatModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
-            </div>
-
-            {/* Area de Mensajes */}
-            <div className="flex-1 overflow-y-auto py-4 space-y-3 custom-scrollbar">
-              {chatMessages.map((m, idx) => (
-                <div key={idx} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] p-3.5 rounded-2xl text-xs leading-relaxed ${m.sender === 'user' ? 'bg-purple-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-bl-none'}`}>
-                    {m.text}
-                  </div>
-                </div>
-              ))}
-              {chatLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-slate-800 border border-slate-700 p-3 rounded-2xl text-xs text-purple-400 animate-pulse">
-                    Thinking / Analizando tus datos locales...
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Input Chat */}
-            <form onSubmit={handleSendChatMessage} className="pt-3 border-t border-slate-800 flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Pregúntame sobre tus gastos o presupuesto..."
-                className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-purple-500"
-              />
-              <button
-                type="submit"
-                disabled={chatLoading || !chatInput.trim()}
-                className="px-4 py-2.5 glow-button text-xs font-bold text-white rounded-xl cursor-pointer disabled:opacity-50"
-              >
-                Enviar
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Modal Registrar Movimiento */}
       {showTxModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1095,18 +881,6 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-white">Registrar Movimiento</h3>
               <button onClick={() => setShowTxModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
-            </div>
-
-            {/* 📷 OCR Escáner de Recibos */}
-            <div className="mb-4 p-3 rounded-xl bg-purple-900/20 border border-purple-500/30 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-purple-300">📷 Escanear Recibo / Ticket</p>
-                <p className="text-[10px] text-slate-400">Extrae el monto y concepto automáticamente</p>
-              </div>
-              <label className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg cursor-pointer transition-colors">
-                {ocrLoading ? 'Procesando...' : 'Subir Foto'}
-                <input type="file" accept="image/*" onChange={handleOcrUpload} className="hidden" />
-              </label>
             </div>
 
             <form onSubmit={handleCreateTransaction} className="space-y-4">

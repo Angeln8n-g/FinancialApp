@@ -9,7 +9,6 @@ interface NavbarProps {
   user?: any;
   household?: any;
   unreadNotifications?: number;
-  onOpenChat?: () => void;
 }
 
 function NotificationBell() {
@@ -189,7 +188,6 @@ export default function Navbar({
   user,
   household,
   unreadNotifications = 0,
-  onOpenChat,
 }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -249,17 +247,6 @@ export default function Navbar({
           <div className="flex items-center space-x-2 sm:space-x-3">
             {/* Notification Bell Button */}
             <NotificationBell />
-
-            {/* AI Assistant Chat Button */}
-            {onOpenChat && (
-              <button
-                onClick={onOpenChat}
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-900/40 to-indigo-900/40 hover:from-purple-800/60 hover:to-indigo-800/60 text-purple-300 text-xs font-bold border border-purple-500/30 flex items-center space-x-1.5 cursor-pointer transition-all shadow-sm"
-              >
-                <span>🤖</span>
-                <span className="hidden sm:inline">Chat IA Privado</span>
-              </button>
-            )}
 
             {/* User Info (Desktop) */}
             {user && (
