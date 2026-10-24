@@ -1,11 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { io } from 'socket.io-client';
-import Logo from '@/components/Logo';
 import Navbar from '@/components/Navbar';
+import KPICards from '@/components/dashboard/KPICards';
+import TransactionModal from '@/components/modals/TransactionModal';
+import AccountModal from '@/components/modals/AccountModal';
+import ReminderModal from '@/components/modals/ReminderModal';
+import PayReminderModal from '@/components/modals/PayReminderModal';
+import EditTransactionModal from '@/components/modals/EditTransactionModal';
+import VoidTransactionModal from '@/components/modals/VoidTransactionModal';
+import { apiFetch, getUser, getHousehold, getToken } from '@/lib/api';
+import { useHouseholdSocket } from '@/hooks/useHouseholdSocket';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -21,374 +28,136 @@ export default function DashboardPage() {
   const [debts, setDebts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Modales
+  // Estados de Modales
   const [showTxModal, setShowTxModal] = useState(false);
+  const [txInitialType, setTxInitialType] = useState<'EXPENSE' | 'INCOME'>('EXPENSE');
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [showPayReminderModal, setShowPayReminderModal] = useState(false);
+  const [selectedReminderForPay, setSelectedReminderForPay] = useState<any>(null);
 
-  // Pago de Recordatorio
-  const [payingReminder, setPayingReminder] = useState<any>(null);
-  const [selectedPayAccountId, setSelectedPayAccountId] = useState('');
-
-  // Formulario Transacción
-  const [txType, setTxType] = useState<'EXPENSE' | 'INCOME' | 'TRANSFER'>('EXPENSE');
-  const [txAmount, setTxAmount] = useState('');
-  const [txAccountId, setTxAccountId] = useState('');
-  const [txCategoryId, setTxCategoryId] = useState('');
-  const [txDescription, setTxDescription] = useState('');
-
-  // Formulario Cuenta
-  const [accName, setAccName] = useState('');
-  const [accType, setAccType] = useState('BANK_ACCOUNT');
-  const [accBalance, setAccBalance] = useState('');
-
-  // Formulario Recordatorio
-  const [remTitle, setRemTitle] = useState('');
-  const [remAmount, setRemAmount] = useState('');
-  const [remDueDate, setRemDueDate] = useState('');
-  const [remSubscriptionId, setRemSubscriptionId] = useState('');
-  const [remDebtId, setRemDebtId] = useState('');
-
-  // Estados Edición Auditada de Transacción
+  // Estados de Modales de Auditoría
   const [showEditTxModal, setShowEditTxModal] = useState(false);
   const [selectedTxForEdit, setSelectedTxForEdit] = useState<any>(null);
-  const [editTxAmount, setEditTxAmount] = useState('');
-  const [editTxDescription, setEditTxDescription] = useState('');
-  const [editTxAccountId, setEditTxAccountId] = useState('');
-  const [editTxCategoryId, setEditTxCategoryId] = useState('');
-  const [editReason, setEditReason] = useState('');
-
-  // Estados Anulación de Transacción
   const [showVoidTxModal, setShowVoidTxModal] = useState(false);
   const [selectedTxForVoid, setSelectedTxForVoid] = useState<any>(null);
-  const [voidReason, setVoidReason] = useState('');
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-
-  const getToken = () => localStorage.getItem('hogariq_token');
-
-  const fetchData = async () => {
-    const token = getToken();
-    if (!token) {
+  const fetchData = useCallback(async () => {
+    if (!getToken()) {
       router.push('/login');
       return;
     }
 
     try {
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const [resSum, resAcc, resTx, resCat, resRem, resSubs, resDebts] = await Promise.all([
-        fetch(`${API_URL}/api/transactions/summary`, { headers }),
-        fetch(`${API_URL}/api/accounts`, { headers }),
-        fetch(`${API_URL}/api/transactions?limit=10`, { headers }),
-        fetch(`${API_URL}/api/categories`, { headers }),
-        fetch(`${API_URL}/api/reminders`, { headers }),
-        fetch(`${API_URL}/api/subscriptions`, { headers }),
-        fetch(`${API_URL}/api/debts`, { headers }),
+      const [sum, accs, txs, cats, rems, subs, dbts] = await Promise.all([
+        apiFetch('/api/transactions/summary').catch(() => ({ totalBalance: 0, monthlyIncome: 0, monthlyExpense: 0 })),
+        apiFetch('/api/accounts').catch(() => []),
+        apiFetch('/api/transactions?limit=10').catch(() => []),
+        apiFetch('/api/categories').catch(() => []),
+        apiFetch('/api/reminders').catch(() => []),
+        apiFetch('/api/subscriptions').catch(() => ({ subscriptions: [] })),
+        apiFetch('/api/debts').catch(() => []),
       ]);
 
-      if (resSum.ok) setSummary(await resSum.json());
-      if (resAcc.ok) {
-        const accs = await resAcc.json();
-        setAccounts(accs);
-        if (accs.length > 0) {
-          if (!txAccountId) setTxAccountId(accs[0].id);
-          if (!selectedPayAccountId) setSelectedPayAccountId(accs[0].id);
-        }
-      }
-      if (resTx.ok) setTransactions(await resTx.json());
-      if (resCat.ok) {
-        const cats = await resCat.json();
-        setCategories(cats);
-        if (cats.length > 0 && !txCategoryId) setTxCategoryId(cats[0].id);
-      }
-      if (resRem.ok) setReminders(await resRem.json());
-      if (resSubs.ok) {
-        const subData = await resSubs.json();
-        setSubscriptions(subData.subscriptions || []);
-      }
-      if (resDebts.ok) setDebts(await resDebts.json());
+      setSummary(sum);
+      setAccounts(Array.isArray(accs) ? accs : []);
+      setTransactions(Array.isArray(txs) ? txs : []);
+      setCategories(Array.isArray(cats) ? cats : []);
+      setReminders(Array.isArray(rems) ? rems : []);
+      setSubscriptions(subs?.subscriptions || []);
+      setDebts(Array.isArray(dbts) ? dbts : []);
     } catch (err) {
-      console.error('Error cargando datos:', err);
+      console.error('Error cargando datos del dashboard:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
-    const uStr = localStorage.getItem('hogariq_user');
-    const hStr = localStorage.getItem('hogariq_household');
+    const u = getUser();
+    const h = getHousehold();
 
-    if (!uStr || !getToken()) {
+    if (!u || !getToken()) {
       router.push('/login');
       return;
     }
 
-    setUser(JSON.parse(uStr));
-    if (hStr) setHousehold(JSON.parse(hStr));
+    setUser(u);
+    if (h) setHousehold(h);
 
     fetchData();
-  }, []);
+  }, [fetchData, router]);
 
   // ⚡ Sincronización WebSockets en tiempo real
-  useEffect(() => {
-    if (household?.id) {
-      const socket = io(API_URL);
-      socket.emit('join_household', { householdId: household.id });
+  useHouseholdSocket(household?.id, () => {
+    fetchData();
+  });
 
-      socket.on('household_data_changed', (data) => {
-        console.log('⚡ Cambio en tiempo real detectado:', data);
-        fetchData();
-      });
-
-      return () => {
-        socket.disconnect();
-      };
-    }
-  }, [household?.id]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('hogariq_token');
-    localStorage.removeItem('hogariq_user');
-    localStorage.removeItem('hogariq_household');
-    router.push('/login');
-  };
-
-  const handleToggleReminder = async (r: any) => {
+  const handleToggleReminder = (r: any) => {
     if (!r.isPaid) {
-      setPayingReminder(r);
-      setSelectedPayAccountId(accounts[0]?.id || '');
+      setSelectedReminderForPay(r);
       setShowPayReminderModal(true);
       return;
     }
 
-    const token = getToken();
-    try {
-      const res = await fetch(`${API_URL}/api/reminders/${r.id}/toggle`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) fetchData();
-    } catch (err) {
-      console.error('Error cambiando recordatorio:', err);
-    }
+    apiFetch(`/api/reminders/${r.id}/toggle`, { method: 'PUT' })
+      .then(() => fetchData())
+      .catch((err) => alert(err.message || 'Error al cambiar recordatorio'));
   };
 
-  const handleConfirmPayReminder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!payingReminder) return;
-    const token = getToken();
-    try {
-      const res = await fetch(`${API_URL}/api/reminders/${payingReminder.id}/toggle`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ accountId: selectedPayAccountId }),
-      });
-      if (res.ok) {
-        setShowPayReminderModal(false);
-        setPayingReminder(null);
-        fetchData();
-      }
-    } catch (err) {
-      console.error('Error al confirmar pago de recordatorio:', err);
-    }
-  };
-
-  const handleCreateReminder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const token = getToken();
-    if (!token || !remTitle) return;
-
-    try {
-      const res = await fetch(`${API_URL}/api/reminders`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: remTitle,
-          amount: parseFloat(remAmount),
-          dueDate: remDueDate,
-          subscriptionId: remSubscriptionId || undefined,
-          debtId: remDebtId || undefined,
-        }),
-      });
-
-      if (res.ok) {
-        setShowReminderModal(false);
-        setRemTitle('');
-        setRemAmount('');
-        setRemDueDate('');
-        setRemSubscriptionId('');
-        setRemDebtId('');
-        fetchData();
-      }
-    } catch (err) {
-      console.error('Error creando recordatorio:', err);
-    }
-  };
-
-  const handleDeleteReminder = async (e: React.MouseEvent, id: string) => {
+  const handleDeleteReminder = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    const token = getToken();
-    try {
-      const res = await fetch(`${API_URL}/api/reminders/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) fetchData();
-    } catch (err) {
-      console.error('Error eliminando recordatorio:', err);
-    }
+    apiFetch(`/api/reminders/${id}`, { method: 'DELETE' })
+      .then(() => fetchData())
+      .catch((err) => alert(err.message || 'Error al eliminar recordatorio'));
   };
 
-  const handleCreateTransaction = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const token = getToken();
-    if (!token || !txAccountId) return;
-
-    try {
-      const res = await fetch(`${API_URL}/api/transactions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          accountId: txAccountId,
-          categoryId: txCategoryId || undefined,
-          type: txType,
-          amount: parseFloat(txAmount),
-          description: txDescription,
-        }),
-      });
-
-      if (res.ok) {
-        setShowTxModal(false);
-        setTxAmount('');
-        setTxDescription('');
-        fetchData();
-      }
-    } catch (err) {
-      console.error('Error creando transacción:', err);
-    }
+  const handleCreateTransaction = async (data: any) => {
+    await apiFetch('/api/transactions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    await fetchData();
   };
 
-  const handleCreateAccount = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const token = getToken();
-    if (!token || !accName) return;
-
-    try {
-      const res = await fetch(`${API_URL}/api/accounts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: accName,
-          type: accType,
-          balance: parseFloat(accBalance || '0'),
-        }),
-      });
-
-      if (res.ok) {
-        setShowAccountModal(false);
-        setAccName('');
-        setAccBalance('');
-        fetchData();
-      }
-    } catch (err) {
-      console.error('Error creando cuenta:', err);
-    }
+  const handleCreateAccount = async (data: any) => {
+    await apiFetch('/api/accounts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    await fetchData();
   };
 
-  const handleOpenEditTx = (tx: any) => {
-    setSelectedTxForEdit(tx);
-    setEditTxAmount(tx.amount.toString());
-    setEditTxDescription(tx.description || '');
-    setEditTxAccountId(tx.accountId);
-    setEditTxCategoryId(tx.categoryId || '');
-    setEditReason('');
-    setShowEditTxModal(true);
+  const handleCreateReminder = async (data: any) => {
+    await apiFetch('/api/reminders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    await fetchData();
   };
 
-  const handleSaveEditTx = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTxForEdit || !editReason.trim()) {
-      alert('Debes ingresar la razón obligatoria del cambio');
-      return;
-    }
-    const token = getToken();
-    try {
-      const res = await fetch(`${API_URL}/api/transactions/${selectedTxForEdit.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          amount: parseFloat(editTxAmount),
-          description: editTxDescription,
-          accountId: editTxAccountId,
-          categoryId: editTxCategoryId || null,
-          editReason: editReason.trim(),
-        }),
-      });
-      if (res.ok) {
-        setShowEditTxModal(false);
-        setSelectedTxForEdit(null);
-        fetchData();
-      } else {
-        const err = await res.json();
-        alert(err.message || 'Error al editar transacción');
-      }
-    } catch (err) {
-      console.error('Error editando transacción:', err);
-    }
+  const handleConfirmPayReminder = async (reminderId: string, accountId: string) => {
+    await apiFetch(`/api/reminders/${reminderId}/toggle`, {
+      method: 'PUT',
+      body: JSON.stringify({ accountId }),
+    });
+    await fetchData();
   };
 
-  const handleOpenVoidTx = (tx: any) => {
-    setSelectedTxForVoid(tx);
-    setVoidReason('');
-    setShowVoidTxModal(true);
+  const handleSaveEditTx = async (txId: string, data: any) => {
+    await apiFetch(`/api/transactions/${txId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    await fetchData();
   };
 
-  const handleConfirmVoidTx = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTxForVoid || !voidReason.trim()) {
-      alert('Debes ingresar el motivo obligatorio de anulación');
-      return;
-    }
-    const token = getToken();
-    try {
-      const res = await fetch(`${API_URL}/api/transactions/${selectedTxForVoid.id}/void`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          voidReason: voidReason.trim(),
-        }),
-      });
-      if (res.ok) {
-        setShowVoidTxModal(false);
-        setSelectedTxForVoid(null);
-        fetchData();
-      } else {
-        const err = await res.json();
-        alert(err.message || 'Error al anular transacción');
-      }
-    } catch (err) {
-      console.error('Error anulando transacción:', err);
-    }
+  const handleConfirmVoidTx = async (txId: string, voidReason: string) => {
+    await apiFetch(`/api/transactions/${txId}/void`, {
+      method: 'PUT',
+      body: JSON.stringify({ voidReason }),
+    });
+    await fetchData();
   };
 
   if (loading) {
@@ -401,16 +170,14 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 pb-20 lg:pb-12">
-      {/* Navbar Responsive (Desktop Tabs + Mobile Hamburger Drawer + Mobile Bottom Bar) */}
       <Navbar
         user={user}
         household={household}
-        unreadNotifications={reminders.filter(r => !r.isPaid).length}
+        unreadNotifications={reminders.filter((r) => !r.isPaid).length}
       />
 
-      {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 py-6 sm:py-8 space-y-8">
-        {/* 🚀 1. HERO ACTION PANEL: REGISTRO RÁPIDO DE GASTOS E INGRESOS (UX DESTACADA) */}
+        {/* 🚀 Hero Action Panel */}
         <section className="glass-card p-5 sm:p-6 border-2 border-purple-500/40 shadow-2xl relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900">
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -429,11 +196,10 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            {/* Botones Gigantes de Acción Directa */}
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
-                  setTxType('EXPENSE');
+                  setTxInitialType('EXPENSE');
                   setShowTxModal(true);
                 }}
                 className="flex-1 sm:flex-none px-5 py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-extrabold text-sm shadow-lg shadow-rose-950/50 flex items-center justify-center space-x-2 cursor-pointer transition-all hover:scale-105"
@@ -444,7 +210,7 @@ export default function DashboardPage() {
 
               <button
                 onClick={() => {
-                  setTxType('INCOME');
+                  setTxInitialType('INCOME');
                   setShowTxModal(true);
                 }}
                 className="flex-1 sm:flex-none px-5 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-950/50 flex items-center justify-center space-x-2 cursor-pointer transition-all hover:scale-105"
@@ -456,37 +222,10 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* KPI Cards Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="glass-card p-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10 text-5xl">💰</div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Balance Consolidado</p>
-            <h2 className="text-3xl font-black text-white tracking-tight">
-              ${Number(summary.totalBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </h2>
-            <p className="text-xs text-slate-400 mt-2">Suma de todas las cuentas activas</p>
-          </div>
+        {/* 📊 KPI Cards */}
+        <KPICards summary={summary} />
 
-          <div className="glass-card p-6 border-emerald-500/20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10 text-5xl">📈</div>
-            <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1">Ingresos del Mes</p>
-            <h2 className="text-3xl font-black text-emerald-400 tracking-tight">
-              +${Number(summary.monthlyIncome || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </h2>
-            <p className="text-xs text-slate-400 mt-2">Entradas registradas</p>
-          </div>
-
-          <div className="glass-card p-6 border-rose-500/20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10 text-5xl">📉</div>
-            <p className="text-xs font-semibold text-rose-400 uppercase tracking-wider mb-1">Gastos del Mes</p>
-            <h2 className="text-3xl font-black text-rose-400 tracking-tight">
-              -${Number(summary.monthlyExpense || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </h2>
-            <p className="text-xs text-slate-400 mt-2">Salidas registradas</p>
-          </div>
-        </div>
-
-        {/* ⏰ RECORDATORIOS DE PAGO PRÓXIMOS */}
+        {/* ⏰ Recordatorios de Pago */}
         <div className="glass-card p-6 border border-purple-500/20 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-white flex items-center space-x-2">
@@ -494,7 +233,9 @@ export default function DashboardPage() {
               <span>Recordatorios de Pago Próximos</span>
             </h3>
             <div className="flex items-center space-x-3">
-              <span className="text-xs text-slate-400">{reminders.filter(r => !r.isPaid).length} pendientes</span>
+              <span className="text-xs text-slate-400">
+                {reminders.filter((r) => !r.isPaid).length} pendientes
+              </span>
               <button
                 onClick={() => setShowReminderModal(true)}
                 className="px-3 py-1 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 border border-purple-500/40 text-xs font-bold transition-colors cursor-pointer"
@@ -509,7 +250,9 @@ export default function DashboardPage() {
               <div
                 key={r.id}
                 onClick={() => handleToggleReminder(r)}
-                className={`p-4 rounded-xl border transition-all cursor-pointer relative group ${r.isPaid ? 'bg-slate-900/40 border-slate-800 opacity-60' : 'bg-slate-800/80 border-slate-700 hover:border-purple-500'}`}
+                className={`p-4 rounded-xl border transition-all cursor-pointer relative group ${
+                  r.isPaid ? 'bg-slate-900/40 border-slate-800 opacity-60' : 'bg-slate-800/80 border-slate-700 hover:border-purple-500'
+                }`}
               >
                 <button
                   onClick={(e) => handleDeleteReminder(e, r.id)}
@@ -521,7 +264,11 @@ export default function DashboardPage() {
 
                 <div className="flex items-center justify-between mb-2 pr-4">
                   <span className="text-xs font-bold text-white">{r.title}</span>
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${r.isPaid ? 'bg-emerald-500 text-white' : 'border border-slate-600 text-slate-400'}`}>
+                  <span
+                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                      r.isPaid ? 'bg-emerald-500 text-white' : 'border border-slate-600 text-slate-400'
+                    }`}
+                  >
                     {r.isPaid ? '✓' : ''}
                   </span>
                 </div>
@@ -550,7 +297,10 @@ export default function DashboardPage() {
               + Nueva Cuenta
             </button>
             <button
-              onClick={() => setShowTxModal(true)}
+              onClick={() => {
+                setTxInitialType('EXPENSE');
+                setShowTxModal(true);
+              }}
               className="px-5 py-2.5 rounded-xl glow-button text-xs font-bold text-white cursor-pointer"
             >
               + Registrar Movimiento
@@ -601,80 +351,89 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-white">Últimos Movimientos</h3>
-              <span className="text-xs text-slate-400 font-semibold">{transactions.length} registros</span>
+              <Link href="/dashboard/reports" className="text-xs text-purple-400 font-semibold hover:underline">
+                Ver todos
+              </Link>
             </div>
 
             {transactions.length === 0 ? (
-              <div className="glass-card p-8 text-center text-slate-400 text-sm">
-                No hay movimientos registrados aún en este hogar.
+              <div className="glass-card p-12 text-center text-slate-400 text-sm">
+                No hay movimientos registrados recientemente.
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {transactions.map((tx) => (
                   <div
                     key={tx.id}
-                    className={`glass-card p-4 flex items-center justify-between transition-colors ${
-                      tx.isVoided ? 'opacity-50 bg-slate-900/50 border-slate-800' : 'hover:bg-slate-800/40'
+                    className={`glass-card p-4 flex items-center justify-between transition-all group ${
+                      tx.isVoided
+                        ? 'opacity-40 border-rose-950/40 bg-rose-950/10'
+                        : 'hover:border-slate-600'
                     }`}
                   >
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-800/80 flex items-center justify-center text-lg border border-slate-700 shrink-0">
-                        {tx.category?.icon || (tx.type === 'INCOME' ? '💰' : '💸')}
+                      <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg">
+                        {tx.category?.icon || (tx.type === 'INCOME' ? '💼' : '🛒')}
                       </div>
                       <div>
-                        <div className="flex items-center space-x-2">
-                          <p className={`text-sm font-bold ${tx.isVoided ? 'line-through text-slate-400' : 'text-white'}`}>
-                            {tx.description || tx.category?.name || 'Movimiento'}
+                        <div className="flex items-center gap-2">
+                          <p className={`text-sm font-bold ${tx.isVoided ? 'line-through text-slate-500' : 'text-white'}`}>
+                            {tx.description || (tx.type === 'INCOME' ? 'Ingreso General' : 'Gasto General')}
                           </p>
                           {tx.isVoided && (
-                            <span
-                              className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 cursor-help"
-                              title={`Anulado: "${tx.voidReason}" el ${new Date(tx.voidedAt).toLocaleDateString()}`}
-                            >
-                              🚫 Anulado
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                              Anulado
                             </span>
                           )}
-                          {!tx.isVoided && tx.isEdited && (
-                            <span
-                              className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 cursor-help"
-                              title={`Motivo cambio: "${tx.editReason}"`}
-                            >
-                              ✏️ Editado
+                          {tx.isEdited && !tx.isVoided && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                              Editado
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {tx.account?.name} • {new Date(tx.date).toLocaleDateString()} {tx.createdBy?.fullName || tx.createdBy?.email ? `• 👤 ${tx.createdBy?.fullName || tx.createdBy?.email.split('@')[0]}` : ''}
+                        <p className="text-[10px] text-slate-400">
+                          {tx.account?.name} • {new Date(tx.date).toLocaleDateString()}
+                          {tx.createdBy?.fullName || tx.createdBy?.email
+                            ? ` • 👤 ${tx.createdBy?.fullName || tx.createdBy?.email.split('@')[0]}`
+                            : ''}
                         </p>
-                        {tx.isEdited && tx.editReason && !tx.isVoided && (
-                          <p className="text-[11px] text-amber-400/90 italic mt-0.5">Motivo: "{tx.editReason}"</p>
-                        )}
-                        {tx.isVoided && tx.voidReason && (
-                          <p className="text-[11px] text-rose-400/90 italic mt-0.5">Motivo anulación: "{tx.voidReason}"</p>
-                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <p className={`text-base font-black ${tx.isVoided ? 'line-through text-slate-500' : tx.type === 'INCOME' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        <p
+                          className={`text-sm font-black ${
+                            tx.isVoided
+                              ? 'text-slate-500 line-through'
+                              : tx.type === 'INCOME'
+                              ? 'text-emerald-400'
+                              : 'text-rose-400'
+                          }`}
+                        >
                           {tx.type === 'INCOME' ? '+' : '-'}${Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </p>
-                        <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">{tx.type}</span>
+                        <p className="text-[10px] text-slate-500">{tx.category?.name || 'General'}</p>
                       </div>
 
                       {!tx.isVoided && (
-                        <div className="flex items-center space-x-1">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                           <button
-                            onClick={() => handleOpenEditTx(tx)}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-amber-300 transition-colors text-xs cursor-pointer"
+                            onClick={() => {
+                              setSelectedTxForEdit(tx);
+                              setShowEditTxModal(true);
+                            }}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-amber-950/40 text-slate-400 hover:text-amber-300 border border-slate-700 text-xs cursor-pointer"
                             title="Editar Transacción"
                           >
                             ✏️
                           </button>
                           <button
-                            onClick={() => handleOpenVoidTx(tx)}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 transition-colors text-xs cursor-pointer"
+                            onClick={() => {
+                              setSelectedTxForVoid(tx);
+                              setShowVoidTxModal(true);
+                            }}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-700 text-xs cursor-pointer"
                             title="Anular Transacción"
                           >
                             🚫
@@ -690,506 +449,62 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* Modal Nuevo Recordatorio */}
-      {showReminderModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-card w-full max-w-md p-6 relative border border-purple-500/40">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-white">Nuevo Recordatorio de Pago</h3>
-              <button onClick={() => setShowReminderModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
-            </div>
+      {/* 🧩 Modales Extraídos y Modularizados */}
+      <TransactionModal
+        isOpen={showTxModal}
+        onClose={() => setShowTxModal(false)}
+        accounts={accounts}
+        categories={categories}
+        initialType={txInitialType}
+        onSubmit={handleCreateTransaction}
+      />
 
-            <form onSubmit={handleCreateReminder} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Elegir desde Suscripción o Deuda (Opcional)</label>
-                <select
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (!val) {
-                      setRemSubscriptionId('');
-                      setRemDebtId('');
-                      return;
-                    }
-                    const [type, id] = val.split(':');
-                    if (type === 'SUB') {
-                      const sub = subscriptions.find(s => s.id === id);
-                      if (sub) {
-                        setRemTitle(`Suscripción: ${sub.name}`);
-                        setRemAmount(sub.cost.toString());
-                        if (sub.nextBillingDate) {
-                          setRemDueDate(new Date(sub.nextBillingDate).toISOString().split('T')[0]);
-                        }
-                        setRemSubscriptionId(sub.id);
-                        setRemDebtId('');
-                      }
-                    } else if (type === 'DEBT') {
-                      const d = debts.find(debt => debt.id === id);
-                      if (d) {
-                        setRemTitle(`Deuda: ${d.contactName}`);
-                        setRemAmount(d.remainingAmount.toString());
-                        if (d.dueDate) {
-                          setRemDueDate(new Date(d.dueDate).toISOString().split('T')[0]);
-                        }
-                        setRemDebtId(d.id);
-                        setRemSubscriptionId('');
-                      }
-                    }
-                  }}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-purple-500 text-xs"
-                >
-                  <option value="">-- Ingreso manual --</option>
-                  {subscriptions.length > 0 && (
-                    <optgroup label="📺 Suscripciones Recurrentes">
-                      {subscriptions.map(s => (
-                        <option key={s.id} value={`SUB:${s.id}`}>
-                          {s.name} - ${Number(s.cost).toFixed(2)}/mes
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                  {debts.length > 0 && (
-                    <optgroup label="💸 Deudas y Préstamos">
-                      {debts.map(d => (
-                        <option key={d.id} value={`DEBT:${d.id}`}>
-                          {d.contactName} - RD${Number(d.remainingAmount).toLocaleString()} pendiente
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                </select>
-              </div>
+      <AccountModal
+        isOpen={showAccountModal}
+        onClose={() => setShowAccountModal(false)}
+        onSubmit={handleCreateAccount}
+      />
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Título del Pago</label>
-                <input
-                  type="text"
-                  required
-                  value={remTitle}
-                  onChange={(e) => setRemTitle(e.target.value)}
-                  placeholder="Ej. Pago de luz, Pago del colegio, Hipoteca"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-purple-500"
-                />
-              </div>
+      <ReminderModal
+        isOpen={showReminderModal}
+        onClose={() => setShowReminderModal(false)}
+        debts={debts}
+        subscriptions={subscriptions}
+        onSubmit={handleCreateReminder}
+      />
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Monto ($)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={remAmount}
-                  onChange={(e) => setRemAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-lg focus:outline-none focus:border-purple-500"
-                />
-              </div>
+      <PayReminderModal
+        isOpen={showPayReminderModal}
+        onClose={() => {
+          setShowPayReminderModal(false);
+          setSelectedReminderForPay(null);
+        }}
+        reminder={selectedReminderForPay}
+        accounts={accounts}
+        onConfirm={handleConfirmPayReminder}
+      />
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Fecha de Vencimiento</label>
-                <input
-                  type="date"
-                  required
-                  value={remDueDate}
-                  onChange={(e) => setRemDueDate(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-purple-500"
-                />
-              </div>
+      <EditTransactionModal
+        isOpen={showEditTxModal}
+        onClose={() => {
+          setShowEditTxModal(false);
+          setSelectedTxForEdit(null);
+        }}
+        transaction={selectedTxForEdit}
+        accounts={accounts}
+        categories={categories}
+        onConfirm={handleSaveEditTx}
+      />
 
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowReminderModal(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl glow-button text-white text-xs font-bold cursor-pointer"
-                >
-                  Guardar Recordatorio
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Confirmar Pago de Recordatorio */}
-      {showPayReminderModal && payingReminder && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-card w-full max-w-md p-6 relative border border-emerald-500/40">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white flex items-center space-x-2">
-                <span>💳</span>
-                <span>Confirmar Pago de Recordatorio</span>
-              </h3>
-              <button onClick={() => setShowPayReminderModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
-            </div>
-
-            <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 mb-5">
-              <p className="text-xs text-slate-400">Recordatorio a pagar:</p>
-              <p className="text-base font-bold text-white mt-0.5">{payingReminder.title}</p>
-              <p className="text-xl font-black text-emerald-400 mt-1">
-                ${Number(payingReminder.amount).toLocaleString()}
-              </p>
-            </div>
-
-            <form onSubmit={handleConfirmPayReminder} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
-                  ¿Desde cuál cuenta se realizó el pago?
-                </label>
-                <select
-                  required
-                  value={selectedPayAccountId}
-                  onChange={(e) => setSelectedPayAccountId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-500 text-sm font-semibold"
-                >
-                  {accounts.map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.name} ({acc.type}) - Saldo: ${Number(acc.balance).toLocaleString()}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowPayReminderModal(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold cursor-pointer shadow-lg"
-                >
-                  ✓ Confirmar y Descontar Pago
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Registrar Movimiento */}
-      {showTxModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-card w-full max-w-lg p-6 relative">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">Registrar Movimiento</h3>
-              <button onClick={() => setShowTxModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
-            </div>
-
-            <form onSubmit={handleCreateTransaction} className="space-y-4">
-              {/* Tipo Selector */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-900/80 rounded-xl border border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setTxType('EXPENSE')}
-                  className={`py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${txType === 'EXPENSE' ? 'bg-rose-500 text-white' : 'text-slate-400 hover:text-white'}`}
-                >
-                  Gasto (-)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTxType('INCOME')}
-                  className={`py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${txType === 'INCOME' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'}`}
-                >
-                  Ingreso (+)
-                </button>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Monto ($)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={txAmount}
-                  onChange={(e) => setTxAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-2xl font-black text-white focus:outline-none focus:border-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Cuenta</label>
-                <select
-                  value={txAccountId}
-                  onChange={(e) => setTxAccountId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-purple-500"
-                >
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} (${Number(a.balance).toFixed(2)})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Categoría</label>
-                <select
-                  value={txCategoryId}
-                  onChange={(e) => setTxCategoryId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-purple-500"
-                >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.icon} {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Descripción</label>
-                <input
-                  type="text"
-                  value={txDescription}
-                  onChange={(e) => setTxDescription(e.target.value)}
-                  placeholder="Ej. Almuerzo de trabajo"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-purple-500"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowTxModal(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl glow-button text-white text-xs font-bold cursor-pointer"
-                >
-                  Guardar Movimiento
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Nueva Cuenta */}
-      {showAccountModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-card w-full max-w-md p-6 relative">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-white">Nueva Cuenta Financiera</h3>
-              <button onClick={() => setShowAccountModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
-            </div>
-
-            <form onSubmit={handleCreateAccount} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Nombre de la Cuenta</label>
-                <input
-                  type="text"
-                  required
-                  value={accName}
-                  onChange={(e) => setAccName(e.target.value)}
-                  placeholder="Ej. Banco BBVA, Tarjeta Visa, Efectivo"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Tipo de Cuenta</label>
-                <select
-                  value={accType}
-                  onChange={(e) => setAccType(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-purple-500"
-                >
-                  <option value="BANK_ACCOUNT">Cuenta Bancaria</option>
-                  <option value="CASH">Efectivo</option>
-                  <option value="CREDIT_CARD">Tarjeta de Crédito</option>
-                  <option value="SAVINGS">Cuenta de Ahorros</option>
-                  <option value="INVESTMENT">Inversión</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Saldo Inicial ($)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={accBalance}
-                  onChange={(e) => setAccBalance(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-purple-500"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowAccountModal(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl glow-button text-white text-xs font-bold cursor-pointer"
-                >
-                  Crear Cuenta
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* Modal Editar Transacción Auditada */}
-      {showEditTxModal && selectedTxForEdit && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-card w-full max-w-md p-6 relative border border-amber-500/40">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <span>✏️</span> Editar Transacción
-              </h3>
-              <button onClick={() => setShowEditTxModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
-            </div>
-
-            <form onSubmit={handleSaveEditTx} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Monto ($)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={editTxAmount}
-                  onChange={(e) => setEditTxAmount(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Descripción</label>
-                <input
-                  type="text"
-                  value={editTxDescription}
-                  onChange={(e) => setEditTxDescription(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-500 text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Cuenta</label>
-                <select
-                  value={editTxAccountId}
-                  onChange={(e) => setEditTxAccountId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-500 text-xs"
-                >
-                  {accounts.map((acc) => (
-                    <option key={acc.id} value={acc.id}>{acc.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Categoría</label>
-                <select
-                  value={editTxCategoryId}
-                  onChange={(e) => setEditTxCategoryId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-500 text-xs"
-                >
-                  <option value="">Sin Categoría</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1">
-                <label className="block text-xs font-extrabold text-amber-300 uppercase">
-                  Motivo / Razón del Cambio (Obligatorio) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editReason}
-                  onChange={(e) => setEditReason(e.target.value)}
-                  placeholder="Ej. Ajuste de valor según recibo físico"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-amber-500/50 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowEditTxModal(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-xs font-bold text-white rounded-xl cursor-pointer"
-                >
-                  Guardar Cambios
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Anular Transacción (Reversión Transparente) */}
-      {showVoidTxModal && selectedTxForVoid && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-card w-full max-w-md p-6 relative border border-rose-500/40">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <span>🚫</span> Anular Transacción
-              </h3>
-              <button onClick={() => setShowVoidTxModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
-            </div>
-
-            <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 mb-4 text-xs space-y-1">
-              <p className="text-slate-400">Movimiento: <strong className="text-white">{selectedTxForVoid.description || 'Sin descripción'}</strong></p>
-              <p className="text-slate-400">Monto: <strong className="text-rose-400">${Number(selectedTxForVoid.amount).toFixed(2)}</strong></p>
-              <p className="text-[11px] text-slate-500 mt-1">El monto se revertirá automáticamente a la cuenta de origen.</p>
-            </div>
-
-            <form onSubmit={handleConfirmVoidTx} className="space-y-4">
-              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl space-y-1">
-                <label className="block text-xs font-extrabold text-rose-300 uppercase">
-                  Motivo de la Anulación (Obligatorio) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={voidReason}
-                  onChange={(e) => setVoidReason(e.target.value)}
-                  placeholder="Ej. Registro duplicado por error"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-rose-500/50 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowVoidTxModal(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white rounded-xl cursor-pointer"
-                >
-                  🚫 Confirmar Anulación
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <VoidTransactionModal
+        isOpen={showVoidTxModal}
+        onClose={() => {
+          setShowVoidTxModal(false);
+          setSelectedTxForVoid(null);
+        }}
+        transaction={selectedTxForVoid}
+        onConfirm={handleConfirmVoidTx}
+      />
     </div>
   );
 }
