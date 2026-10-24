@@ -1,0 +1,11 @@
+node_modules
+**/node_modules
+apps/mobile
+.git
+.next
+apps/web/.next
+apps/web/public/*.apk
+.cache
+dist
+build
+*.apk
