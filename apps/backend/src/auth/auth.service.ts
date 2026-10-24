@@ -12,8 +12,30 @@ export class AuthService {
   ) {}
 
   private hashPassword(password: string): string {
-    const salt = 'hogariq_dev_salt';
-    return crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+    const salt = crypto.randomBytes(16).toString('hex');
+    const iterations = 100000;
+    const hash = crypto.pbkdf2Sync(password, salt, iterations, 64, 'sha512').toString('hex');
+    return `pbkdf2$${iterations}$${salt}$${hash}`;
+  }
+
+  private verifyPassword(password: string, storedHash: string): boolean {
+    if (storedHash.startsWith('pbkdf2$')) {
+      const parts = storedHash.split('$');
+      if (parts.length === 4) {
+        const iterations = parseInt(parts[1], 10);
+        const salt = parts[2];
+        const hash = parts[3];
+        const computed = crypto.pbkdf2Sync(password, salt, iterations, 64, 'sha512').toString('hex');
+        const hashBuf = Buffer.from(hash, 'hex');
+        const compBuf = Buffer.from(computed, 'hex');
+        return hashBuf.length === compBuf.length && crypto.timingSafeEqual(hashBuf, compBuf);
+      }
+    }
+
+    // Compatibilidad regresiva con hashes antiguos (1000 iteraciones, salt estático)
+    const legacySalt = 'hogariq_dev_salt';
+    const legacyHashed = crypto.pbkdf2Sync(password, legacySalt, 1000, 64, 'sha512').toString('hex');
+    return storedHash === legacyHashed;
   }
 
   async login(loginDto: LoginDto) {
@@ -39,9 +61,18 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas o cuenta no activada');
     }
 
-    const hashedPassword = this.hashPassword(password);
-    if (user.passwordHash !== hashedPassword) {
+    const isValid = this.verifyPassword(password, user.passwordHash);
+    if (!isValid) {
       throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    // Si el usuario tenía hash legado, migrarlo transparentemente al nuevo formato seguro
+    if (!user.passwordHash.startsWith('pbkdf2$')) {
+      const newHash = this.hashPassword(password);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: newHash },
+      }).catch(() => null);
     }
 
     // Seleccionar la membresía compartida con más miembros o la más reciente

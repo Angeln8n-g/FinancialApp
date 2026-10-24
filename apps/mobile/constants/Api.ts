@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Storage helper en memoria y con fallback a localStorage/global window
+// Storage helper en memoria y con persistencia multiplataforma (AsyncStorage + Web localStorage)
 let inMemoryToken: string | null = null;
 let inMemoryUser: any = null;
 let inMemoryHousehold: any = null;
@@ -8,6 +9,34 @@ let inMemoryApiUrl: string | null = null;
 
 // Inicialización de entorno
 const DEFAULT_ENV_API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api-hogariq.kasino21.com';
+
+/**
+ * Inicializa el almacenamiento en memoria leyendo de AsyncStorage al arrancar la app.
+ */
+export async function initStorage(): Promise<boolean> {
+  try {
+    const [token, user, household, url] = await Promise.all([
+      AsyncStorage.getItem('hogariq_mobile_token'),
+      AsyncStorage.getItem('hogariq_mobile_user'),
+      AsyncStorage.getItem('hogariq_mobile_household'),
+      AsyncStorage.getItem('hogariq_mobile_api_url'),
+    ]);
+
+    if (token) inMemoryToken = token;
+    if (user) {
+      try { inMemoryUser = JSON.parse(user); } catch {}
+    }
+    if (household) {
+      try { inMemoryHousehold = JSON.parse(household); } catch {}
+    }
+    if (url) inMemoryApiUrl = url;
+
+    return !!inMemoryToken;
+  } catch (e) {
+    console.warn('Error inicializando AsyncStorage:', e);
+    return false;
+  }
+}
 
 export function getApiUrl(): string {
   if (inMemoryApiUrl) return inMemoryApiUrl;
@@ -27,6 +56,7 @@ export function setApiUrl(url: string) {
     cleanUrl = cleanUrl.slice(0, -1);
   }
   inMemoryApiUrl = cleanUrl;
+  AsyncStorage.setItem('hogariq_mobile_api_url', cleanUrl).catch(() => {});
   if (typeof window !== 'undefined' && window.localStorage) {
     window.localStorage.setItem('hogariq_mobile_api_url', cleanUrl);
   }
@@ -46,6 +76,12 @@ export function getAuthToken(): string | null {
 
 export function setAuthToken(token: string | null) {
   inMemoryToken = token;
+  if (token) {
+    AsyncStorage.setItem('hogariq_mobile_token', token).catch(() => {});
+  } else {
+    AsyncStorage.removeItem('hogariq_mobile_token').catch(() => {});
+  }
+
   if (typeof window !== 'undefined' && window.localStorage) {
     if (token) {
       window.localStorage.setItem('hogariq_mobile_token', token);
@@ -71,6 +107,12 @@ export function getUser(): any {
 
 export function setUser(user: any) {
   inMemoryUser = user;
+  if (user) {
+    AsyncStorage.setItem('hogariq_mobile_user', JSON.stringify(user)).catch(() => {});
+  } else {
+    AsyncStorage.removeItem('hogariq_mobile_user').catch(() => {});
+  }
+
   if (typeof window !== 'undefined' && window.localStorage) {
     if (user) {
       window.localStorage.setItem('hogariq_mobile_user', JSON.stringify(user));
@@ -96,6 +138,12 @@ export function getHousehold(): any {
 
 export function setHousehold(household: any) {
   inMemoryHousehold = household;
+  if (household) {
+    AsyncStorage.setItem('hogariq_mobile_household', JSON.stringify(household)).catch(() => {});
+  } else {
+    AsyncStorage.removeItem('hogariq_mobile_household').catch(() => {});
+  }
+
   if (typeof window !== 'undefined' && window.localStorage) {
     if (household) {
       window.localStorage.setItem('hogariq_mobile_household', JSON.stringify(household));

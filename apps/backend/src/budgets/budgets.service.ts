@@ -30,7 +30,7 @@ export class BudgetsService {
 
       const spentAmount = Number(spentTx._sum.amount || 0);
       const limitAmount = Number(b.limitAmount);
-      const actualSpent = spentAmount > 0 ? spentAmount : Math.round(limitAmount * 0.72);
+      const actualSpent = spentAmount;
       const percentage = limitAmount > 0 ? Math.min(Math.round((actualSpent / limitAmount) * 100), 100) : 0;
 
       result.push({

@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
-import { getAuthToken } from '@/constants/Api';
+import { getAuthToken, initStorage } from '@/constants/Api';
 
 export {
   ErrorBoundary,
@@ -42,17 +42,30 @@ function RootLayoutNav() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const token = getAuthToken();
-    const inAuthGroup = (segments[0] as string) === 'login';
+    let isMounted = true;
 
-    if (!token && !inAuthGroup) {
-      // Si no hay token guardado, redirige a la pantalla de login
-      router.replace('/login' as any);
-    } else if (token && inAuthGroup) {
-      // Si ya hay token y está en login, ir a dashboard
-      router.replace('/(tabs)');
+    async function checkAuth() {
+      await initStorage();
+      if (!isMounted) return;
+
+      const token = getAuthToken();
+      const inAuthGroup = (segments[0] as string) === 'login';
+
+      if (!token && !inAuthGroup) {
+        // Si no hay token guardado, redirige a la pantalla de login
+        router.replace('/login' as any);
+      } else if (token && inAuthGroup) {
+        // Si ya hay token y está en login, ir a dashboard
+        router.replace('/(tabs)');
+      }
+      setIsReady(true);
     }
-    setIsReady(true);
+
+    checkAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, [segments]);
 
   return (

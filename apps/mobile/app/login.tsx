@@ -21,8 +21,8 @@ export default function MobileLoginScreen() {
 
   const [isRegister, setIsRegister] = useState(false);
   const [apiUrlInput, setApiUrlInput] = useState(getApiUrl());
-  const [email, setEmail] = useState('angellafraga@gmail.con');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [showServerConfig, setShowServerConfig] = useState(false);

@@ -50,7 +50,6 @@ model User {
   pushToken        String?
   memberships      HouseholdMember[]
   auditLogs        AuditLog[]
-  sessions         Session[]
   createdTransactions Transaction[] @relation("TransactionCreatedBy")
   notifications    Notification[]
 }
@@ -90,6 +89,8 @@ model Reminder {
   household     Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
   subscription  Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   debt          Debt?         @relation(fields: [debtId], references: [id], onDelete: SetNull)
+
+  @@index([householdId, isPaid, dueDate])
 }
 
 model Asset {
@@ -101,6 +102,8 @@ model Asset {
   createdAt     DateTime    @default(now())
 
   household     Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
 }
 
 model HouseholdMember {
@@ -132,6 +135,8 @@ model Account {
   household     Household    @relation(fields: [householdId], references: [id], onDelete: Cascade)
   transactions  Transaction[]
   transfersTo   Transaction[] @relation("TransferToRelation")
+
+  @@index([householdId])
 }
 
 model Category {
@@ -145,6 +150,8 @@ model Category {
   household     Household?    @relation(fields: [householdId], references: [id], onDelete: Cascade)
   transactions  Transaction[]
   budgets       Budget[]
+
+  @@index([householdId])
 }
 
 model Transaction {
@@ -159,8 +166,6 @@ model Transaction {
   description       String?
   date              DateTime
   isCleared         Boolean         @default(true)
-  ocrProcessed      Boolean         @default(false)
-  ocrTextRaw        String?         @db.Text
   isEdited          Boolean         @default(false)
   editReason        String?
   editedAt          DateTime?
@@ -174,14 +179,10 @@ model Transaction {
   destinationAccount Account?       @relation("TransferToRelation", fields: [destinationAccountId], references: [id])
   category          Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   createdBy         User?           @relation("TransactionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  embedding         TransactionEmbedding?
-}
 
-model TransactionEmbedding {
-  id            String      @id @default(uuid())
-  transactionId String      @unique
-  embedding     Unsupported("vector(384)")
-  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  @@index([householdId, date(sort: Desc)])
+  @@index([accountId])
+  @@index([categoryId])
 }
 
 model Budget {
@@ -195,6 +196,8 @@ model Budget {
 
   household     Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
   category      Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
 }
 
 model SavingsGoal {
@@ -207,6 +210,8 @@ model SavingsGoal {
   createdAt     DateTime    @default(now())
 
   household     Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
 }
 
 model Debt {
@@ -222,6 +227,8 @@ model Debt {
 
   household     Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
   reminders     Reminder[]
+
+  @@index([householdId])
 }
 
 model Subscription {
@@ -236,6 +243,8 @@ model Subscription {
 
   household     Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
   reminders     Reminder[]
+
+  @@index([householdId])
 }
 
 model AuditLog {
@@ -248,18 +257,8 @@ model AuditLog {
 
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   household     Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
-}
 
-model Session {
-  id            String      @id @default(uuid())
-  userId        String
-  token         String      @unique
-  userAgent     String?
-  ipAddress     String?
-  expiresAt     DateTime
-  createdAt     DateTime    @default(now())
-
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([householdId, timestamp(sort: Desc)])
 }
 
 model Allowance {
@@ -275,6 +274,8 @@ model Allowance {
   household     Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
   member        HouseholdMember   @relation(fields: [memberId], references: [id], onDelete: Cascade)
   requests      AllowanceRequest[]
+
+  @@index([householdId, memberId])
 }
 
 model HouseholdInvitation {
@@ -318,4 +319,7 @@ model Notification {
 
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([householdId])
 }
