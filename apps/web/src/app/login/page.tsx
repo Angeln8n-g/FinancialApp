@@ -49,21 +49,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#0f172a] text-slate-100">
-      <div className="w-full max-w-md glass-card p-8 shadow-2xl relative overflow-hidden">
-        {/* Glow accent decoration */}
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-600/30 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#0A1128] text-slate-100">
+      <div className="w-full max-w-md mint-card p-8 shadow-2xl relative overflow-hidden border border-[#1E2B4D]">
+        {/* Subtle ambient light */}
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col items-center justify-center text-center mb-8">
           <Logo size="xl" showTagline={false} className="mb-3" />
           <p className="text-sm text-slate-400 mt-1">
-            {isRegister ? 'Crea la cuenta para tu hogar' : 'Asistente Financiero Inteligente'}
+            {isRegister ? 'Crea la cuenta para tu hogar' : 'Asistente Financiero Familiar'}
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm text-center">
+          <div className="mb-6 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs text-center font-medium">
             {error}
           </div>
         )}
@@ -71,63 +71,75 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {isRegister && (
             <div>
-              <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Nombre Completo</label>
+              <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1.5">
+                Nombre Completo
+              </label>
               <input
                 type="text"
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Ej. tu nombre"
-                className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 text-slate-100 focus:outline-none focus:border-purple-500 transition-colors"
+                placeholder="Ej. Tu nombre"
+                className="w-full px-4 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 transition-colors"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Correo Electrónico</label>
+            <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1.5">
+              Correo Electrónico
+            </label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="correo@ejemplo.com"
-              className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 text-slate-100 focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Contraseña</label>
+            <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1.5">
+              Contraseña
+            </label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 text-slate-100 focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 transition-colors"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 px-4 glow-button font-bold text-white rounded-xl cursor-pointer disabled:opacity-50 mt-6"
+            className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-sm transition-all cursor-pointer disabled:opacity-50 mt-6 shadow-sm"
           >
             {loading ? 'Procesando...' : isRegister ? 'Crear Cuenta e Iniciar' : 'Iniciar Sesión'}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-400">
+        <div className="mt-6 text-center text-xs text-slate-400">
           {isRegister ? (
             <p>
               ¿Ya tienes cuenta?{' '}
-              <button onClick={() => setIsRegister(false)} className="text-purple-400 font-semibold hover:underline cursor-pointer">
+              <button
+                onClick={() => setIsRegister(false)}
+                className="text-emerald-400 font-semibold hover:underline cursor-pointer ml-1"
+              >
                 Inicia Sesión
               </button>
             </p>
           ) : (
             <p>
               ¿No tienes cuenta?{' '}
-              <button onClick={() => setIsRegister(true)} className="text-purple-400 font-semibold hover:underline cursor-pointer">
+              <button
+                onClick={() => setIsRegister(true)}
+                className="text-emerald-400 font-semibold hover:underline cursor-pointer ml-1"
+              >
                 Regístrate aquí
               </button>
             </p>

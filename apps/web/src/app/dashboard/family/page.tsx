@@ -431,20 +431,20 @@ export default function FamilyPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f172a] text-slate-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent" />
+      <div className="min-h-screen bg-[#0A1128] text-slate-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-3 border-emerald-500 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 pb-20 lg:pb-12">
+    <div className="min-h-screen bg-[#0A1128] text-slate-100 pb-20 lg:pb-12">
       <Navbar user={currentUser} household={household} />
 
       {/* Main Container */}
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
         {/* Formulario Invitación */}
-        <div className="glass-card p-6 border border-purple-500/30">
+        <div className="glass-card p-6 border border-[#1E2B4D]">
           <h2 className="text-lg font-bold text-white mb-2">Invitar a un nuevo Integrante</h2>
           <p className="text-xs text-slate-400 mb-6">
             Agrega parejas, hijos o colaboradores a las finanzas familiares con permisos específicos.
@@ -463,13 +463,13 @@ export default function FamilyPage() {
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
               placeholder="familiar@ejemplo.com"
-              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-purple-500"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-emerald-400"
             />
 
             <select
               value={inviteRole}
               onChange={(e) => setInviteRole(e.target.value)}
-              className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-purple-500"
+              className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-emerald-400"
             >
               <option value="COLLABORATOR">Colaborador (Editar)</option>
               <option value="ADMIN">Administrador (Control Total)</option>
@@ -480,24 +480,24 @@ export default function FamilyPage() {
             <button
               type="submit"
               disabled={inviteLoading}
-              className="px-5 py-2.5 glow-button text-xs font-bold text-white rounded-xl cursor-pointer disabled:opacity-50 shrink-0"
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all text-xs font-bold text-white rounded-xl cursor-pointer disabled:opacity-50 shrink-0"
             >
               {inviteLoading ? 'Enviando...' : 'Generar Invitación'}
             </button>
           </form>
 
           {lastInviteLink && (
-            <div className="p-3 mt-4 bg-purple-950/40 border border-purple-500/40 rounded-xl flex items-center justify-between">
+            <div className="p-3 mt-4 bg-[#101A36] border border-emerald-500/30 rounded-xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold text-purple-400 uppercase">Enlace Directo de Invitación</span>
-                <p className="text-xs text-purple-200 font-mono font-bold">{lastInviteLink}</p>
+                <span className="text-[10px] font-bold text-emerald-400 uppercase">Enlace Directo de Invitación</span>
+                <p className="text-xs text-emerald-200 font-mono font-bold">{lastInviteLink}</p>
               </div>
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(lastInviteLink);
                   alert('¡Enlace copiado al portapapeles! Puedes enviarlo por WhatsApp.');
                 }}
-                className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer"
               >
                 📋 Copiar Link
               </button>
@@ -508,7 +508,7 @@ export default function FamilyPage() {
           <div className="pt-6 mt-6 border-t border-slate-800">
             <h3 className="text-sm font-bold text-white mb-1">🔑 ¿Te invitaron a un Hogar? Únete con un Código</h3>
             <p className="text-xs text-slate-400 mb-3">
-              Ingresa el código de 6 caracteres que te compartió el administrador (ej: <code className="text-purple-300 font-mono">HIQ-A7X9</code>).
+              Ingresa el código de 6 caracteres que te compartió el administrador (ej: <code className="text-emerald-300 font-mono">HIQ-A7X9</code>).
             </p>
             <form onSubmit={handleJoinByCode} className="flex gap-3 max-w-md">
               <input
@@ -517,7 +517,7 @@ export default function FamilyPage() {
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value)}
                 placeholder="HIQ-XXXXXX"
-                className="flex-1 px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-purple-500 uppercase"
+                className="flex-1 px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-emerald-400 uppercase"
               />
               <button
                 type="submit"
@@ -538,7 +538,7 @@ export default function FamilyPage() {
             {members.map((m) => (
               <div key={m.id} className="glass-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-800/40 transition-colors">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center font-bold text-purple-300">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-[#1E2B4D] flex items-center justify-center font-bold text-emerald-300">
                     {m.fullName.charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -572,7 +572,7 @@ export default function FamilyPage() {
                     <select
                       value={m.role}
                       onChange={(e) => handleChangeRole(m.id, e.target.value)}
-                      className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
+                      className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-emerald-400"
                     >
                       <option value="ADMIN">ADMIN</option>
                       <option value="COLLABORATOR">COLLABORATOR</option>
@@ -580,7 +580,7 @@ export default function FamilyPage() {
                       <option value="DEPENDENT">DEPENDENT</option>
                     </select>
                   ) : (
-                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${m.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : m.role === 'DEPENDENT' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>
+                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${m.role === 'ADMIN' ? 'bg-emerald-500/15 text-emerald-300 border border-[#1E2B4D]' : m.role === 'DEPENDENT' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>
                       {m.role === 'DEPENDENT' ? '👦 DEPENDIENTE' : m.role}
                     </span>
                   )}
@@ -616,7 +616,7 @@ export default function FamilyPage() {
               activities.map((act) => (
                 <div key={act.id} className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between text-xs">
                   <div className="flex items-center space-x-3">
-                    <span className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-purple-400">
+                    <span className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-emerald-400">
                       {act.userName.charAt(0).toUpperCase()}
                     </span>
                     <div>
@@ -635,7 +635,7 @@ export default function FamilyPage() {
         </div>
 
         {/* 💸 2. CONTROL DE MESADAS & PRESUPUESTOS FAMILIARES */}
-        <section className="glass-card p-6 border border-purple-500/30 space-y-6">
+        <section className="glass-card p-6 border border-[#1E2B4D] space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold text-white">💸 Mesadas & Presupuestos para Integrantes</h3>
@@ -646,7 +646,7 @@ export default function FamilyPage() {
                 if (members.length > 0 && !allowMemberId) setAllowMemberId(members[0].id);
                 setShowAllowModal(true);
               }}
-              className="px-4 py-2 rounded-xl glow-button text-xs font-bold text-white cursor-pointer shadow-md"
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all text-xs font-bold text-white cursor-pointer shadow-md"
             >
               + Asignar Mesada
             </button>
@@ -667,7 +667,7 @@ export default function FamilyPage() {
                   <div key={a.id} className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl">
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-400">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400">
                           👤 {a.member?.user?.fullName || 'Familiar'}
                         </span>
                         <h4 className="text-base font-bold text-white mt-0.5">{a.title}</h4>
@@ -690,7 +690,7 @@ export default function FamilyPage() {
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs font-semibold">
                         <span className="text-slate-400">Gastado: <strong className="text-white">${Number(a.spentAmount).toFixed(2)}</strong></span>
-                        <span className="text-slate-400">Límite: <strong className="text-purple-300">${Number(a.limitAmount).toFixed(2)}</strong></span>
+                        <span className="text-slate-400">Límite: <strong className="text-emerald-300">${Number(a.limitAmount).toFixed(2)}</strong></span>
                       </div>
                       <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800">
                         <div className={`h-full ${barColor} transition-all duration-500`} style={{ width: `${pct}%` }} />
@@ -723,7 +723,7 @@ export default function FamilyPage() {
                           setDisburseAmount(a.limitAmount.toString());
                           setShowDisburseModal(true);
                         }}
-                        className="flex-1 py-2 px-3 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 text-xs font-bold cursor-pointer border border-purple-500/40 transition-colors"
+                        className="flex-1 py-2 px-3 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 text-xs font-bold cursor-pointer border border-emerald-500/30 transition-colors"
                       >
                         💵 Desembolsar
                       </button>
@@ -745,7 +745,7 @@ export default function FamilyPage() {
         {/* Modal Crear Mesada */}
         {showAllowModal && (
           <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="glass-card w-full max-w-md p-6 relative border border-purple-500/40">
+            <div className="glass-card w-full max-w-md p-6 relative border border-emerald-500/30">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-white">Asignar Mesada Familiar</h3>
                 <button onClick={() => setShowAllowModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
@@ -757,7 +757,7 @@ export default function FamilyPage() {
                   <select
                     value={allowMemberId}
                     onChange={(e) => setAllowMemberId(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-purple-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-emerald-400"
                   >
                     {members.map((m) => (
                       <option key={m.id} value={m.id}>
@@ -775,7 +775,7 @@ export default function FamilyPage() {
                     value={allowTitle}
                     onChange={(e) => setAllowTitle(e.target.value)}
                     placeholder="Ej. Mesada Universidad / Colegio"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-purple-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-emerald-400"
                   />
                 </div>
 
@@ -789,7 +789,7 @@ export default function FamilyPage() {
                       value={allowAmount}
                       onChange={(e) => setAllowAmount(e.target.value)}
                       placeholder="150.00"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-base font-bold text-white focus:outline-none focus:border-purple-500"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-base font-bold text-white focus:outline-none focus:border-emerald-400"
                     />
                   </div>
                   <div>
@@ -797,7 +797,7 @@ export default function FamilyPage() {
                     <select
                       value={allowPeriod}
                       onChange={(e) => setAllowPeriod(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-purple-500"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-emerald-400"
                     >
                       <option value="MONTHLY">Mensual</option>
                       <option value="WEEKLY">Semanal</option>
@@ -815,7 +815,7 @@ export default function FamilyPage() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 glow-button text-xs font-bold text-white rounded-xl"
+                    className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all text-xs font-bold text-white rounded-xl"
                   >
                     Guardar Mesada
                   </button>
@@ -828,7 +828,7 @@ export default function FamilyPage() {
         {/* Modal Registrar Gasto en Mesada */}
         {showExpenseModal && selectedAllowance && (
           <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="glass-card w-full max-w-md p-6 relative border border-purple-500/40">
+            <div className="glass-card w-full max-w-md p-6 relative border border-emerald-500/30">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-white">📉 Registrar Gasto en Mesada</h3>
                 <button onClick={() => setShowExpenseModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
@@ -836,7 +836,7 @@ export default function FamilyPage() {
 
               <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 mb-4 text-xs">
                 <p className="text-slate-400">Mesada de: <strong className="text-white">{selectedAllowance.member?.user?.fullName}</strong></p>
-                <p className="text-purple-300 font-bold mt-0.5">{selectedAllowance.title}</p>
+                <p className="text-emerald-300 font-bold mt-0.5">{selectedAllowance.title}</p>
               </div>
 
               <form onSubmit={handleRecordExpense} className="space-y-4">
@@ -849,7 +849,7 @@ export default function FamilyPage() {
                     value={expenseAmount}
                     onChange={(e) => setExpenseAmount(e.target.value)}
                     placeholder="Ej. 15.00"
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-lg focus:outline-none focus:border-purple-500"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-lg focus:outline-none focus:border-emerald-400"
                   />
                 </div>
 

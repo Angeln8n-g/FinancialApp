@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Pencil, X } from 'lucide-react';
 
 interface EditTransactionModalProps {
   isOpen: boolean;
@@ -67,67 +68,86 @@ export default function EditTransactionModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="glass-card w-full max-w-md p-6 relative border border-amber-500/40">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <span>✏️</span> Editar Transacción
+    <div className="fixed inset-0 bg-[#0A1128]/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="mint-card w-full max-w-md p-6 relative border border-amber-500/30 shadow-2xl">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#1E2B4D]">
+          <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+            <Pencil className="w-4 h-4 text-amber-400" />
+            <span>Editar Transacción</span>
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-[#162347] transition-colors cursor-pointer"
+            aria-label="Cerrar"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Monto ($)</label>
+            <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+              Monto ($)
+            </label>
             <input
               type="number"
               step="0.01"
               required
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold focus:outline-none focus:border-amber-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 font-bold focus:outline-none focus:border-amber-400 tabular-nums transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Descripción</label>
+            <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+              Descripción
+            </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-500 text-xs"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Cuenta</label>
+            <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+              Cuenta
+            </label>
             <select
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-500 text-xs"
+              className="w-full px-3.5 py-2 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 cursor-pointer transition-colors"
             >
               {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>{acc.name}</option>
+                <option key={acc.id} value={acc.id} className="bg-[#101A36]">
+                  {acc.name}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Categoría</label>
+            <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+              Categoría
+            </label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-500 text-xs"
+              className="w-full px-3.5 py-2 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 cursor-pointer transition-colors"
             >
-              <option value="">Sin Categoría</option>
+              <option value="" className="bg-[#101A36]">Sin Categoría</option>
               {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
+                <option key={cat.id} value={cat.id} className="bg-[#101A36]">
+                  {cat.name}
+                </option>
               ))}
             </select>
           </div>
 
-          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1">
-            <label className="block text-xs font-extrabold text-amber-300 uppercase">
+          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1.5">
+            <label className="block text-[11px] font-bold text-amber-300 uppercase tracking-wider">
               Motivo / Razón del Cambio (Obligatorio) *
             </label>
             <input
@@ -135,23 +155,23 @@ export default function EditTransactionModal({
               required
               value={editReason}
               onChange={(e) => setEditReason(e.target.value)}
-              placeholder="Ej. Ajuste de valor según recibo físico"
-              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-amber-500/50 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+              placeholder="Ej. Ajuste según comprobante fiscal"
+              className="w-full px-3 py-2 rounded-lg bg-[#0A1128] border border-amber-500/40 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-400"
             />
           </div>
 
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2 pt-3 border-t border-[#1E2B4D]">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 cursor-pointer"
+              className="flex-1 py-2.5 rounded-xl bg-[#162347] text-xs font-medium text-slate-300 hover:bg-[#1D2D5A] hover:text-slate-100 transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-xs font-bold text-white rounded-xl cursor-pointer disabled:opacity-50"
+              className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-xs font-semibold text-white rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
             >
               {submitting ? 'Guardando...' : 'Guardar Cambios'}
             </button>

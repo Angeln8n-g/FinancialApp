@@ -2,8 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import {
+  Landmark,
+  TrendingUp,
+  TrendingDown,
+  Car,
+  Home,
+  Coins,
+  BarChart2,
+  Building2,
+  Trash2,
+  Plus,
+  X
+} from 'lucide-react';
 
 export default function PatrimonyPage() {
   const router = useRouter();
@@ -18,8 +30,7 @@ export default function PatrimonyPage() {
   const [aValue, setAValue] = useState('');
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-
-  const getToken = () => localStorage.getItem('hogariq_token');
+  const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('hogariq_token') : null;
 
   const fetchData = async () => {
     const token = getToken();
@@ -79,6 +90,7 @@ export default function PatrimonyPage() {
 
   const handleDeleteAsset = async (id: string) => {
     if (id === 'acc-summary') return;
+    if (!confirm('¿Eliminar este activo del patrimonio?')) return;
     const token = getToken();
     try {
       const res = await fetch(`${API_URL}/api/patrimony/assets/${id}`, {
@@ -91,95 +103,112 @@ export default function PatrimonyPage() {
     }
   };
 
+  const getAssetIcon = (type: string) => {
+    switch (type) {
+      case 'VEHICLE':
+        return <Car className="w-4 h-4 text-emerald-400" />;
+      case 'REAL_ESTATE':
+        return <Home className="w-4 h-4 text-emerald-400" />;
+      case 'CRYPTO':
+        return <Coins className="w-4 h-4 text-amber-400" />;
+      case 'INVESTMENT':
+        return <BarChart2 className="w-4 h-4 text-sky-400" />;
+      default:
+        return <Landmark className="w-4 h-4 text-emerald-400" />;
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f172a] text-slate-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent" />
+      <div className="min-h-screen bg-[#0A1128] text-slate-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-3 border-emerald-500 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 pb-20 lg:pb-12">
+    <div className="min-h-screen bg-[#0A1128] text-slate-100 pb-20 lg:pb-12">
       <Navbar />
 
-      {/* Main Container */}
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-10">
-        {/* 🏆 TARJETA KPI PATRIMONIO NETO */}
-        <div className="glass-card p-8 border border-purple-500/40 relative overflow-hidden bg-gradient-to-r from-purple-950/40 via-slate-900 to-slate-900">
-          <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Patrimonio Neto Consolidado</p>
-          <h2 className="text-4xl font-black text-white tracking-tight">
-            RD${Number(patrimony.netWorth || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+        {/* TARJETA KPI PATRIMONIO NETO */}
+        <div className="mint-card p-6 sm:p-8 border border-[#1E2B4D] relative overflow-hidden bg-gradient-to-r from-[#101A36] via-[#121E40] to-[#101A36]">
+          <p className="text-xs font-medium text-emerald-400 uppercase tracking-widest mb-1.5">
+            Patrimonio Neto Familiar Consolidado
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-slate-100 tracking-tight tabular-nums">
+            ${Number(patrimony.netWorth || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8 pt-6 border-t border-slate-800">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8 pt-6 border-t border-[#1E2B4D]">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl border border-emerald-500/30">
-                💎
+              <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 shadow-sm">
+                <TrendingUp className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase">Total Activos</p>
-                <p className="text-2xl font-black text-emerald-400">
-                  +RD${Number(patrimony.totalAssets || 0).toLocaleString()}
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Activos</p>
+                <p className="text-2xl font-bold text-emerald-400 tabular-nums">
+                  +${Number(patrimony.totalAssets || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-2xl border border-rose-500/30">
-                📉
+              <div className="w-11 h-11 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20 shadow-sm">
+                <TrendingDown className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase">Total Pasivos</p>
-                <p className="text-2xl font-black text-rose-400">
-                  -RD${Number(patrimony.totalLiabilities || 0).toLocaleString()}
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Pasivos</p>
+                <p className="text-2xl font-bold text-rose-400 tabular-nums">
+                  -${Number(patrimony.totalLiabilities || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 📊 DESGLOSE ACTIVOS VS PASIVOS */}
+        {/* DESGLOSE ACTIVOS VS PASIVOS */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Activos */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white flex items-center space-x-2">
-                <span>💎</span>
-                <span>Activos (Propiedades, Vehículos)</span>
+              <h3 className="text-base font-semibold text-slate-100 flex items-center space-x-2">
+                <Landmark className="w-4 h-4 text-emerald-400" />
+                <span>Activos (Propiedades, Vehículos, Cuentas)</span>
               </h3>
               <button
                 onClick={() => setShowAssetModal(true)}
-                className="px-3.5 py-1.5 rounded-xl glow-button text-xs font-bold text-white cursor-pointer"
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white shadow-sm flex items-center gap-1.5 cursor-pointer transition-all"
               >
-                + Registrar Activo
+                <Plus className="w-3.5 h-3.5" />
+                <span>Registrar Activo</span>
               </button>
             </div>
 
             <div className="space-y-3">
               {patrimony.assetsList?.map((a: any) => (
-                <div key={a.id} className="glass-card p-4 flex items-center justify-between border-emerald-500/20 relative group">
+                <div key={a.id} className="mint-card p-4 flex items-center justify-between relative group hover:border-[#2D3E6B] transition-colors">
                   {a.id !== 'acc-summary' && (
                     <button
                       onClick={() => handleDeleteAsset(a.id)}
-                      className="absolute top-3 right-3 text-slate-500 hover:text-rose-400 text-xs font-bold transition-colors cursor-pointer"
+                      className="absolute top-3.5 right-3.5 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
                       title="Eliminar activo"
                     >
-                      🗑️
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   )}
 
-                  <div className="flex items-center space-x-3 pr-6">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-950 flex items-center justify-center text-lg">
-                      {a.type === 'VEHICLE' ? '🚗' : a.type === 'REAL_ESTATE' ? '🏠' : a.type === 'CRYPTO' ? '🪙' : '📈'}
+                  <div className="flex items-center space-x-3 pr-7">
+                    <div className="w-9 h-9 rounded-xl bg-[#162347] border border-[#1E2B4D] flex items-center justify-center">
+                      {getAssetIcon(a.type)}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white">{a.name}</p>
-                      <p className="text-[10px] text-slate-400 uppercase font-semibold">{a.type}</p>
+                      <p className="text-xs font-semibold text-slate-100">{a.name}</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-medium">{a.type.replace('_', ' ')}</p>
                     </div>
                   </div>
-                  <p className="text-base font-black text-emerald-400">
-                    +RD${Number(a.value).toLocaleString()}
+                  <p className="text-sm font-bold text-emerald-400 tabular-nums">
+                    +${Number(a.value).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
               ))}
@@ -188,25 +217,25 @@ export default function PatrimonyPage() {
 
           {/* Pasivos */}
           <div className="space-y-4">
-            <h3 className="text-lg font-bold text-white flex items-center space-x-2">
-              <span>📉</span>
+            <h3 className="text-base font-semibold text-slate-100 flex items-center space-x-2">
+              <Building2 className="w-4 h-4 text-rose-400" />
               <span>Pasivos (Hipotecas y Préstamos)</span>
             </h3>
 
             <div className="space-y-3">
               {patrimony.liabilitiesList?.map((l: any) => (
-                <div key={l.id} className="glass-card p-4 flex items-center justify-between border-rose-500/20">
+                <div key={l.id} className="mint-card p-4 flex items-center justify-between border border-rose-500/20">
                   <div className="flex items-center space-x-3">
-                    <div className="w-9 h-9 rounded-xl bg-rose-950 flex items-center justify-center text-lg">
-                      🏦
+                    <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                      <TrendingDown className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white">{l.name}</p>
-                      <p className="text-[10px] text-slate-400 uppercase font-semibold">PASIVO</p>
+                      <p className="text-xs font-semibold text-slate-100">{l.name}</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-medium">PASIVO</p>
                     </div>
                   </div>
-                  <p className="text-base font-black text-rose-400">
-                    -RD${Number(l.value).toLocaleString()}
+                  <p className="text-sm font-bold text-rose-400 tabular-nums">
+                    -${Number(l.value).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
               ))}
@@ -217,65 +246,74 @@ export default function PatrimonyPage() {
 
       {/* Modal Nuevo Activo */}
       {showAssetModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-card w-full max-w-md p-6 relative border border-emerald-500/40">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-white">Registrar Nuevo Activo</h3>
-              <button onClick={() => setShowAssetModal(false)} className="text-slate-400 hover:text-white cursor-pointer text-xl">✕</button>
+        <div className="fixed inset-0 bg-[#0A1128]/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="mint-card w-full max-w-md p-6 relative border border-[#1E2B4D] shadow-2xl">
+            <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#1E2B4D]">
+              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                <Landmark className="w-4 h-4 text-emerald-400" />
+                <span>Registrar Nuevo Activo</span>
+              </h3>
+              <button
+                onClick={() => setShowAssetModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-[#162347] transition-colors cursor-pointer"
+                aria-label="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <form onSubmit={handleCreateAsset} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Nombre del Activo</label>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">Nombre del Activo</label>
                 <input
                   type="text"
                   required
                   value={aName}
                   onChange={(e) => setAName(e.target.value)}
-                  placeholder="Ej. Casa Principal, Vehículo SUV, Portafolio Crypto"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
+                  placeholder="Ej. Casa Familiar, Vehículo, Portafolio Inversión"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Tipo de Activo</label>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">Tipo de Activo</label>
                 <select
                   value={aType}
                   onChange={(e) => setAType(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-emerald-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 cursor-pointer transition-colors"
                 >
-                  <option value="REAL_ESTATE">Inmueble / Casa</option>
-                  <option value="VEHICLE">Vehículo</option>
-                  <option value="INVESTMENT">Inversión / Fondo</option>
-                  <option value="CRYPTO">Criptomonedas</option>
-                  <option value="CASH_OTHER">Efectivo u Otro</option>
+                  <option value="REAL_ESTATE" className="bg-[#101A36]">Inmueble / Propiedad</option>
+                  <option value="VEHICLE" className="bg-[#101A36]">Vehículo</option>
+                  <option value="INVESTMENT" className="bg-[#101A36]">Inversión / Fondo</option>
+                  <option value="CRYPTO" className="bg-[#101A36]">Criptomonedas</option>
+                  <option value="CASH_OTHER" className="bg-[#101A36]">Efectivo u Otro</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Valor Estimado (RD$)</label>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">Valor Estimado ($)</label>
                 <input
                   type="number"
                   step="0.01"
                   required
                   value={aValue}
                   onChange={(e) => setAValue(e.target.value)}
-                  placeholder="Ej. 4500000"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-lg focus:outline-none focus:border-emerald-500"
+                  placeholder="Ej. 75000.00"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 font-bold text-base focus:outline-none focus:border-emerald-400 tabular-nums transition-colors"
                 />
               </div>
 
-              <div className="flex justify-end space-x-3 mt-6">
+              <div className="flex justify-end space-x-3 pt-3 border-t border-[#1E2B4D]">
                 <button
                   type="button"
                   onClick={() => setShowAssetModal(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[#162347] text-slate-300 text-xs font-medium hover:bg-[#1D2D5A] hover:text-slate-100 transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
                 >
                   Guardar Activo
                 </button>

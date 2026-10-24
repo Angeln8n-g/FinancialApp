@@ -1,16 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0f172a;
-  --surface: #1e293b;
-  --surface-hover: #334155;
-  --foreground: #f8fafc;
-  --foreground-muted: #94a3b8;
-  --primary: #8b5cf6;
-  --primary-hover: #7c3aed;
-  --success: #10b981;
-  --danger: #ef4444;
-  --border: #334155;
+  --background: #0A1128;
+  --surface: #101A36;
+  --surface-hover: #162347;
+  --surface-active: #1D2D5A;
+  --foreground: #F8FAFC;
+  --foreground-muted: #94A3B8;
+  --foreground-subtle: #64748B;
+  --primary: #10B981;
+  --primary-hover: #059669;
+  --accent-saving: #F59E0B;
+  --success: #10B981;
+  --danger: #F43F5E;
+  --border: #1E2B4D;
+  --border-subtle: rgba(255, 255, 255, 0.08);
 }
 
 body {
@@ -20,24 +24,48 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* Selección de texto temática */
+::selection {
+  background: #10B981;
+  color: #0A1128;
+}
+
+/* Tarjetas y superficies Family Mint */
+.mint-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px -2px rgba(10, 17, 40, 0.5);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.mint-card-hover:hover {
+  border-color: #2D3E6B;
+  background-color: var(--surface-hover);
+}
+
+/* Compatibilidad transicional */
 .glass-card {
-  background: rgba(30, 41, 59, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px -2px rgba(10, 17, 40, 0.5);
 }
 
 .glow-button {
-  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-  box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.39);
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.25);
   transition: all 0.2s ease-in-out;
 }
 
 .glow-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px 0 rgba(139, 92, 246, 0.55);
+  box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.35);
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -46,10 +74,18 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.5);
+  background: #0A1128;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.2);
+  background: #1E2B4D;
   border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #2D3E6B;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }

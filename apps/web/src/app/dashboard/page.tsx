@@ -13,6 +13,24 @@ import EditTransactionModal from '@/components/modals/EditTransactionModal';
 import VoidTransactionModal from '@/components/modals/VoidTransactionModal';
 import { apiFetch, getUser, getHousehold, getToken } from '@/lib/api';
 import { useHouseholdSocket } from '@/hooks/useHouseholdSocket';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  CalendarClock,
+  Plus,
+  Trash2,
+  Check,
+  Building2,
+  CreditCard,
+  Banknote,
+  PiggyBank,
+  Landmark,
+  Pencil,
+  Ban,
+  ArrowRight,
+  TrendingUp,
+  Receipt
+} from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -160,39 +178,45 @@ export default function DashboardPage() {
     await fetchData();
   };
 
+  const getAccountIcon = (type: string) => {
+    switch (type) {
+      case 'CASH':
+        return <Banknote className="w-4 h-4 text-emerald-400" />;
+      case 'CREDIT_CARD':
+        return <CreditCard className="w-4 h-4 text-sky-400" />;
+      case 'SAVINGS':
+        return <PiggyBank className="w-4 h-4 text-amber-400" />;
+      default:
+        return <Landmark className="w-4 h-4 text-indigo-400" />;
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f172a] text-slate-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent" />
+      <div className="min-h-screen bg-[#0A1128] text-slate-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-3 border-emerald-500 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 pb-20 lg:pb-12">
+    <div className="min-h-screen bg-[#0A1128] text-slate-100 pb-20 lg:pb-12">
       <Navbar
         user={user}
         household={household}
         unreadNotifications={reminders.filter((r) => !r.isPaid).length}
       />
 
-      <main className="max-w-7xl mx-auto px-4 py-6 sm:py-8 space-y-8">
-        {/* 🚀 Hero Action Panel */}
-        <section className="glass-card p-5 sm:p-6 border-2 border-purple-500/40 shadow-2xl relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900">
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <main className="max-w-7xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+        {/* Quick Actions Panel */}
+        <section className="mint-card p-5 sm:p-6 border border-[#1E2B4D] relative overflow-hidden bg-gradient-to-r from-[#101A36] via-[#121E40] to-[#101A36]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center space-x-2">
-                <span className="px-2.5 py-1 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[10px] font-extrabold uppercase tracking-wider">
-                  Acción Principal
-                </span>
-                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                  Registro Rápido de Movimientos
-                </h2>
-              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-100 tracking-tight">
+                Control Financiero Familiar
+              </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Registra tus gastos o ingresos fácilmente en un clic.
+                Registra tus movimientos en segundos para mantener las cuentas claras en el hogar.
               </p>
             </div>
 
@@ -202,9 +226,9 @@ export default function DashboardPage() {
                   setTxInitialType('EXPENSE');
                   setShowTxModal(true);
                 }}
-                className="flex-1 sm:flex-none px-5 py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-extrabold text-sm shadow-lg shadow-rose-950/50 flex items-center justify-center space-x-2 cursor-pointer transition-all hover:scale-105"
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
               >
-                <span className="text-lg">📉</span>
+                <ArrowDownRight className="w-4 h-4 text-rose-400" />
                 <span>Registrar Gasto (-)</span>
               </button>
 
@@ -213,9 +237,9 @@ export default function DashboardPage() {
                   setTxInitialType('INCOME');
                   setShowTxModal(true);
                 }}
-                className="flex-1 sm:flex-none px-5 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-950/50 flex items-center justify-center space-x-2 cursor-pointer transition-all hover:scale-105"
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
               >
-                <span className="text-lg">📈</span>
+                <ArrowUpRight className="w-4 h-4 text-white" />
                 <span>Registrar Ingreso (+)</span>
               </button>
             </div>
@@ -226,118 +250,117 @@ export default function DashboardPage() {
         <KPICards summary={summary} />
 
         {/* ⏰ Recordatorios de Pago */}
-        <div className="glass-card p-6 border border-purple-500/20 space-y-4">
+        <div className="mint-card p-5 sm:p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-white flex items-center space-x-2">
-              <span>⏰</span>
-              <span>Recordatorios de Pago Próximos</span>
+            <h3 className="text-sm sm:text-base font-semibold text-slate-100 flex items-center gap-2">
+              <CalendarClock className="w-4 h-4 text-emerald-400" />
+              <span>Próximos Vencimientos y Pagos</span>
             </h3>
             <div className="flex items-center space-x-3">
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-400 tabular-nums">
                 {reminders.filter((r) => !r.isPaid).length} pendientes
               </span>
               <button
                 onClick={() => setShowReminderModal(true)}
-                className="px-3 py-1 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 border border-purple-500/40 text-xs font-bold transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-[#162347] hover:bg-[#1D2D5A] text-emerald-300 border border-emerald-500/30 text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
               >
-                + Nuevo Recordatorio
+                <Plus className="w-3.5 h-3.5" />
+                <span>Nuevo Recordatorio</span>
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {reminders.map((r) => (
-              <div
-                key={r.id}
-                onClick={() => handleToggleReminder(r)}
-                className={`p-4 rounded-xl border transition-all cursor-pointer relative group ${
-                  r.isPaid ? 'bg-slate-900/40 border-slate-800 opacity-60' : 'bg-slate-800/80 border-slate-700 hover:border-purple-500'
-                }`}
-              >
-                <button
-                  onClick={(e) => handleDeleteReminder(e, r.id)}
-                  className="absolute top-2 right-2 text-slate-500 hover:text-rose-400 text-xs font-bold cursor-pointer"
-                  title="Eliminar recordatorio"
+          {reminders.length === 0 ? (
+            <div className="py-8 text-center text-slate-400 text-xs">
+              No tienes pagos programados ni vencimientos pendientes este mes.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {reminders.map((r) => (
+                <div
+                  key={r.id}
+                  onClick={() => handleToggleReminder(r)}
+                  className={`p-3.5 rounded-xl border transition-all cursor-pointer relative group ${
+                    r.isPaid
+                      ? 'bg-[#0A1128]/50 border-[#1E2B4D]/60 opacity-60'
+                      : 'bg-[#162347]/80 border-[#1E2B4D] hover:border-emerald-500/40 hover:bg-[#162347]'
+                  }`}
                 >
-                  🗑️
-                </button>
-
-                <div className="flex items-center justify-between mb-2 pr-4">
-                  <span className="text-xs font-bold text-white">{r.title}</span>
-                  <span
-                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                      r.isPaid ? 'bg-emerald-500 text-white' : 'border border-slate-600 text-slate-400'
-                    }`}
+                  <button
+                    onClick={(e) => handleDeleteReminder(e, r.id)}
+                    className="absolute top-2.5 right-2.5 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
+                    title="Eliminar recordatorio"
                   >
-                    {r.isPaid ? '✓' : ''}
-                  </span>
-                </div>
-                <p className={`text-base font-black ${r.isPaid ? 'text-slate-500 line-through' : 'text-purple-300'}`}>
-                  ${Number(r.amount).toLocaleString()}
-                </p>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Vence: {new Date(r.dueDate).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
 
-        {/* Quick Action Banner */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-purple-900/40 via-slate-900 to-slate-900 border border-purple-500/30">
-          <div>
-            <h3 className="text-base font-bold text-white">¿Nuevo movimiento financiero?</h3>
-            <p className="text-xs text-slate-400">Registra un gasto o ingreso en segundos para mantener las cuentas al día.</p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setShowAccountModal(true)}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition-colors cursor-pointer"
-            >
-              + Nueva Cuenta
-            </button>
-            <button
-              onClick={() => {
-                setTxInitialType('EXPENSE');
-                setShowTxModal(true);
-              }}
-              className="px-5 py-2.5 rounded-xl glow-button text-xs font-bold text-white cursor-pointer"
-            >
-              + Registrar Movimiento
-            </button>
-          </div>
+                  <div className="flex items-center justify-between mb-2 pr-5">
+                    <span className="text-xs font-semibold text-slate-200 truncate">{r.title}</span>
+                    <span
+                      className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
+                        r.isPaid ? 'bg-emerald-500 text-[#0A1128]' : 'border border-[#1E2B4D] text-transparent'
+                      }`}
+                    >
+                      {r.isPaid && <Check className="w-3 h-3 stroke-[3]" />}
+                    </span>
+                  </div>
+                  <p className={`text-base font-bold tabular-nums ${r.isPaid ? 'text-slate-500 line-through' : 'text-slate-100'}`}>
+                    ${Number(r.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-1 tabular-nums">
+                    Vence: {new Date(r.dueDate).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Accounts & Transactions Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Cuentas */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-white">Cuentas Financieras</h3>
-              <span className="text-xs text-slate-400 font-semibold">{accounts.length} activas</span>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between pb-1">
+              <div className="flex items-center gap-2">
+                <Landmark className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm font-semibold text-slate-100">Cuentas Financieras</h3>
+              </div>
+              <button
+                onClick={() => setShowAccountModal(true)}
+                className="px-2.5 py-1 rounded-lg bg-[#162347] hover:bg-[#1D2D5A] text-emerald-300 border border-emerald-500/30 text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3 h-3" />
+                <span>Nueva</span>
+              </button>
             </div>
 
             {accounts.length === 0 ? (
-              <div className="glass-card p-6 text-center text-slate-400 text-sm">
+              <div className="mint-card p-6 text-center text-slate-400 text-xs">
                 No tienes cuentas registradas.{' '}
-                <button onClick={() => setShowAccountModal(true)} className="text-purple-400 font-semibold underline cursor-pointer">
+                <button
+                  onClick={() => setShowAccountModal(true)}
+                  className="text-emerald-400 font-semibold underline cursor-pointer ml-1"
+                >
                   Crea una aquí
                 </button>
               </div>
             ) : (
               accounts.map((acc) => (
-                <div key={acc.id} className="glass-card p-4 flex items-center justify-between hover:border-slate-600 transition-all">
+                <div
+                  key={acc.id}
+                  className="mint-card p-3.5 flex items-center justify-between hover:border-[#2D3E6B] transition-colors"
+                >
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-xl">
-                      {acc.type === 'CASH' ? '💵' : acc.type === 'CREDIT_CARD' ? '💳' : '🏦'}
+                    <div className="w-9 h-9 rounded-xl bg-[#162347] border border-[#1E2B4D] flex items-center justify-center">
+                      {getAccountIcon(acc.type)}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white">{acc.name}</p>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{acc.type}</p>
+                      <p className="text-xs font-semibold text-slate-100">{acc.name}</p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">{acc.type.replace('_', ' ')}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`text-base font-bold ${Number(acc.balance) < 0 ? 'text-rose-400' : 'text-slate-100'}`}>
+                    <p className={`text-sm font-bold tabular-nums ${Number(acc.balance) < 0 ? 'text-rose-400' : 'text-slate-100'}`}>
                       ${Number(acc.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </p>
                     <p className="text-[10px] text-slate-400">{acc.currency}</p>
@@ -348,16 +371,23 @@ export default function DashboardPage() {
           </div>
 
           {/* Transacciones Recientes */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-white">Últimos Movimientos</h3>
-              <Link href="/dashboard/reports" className="text-xs text-purple-400 font-semibold hover:underline">
-                Ver todos
+          <div className="lg:col-span-2 space-y-3">
+            <div className="flex items-center justify-between pb-1">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm font-semibold text-slate-100">Últimos Movimientos</h3>
+              </div>
+              <Link
+                href="/dashboard/reports"
+                className="text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1 transition-colors"
+              >
+                <span>Ver historial</span>
+                <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
 
             {transactions.length === 0 ? (
-              <div className="glass-card p-12 text-center text-slate-400 text-sm">
+              <div className="mint-card p-10 text-center text-slate-400 text-xs">
                 No hay movimientos registrados recientemente.
               </div>
             ) : (
@@ -365,28 +395,36 @@ export default function DashboardPage() {
                 {transactions.map((tx) => (
                   <div
                     key={tx.id}
-                    className={`glass-card p-4 flex items-center justify-between transition-all group ${
+                    className={`mint-card p-3.5 flex items-center justify-between transition-colors group ${
                       tx.isVoided
-                        ? 'opacity-40 border-rose-950/40 bg-rose-950/10'
-                        : 'hover:border-slate-600'
+                        ? 'opacity-40 bg-rose-950/5 border-rose-900/30'
+                        : 'hover:border-[#2D3E6B]'
                     }`}
                   >
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg">
-                        {tx.category?.icon || (tx.type === 'INCOME' ? '💼' : '🛒')}
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
+                        tx.type === 'INCOME'
+                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                          : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                      }`}>
+                        {tx.type === 'INCOME' ? (
+                          <ArrowUpRight className="w-4 h-4" />
+                        ) : (
+                          <ArrowDownRight className="w-4 h-4" />
+                        )}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className={`text-sm font-bold ${tx.isVoided ? 'line-through text-slate-500' : 'text-white'}`}>
+                          <p className={`text-xs font-semibold ${tx.isVoided ? 'line-through text-slate-500' : 'text-slate-100'}`}>
                             {tx.description || (tx.type === 'INCOME' ? 'Ingreso General' : 'Gasto General')}
                           </p>
                           {tx.isVoided && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-rose-500/15 text-rose-300 border border-rose-500/30">
                               Anulado
                             </span>
                           )}
                           {tx.isEdited && !tx.isVoided && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30">
                               Editado
                             </span>
                           )}
@@ -394,7 +432,7 @@ export default function DashboardPage() {
                         <p className="text-[10px] text-slate-400">
                           {tx.account?.name} • {new Date(tx.date).toLocaleDateString()}
                           {tx.createdBy?.fullName || tx.createdBy?.email
-                            ? ` • 👤 ${tx.createdBy?.fullName || tx.createdBy?.email.split('@')[0]}`
+                            ? ` • ${tx.createdBy?.fullName || tx.createdBy?.email.split('@')[0]}`
                             : ''}
                         </p>
                       </div>
@@ -403,7 +441,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         <p
-                          className={`text-sm font-black ${
+                          className={`text-xs font-bold tabular-nums ${
                             tx.isVoided
                               ? 'text-slate-500 line-through'
                               : tx.type === 'INCOME'
@@ -413,7 +451,7 @@ export default function DashboardPage() {
                         >
                           {tx.type === 'INCOME' ? '+' : '-'}${Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </p>
-                        <p className="text-[10px] text-slate-500">{tx.category?.name || 'General'}</p>
+                        <p className="text-[10px] text-slate-400">{tx.category?.name || 'General'}</p>
                       </div>
 
                       {!tx.isVoided && (
@@ -423,20 +461,20 @@ export default function DashboardPage() {
                               setSelectedTxForEdit(tx);
                               setShowEditTxModal(true);
                             }}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-amber-950/40 text-slate-400 hover:text-amber-300 border border-slate-700 text-xs cursor-pointer"
+                            className="p-1 rounded-lg bg-[#162347] hover:bg-amber-950/40 text-slate-400 hover:text-amber-300 border border-[#1E2B4D] transition-colors cursor-pointer"
                             title="Editar Transacción"
                           >
-                            ✏️
+                            <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => {
                               setSelectedTxForVoid(tx);
                               setShowVoidTxModal(true);
                             }}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-700 text-xs cursor-pointer"
+                            className="p-1 rounded-lg bg-[#162347] hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-[#1E2B4D] transition-colors cursor-pointer"
                             title="Anular Transacción"
                           >
-                            🚫
+                            <Ban className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       )}
@@ -449,7 +487,7 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* 🧩 Modales Extraídos y Modularizados */}
+      {/* Modales */}
       <TransactionModal
         isOpen={showTxModal}
         onClose={() => setShowTxModal(false)}
