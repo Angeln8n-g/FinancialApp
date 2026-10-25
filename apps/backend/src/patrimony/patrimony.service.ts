@@ -1,30 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateAssetDto, UpdateAssetDto, UpdateValuationDto } from './patrimony.dto';
 
-export class CreateAssetDto {
-  name: string;
-  type: string;
-  value: number;
-  purchasePrice?: number;
-  acquisitionDate?: string | Date;
-  notes?: string;
-  debtId?: string;
-}
-
-export class UpdateAssetDto {
-  name?: string;
-  type?: string;
-  purchasePrice?: number;
-  acquisitionDate?: string | Date;
-  notes?: string;
-  debtId?: string | null;
-}
-
-export class UpdateValuationDto {
-  value: number;
-  notes?: string;
-  valuationDate?: string | Date;
-}
+export { CreateAssetDto, UpdateAssetDto, UpdateValuationDto };
 
 @Injectable()
 export class PatrimonyService {
@@ -217,23 +195,23 @@ export class PatrimonyService {
     return this.prisma.$transaction(async (tx) => {
       const asset = await tx.asset.create({
         data: {
-          householdId,
           name: data.name,
           type: data.type,
           value: data.value,
           purchasePrice: data.purchasePrice !== undefined ? data.purchasePrice : null,
           acquisitionDate: data.acquisitionDate ? new Date(data.acquisitionDate) : null,
           notes: data.notes || null,
-          debtId: data.debtId || null,
+          household: { connect: { id: householdId } },
+          ...(data.debtId ? { debt: { connect: { id: data.debtId } } } : {}),
         },
       });
 
       await tx.assetValuation.create({
         data: {
-          assetId: asset.id,
           value: data.value,
           notes: 'Valoración inicial al registrar el activo',
           valuationDate,
+          asset: { connect: { id: asset.id } },
         },
       });
 
@@ -252,17 +230,16 @@ export class PatrimonyService {
     return this.prisma.asset.update({
       where: { id: assetId },
       data: {
-        name: data.name !== undefined ? data.name : undefined,
-        type: data.type !== undefined ? data.type : undefined,
-        purchasePrice: data.purchasePrice !== undefined ? data.purchasePrice : undefined,
-        acquisitionDate:
-          data.acquisitionDate !== undefined
-            ? data.acquisitionDate
-              ? new Date(data.acquisitionDate)
-              : null
-            : undefined,
-        notes: data.notes !== undefined ? data.notes : undefined,
-        debtId: data.debtId !== undefined ? data.debtId : undefined,
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.type !== undefined && { type: data.type }),
+        ...(data.purchasePrice !== undefined && { purchasePrice: data.purchasePrice }),
+        ...(data.acquisitionDate !== undefined && {
+          acquisitionDate: data.acquisitionDate ? new Date(data.acquisitionDate) : null,
+        }),
+        ...(data.notes !== undefined && { notes: data.notes }),
+        ...(data.debtId !== undefined && {
+          debt: data.debtId ? { connect: { id: data.debtId } } : { disconnect: true },
+        }),
       },
     });
   }
@@ -280,10 +257,10 @@ export class PatrimonyService {
     return this.prisma.$transaction(async (tx) => {
       const valuation = await tx.assetValuation.create({
         data: {
-          assetId,
           value: data.value,
           notes: data.notes || 'Actualización de valor de mercado',
           valuationDate: valDate,
+          asset: { connect: { id: assetId } },
         },
       });
 

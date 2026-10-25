@@ -1,4 +1,5 @@
-import { PatrimonyService, CreateAssetDto, UpdateAssetDto, UpdateValuationDto } from './patrimony.service';
+import { PatrimonyService } from './patrimony.service';
+import { CreateAssetDto, UpdateAssetDto, UpdateValuationDto } from './patrimony.dto';
 import { UserPayload } from '../auth/get-user.decorator';
 export declare class PatrimonyController {
     private readonly patrimonyService;

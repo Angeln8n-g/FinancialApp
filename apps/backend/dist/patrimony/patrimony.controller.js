@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatrimonyController = void 0;
 const common_1 = require("@nestjs/common");
 const patrimony_service_1 = require("./patrimony.service");
+const patrimony_dto_1 = require("./patrimony.dto");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const get_user_decorator_1 = require("../auth/get-user.decorator");
 let PatrimonyController = class PatrimonyController {
@@ -55,7 +56,7 @@ __decorate([
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload,
-        patrimony_service_1.CreateAssetDto]),
+        patrimony_dto_1.CreateAssetDto]),
     __metadata("design:returntype", Promise)
 ], PatrimonyController.prototype, "createAsset", null);
 __decorate([
@@ -64,7 +65,7 @@ __decorate([
     __param(1, (0, common_1.Param)('id')),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, patrimony_service_1.UpdateAssetDto]),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, patrimony_dto_1.UpdateAssetDto]),
     __metadata("design:returntype", Promise)
 ], PatrimonyController.prototype, "updateAsset", null);
 __decorate([
@@ -73,7 +74,7 @@ __decorate([
     __param(1, (0, common_1.Param)('id')),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, patrimony_service_1.UpdateValuationDto]),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, patrimony_dto_1.UpdateValuationDto]),
     __metadata("design:returntype", Promise)
 ], PatrimonyController.prototype, "updateAssetValuation", null);
 __decorate([

@@ -1,10 +1,10 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { PatrimonyService } from './patrimony.service';
 import {
-  PatrimonyService,
   CreateAssetDto,
   UpdateAssetDto,
   UpdateValuationDto,
-} from './patrimony.service';
+} from './patrimony.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, UserPayload } from '../auth/get-user.decorator';
 

@@ -1,26 +1,6 @@
 import { PrismaService } from '../prisma/prisma.service';
-export declare class CreateAssetDto {
-    name: string;
-    type: string;
-    value: number;
-    purchasePrice?: number;
-    acquisitionDate?: string | Date;
-    notes?: string;
-    debtId?: string;
-}
-export declare class UpdateAssetDto {
-    name?: string;
-    type?: string;
-    purchasePrice?: number;
-    acquisitionDate?: string | Date;
-    notes?: string;
-    debtId?: string | null;
-}
-export declare class UpdateValuationDto {
-    value: number;
-    notes?: string;
-    valuationDate?: string | Date;
-}
+import { CreateAssetDto, UpdateAssetDto, UpdateValuationDto } from './patrimony.dto';
+export { CreateAssetDto, UpdateAssetDto, UpdateValuationDto };
 export declare class PatrimonyService {
     private prisma;
     constructor(prisma: PrismaService);

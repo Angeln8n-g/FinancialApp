@@ -110,8 +110,8 @@ export default function AssetModal({
         type,
         value: !isEdit ? parsedValue : undefined,
         purchasePrice: purchasePrice ? parseFloat(purchasePrice) : undefined,
-        acquisitionDate: acquisitionDate ? acquisitionDate : null,
-        debtId: debtId ? debtId : null,
+        acquisitionDate: acquisitionDate ? acquisitionDate : undefined,
+        debtId: debtId ? debtId : undefined,
         notes: notes.trim() || undefined,
       });
       onClose();

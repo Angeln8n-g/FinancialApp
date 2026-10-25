@@ -160,7 +160,7 @@ describe('PatrimonyService', () => {
       expect(prisma.assetValuation.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            assetId: 'new-asset',
+            asset: { connect: { id: 'new-asset' } },
             value: 15000,
           }),
         }),
