@@ -28,8 +28,17 @@ let PatrimonyController = class PatrimonyController {
     async createAsset(user, body) {
         return this.patrimonyService.createAsset(user.householdId, body);
     }
+    async updateAsset(user, id, body) {
+        return this.patrimonyService.updateAsset(user.householdId, id, body);
+    }
+    async updateAssetValuation(user, id, body) {
+        return this.patrimonyService.updateAssetValuation(user.householdId, id, body);
+    }
     async deleteAsset(user, id) {
         return this.patrimonyService.deleteAsset(user.householdId, id);
+    }
+    async getAssetValuations(user, id) {
+        return this.patrimonyService.getAssetValuations(user.householdId, id);
     }
 };
 exports.PatrimonyController = PatrimonyController;
@@ -45,9 +54,28 @@ __decorate([
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload,
+        patrimony_service_1.CreateAssetDto]),
     __metadata("design:returntype", Promise)
 ], PatrimonyController.prototype, "createAsset", null);
+__decorate([
+    (0, common_1.Put)('assets/:id'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, patrimony_service_1.UpdateAssetDto]),
+    __metadata("design:returntype", Promise)
+], PatrimonyController.prototype, "updateAsset", null);
+__decorate([
+    (0, common_1.Post)('assets/:id/valuation'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, patrimony_service_1.UpdateValuationDto]),
+    __metadata("design:returntype", Promise)
+], PatrimonyController.prototype, "updateAssetValuation", null);
 __decorate([
     (0, common_1.Delete)('assets/:id'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
@@ -56,6 +84,14 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
     __metadata("design:returntype", Promise)
 ], PatrimonyController.prototype, "deleteAsset", null);
+__decorate([
+    (0, common_1.Get)('assets/:id/valuations'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
+    __metadata("design:returntype", Promise)
+], PatrimonyController.prototype, "getAssetValuations", null);
 exports.PatrimonyController = PatrimonyController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('api/patrimony'),

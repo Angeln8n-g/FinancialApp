@@ -106,16 +106,37 @@ model Reminder {
 }
 
 model Asset {
-  id            String      @id @default(uuid())
-  householdId   String
-  name          String
-  type          String      // VEHICLE, REAL_ESTATE, INVESTMENT, CRYPTO, CASH_OTHER
-  value         Decimal     @db.Decimal(12, 2)
-  createdAt     DateTime    @default(now())
+  id              String          @id @default(uuid())
+  householdId     String
+  name            String
+  type            String          // VEHICLE, REAL_ESTATE, INVESTMENT, CRYPTO, CASH_OTHER
+  value           Decimal         @db.Decimal(12, 2)
+  purchasePrice   Decimal?        @db.Decimal(12, 2)
+  acquisitionDate DateTime?
+  notes           String?
+  debtId          String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @default(now()) @updatedAt
 
-  household     Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  household       Household       @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  debt            Debt?           @relation(fields: [debtId], references: [id], onDelete: SetNull)
+  valuations      AssetValuation[]
 
   @@index([householdId])
+  @@index([householdId, type])
+}
+
+model AssetValuation {
+  id            String    @id @default(uuid())
+  assetId       String
+  value         Decimal   @db.Decimal(12, 2)
+  notes         String?
+  valuationDate DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+
+  asset         Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, valuationDate])
 }
 
 model HouseholdMember {
@@ -258,6 +279,7 @@ model Debt {
 
   household             Household           @relation(fields: [householdId], references: [id], onDelete: Cascade)
   reminders             Reminder[]
+  assets                Asset[]
 
   @@index([householdId])
 }
