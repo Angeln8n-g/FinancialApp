@@ -29,6 +29,67 @@ export default function MobileDashboardScreen() {
   const [myAllowance, setMyAllowance] = useState<any>(null);
   const [userRole, setUserRole] = useState<string>('COLLABORATOR');
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [depositingAccId, setDepositingAccId] = useState<string | null>(null);
+
+  const getAccountIcon = (type: string) => {
+    switch (type) {
+      case 'PAYROLL': return '💼';
+      case 'SAVINGS': return '🏦';
+      case 'CHECKING': return '💳';
+      case 'CASH': return '💵';
+      case 'CREDIT_CARD': return '💳';
+      case 'INVESTMENT': return '📈';
+      default: return '🏦';
+    }
+  };
+
+  const getAccountTypeName = (type: string) => {
+    switch (type) {
+      case 'PAYROLL': return 'Nómina';
+      case 'SAVINGS': return 'Ahorro';
+      case 'CHECKING': return 'Corriente';
+      case 'CASH': return 'Efectivo';
+      case 'CREDIT_CARD': return 'Tarjeta';
+      case 'INVESTMENT': return 'Inversión';
+      default: return type;
+    }
+  };
+
+  const handleTriggerPayrollDeposit = (acc: any) => {
+    const amount = Number(acc.payrollAmount || 0);
+    Alert.alert(
+      'Acreditar Nómina',
+      `¿Deseas acreditar el depósito de nómina por RD$${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} en "${acc.name}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Acreditar',
+          onPress: async () => {
+            try {
+              setDepositingAccId(acc.id);
+              const res = await fetchWithAuth(`/api/accounts/${acc.id}/payroll/deposit`, {
+                method: 'POST',
+              });
+              const data = await res.json();
+              if (res.ok) {
+                Alert.alert(
+                  '¡Nómina Acreditada!',
+                  data.message || `Depósito de RD$${amount.toLocaleString()} acreditado con éxito.`
+                );
+                loadData();
+              } else {
+                Alert.alert('Error', data.message || 'No se pudo procesar el depósito de nómina.');
+              }
+            } catch (e: any) {
+              Alert.alert('Error', e.message || 'Error de conexión.');
+            } finally {
+              setDepositingAccId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   // Modales Notificaciones, Pago & Edición
   const [showNotifModal, setShowNotifModal] = useState(false);
@@ -424,23 +485,81 @@ export default function MobileDashboardScreen() {
         <View style={styles.kpiContainer}>
           <View style={styles.kpiCardMain}>
             <Text style={styles.kpiTitle}>BALANCE CONSOLIDADO</Text>
-            <Text style={styles.kpiValueMain}>${summary.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
+            <Text style={styles.kpiValueMain}>RD${summary.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
             <Text style={styles.kpiSub}>Suma de todas las cuentas activas</Text>
           </View>
 
           <View style={styles.kpiRow}>
             <View style={[styles.kpiCardHalf, styles.incomeCard]}>
               <Text style={styles.incomeTitle}>INGRESOS MES</Text>
-              <Text style={styles.incomeValue}>+${summary.monthlyIncome.toFixed(2)}</Text>
+              <Text style={styles.incomeValue}>+RD${summary.monthlyIncome.toFixed(2)}</Text>
             </View>
 
             <View style={[styles.kpiCardHalf, styles.expenseCard]}>
               <Text style={styles.expenseTitle}>GASTOS MES</Text>
-              <Text style={styles.expenseValue}>-${summary.monthlyExpense.toFixed(2)}</Text>
+              <Text style={styles.expenseValue}>-RD${summary.monthlyExpense.toFixed(2)}</Text>
             </View>
           </View>
         </View>
       )}
+
+      {/* 💳 CUENTAS & NÓMINA */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>💳 Cuentas & Nómina</Text>
+        <Text style={styles.sectionBadge}>{accounts.length} cuentas</Text>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+        {accounts.map((acc) => {
+          const isPayroll = acc.type === 'PAYROLL';
+          const pAmount = Number(acc.payrollAmount || 0);
+          const pFreq = acc.payrollFrequency === 'BIWEEKLY' ? 'Quincenal' : 'Mensual';
+
+          return (
+            <View key={acc.id} style={[styles.accountCard, isPayroll && styles.accountCardPayroll]}>
+              <View style={styles.accountCardHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                  <Text style={{ fontSize: 16 }}>{getAccountIcon(acc.type)}</Text>
+                  <Text style={styles.accountCardName} numberOfLines={1}>{acc.name}</Text>
+                </View>
+                <View style={[styles.accountTypeBadge, isPayroll && styles.payrollBadge]}>
+                  <Text style={[styles.accountTypeBadgeText, isPayroll && styles.payrollBadgeText]}>
+                    {isPayroll ? '💼 Nómina' : getAccountTypeName(acc.type)}
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.accountBalanceLabel}>Saldo Disponible</Text>
+              <Text style={styles.accountBalanceValue}>
+                RD${Number(acc.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </Text>
+
+              {isPayroll && (
+                <View style={styles.payrollInfoBox}>
+                  <Text style={styles.payrollInfoText}>
+                    📅 {pFreq} • Monto: RD${pAmount.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                  </Text>
+                  <Text style={acc.payrollAutoDeposit ? styles.payrollAutoBadge : styles.payrollManualBadge}>
+                    {acc.payrollAutoDeposit ? '🟢 Auto-abono activo' : '⚪ Abono manual'}
+                  </Text>
+
+                  <TouchableOpacity
+                    style={[styles.payrollDepositBtn, depositingAccId === acc.id && { opacity: 0.6 }]}
+                    onPress={() => handleTriggerPayrollDeposit(acc)}
+                    disabled={depositingAccId === acc.id}
+                  >
+                    {depositingAccId === acc.id ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                      <Text style={styles.payrollDepositBtnText}>⚡ Acreditar Nómina</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </ScrollView>
 
       {/* ⏰ RECORDATORIOS DE PAGO PRÓXIMOS */}
       <View style={styles.sectionHeader}>
@@ -805,4 +924,50 @@ const styles = StyleSheet.create({
   notifItem: { backgroundColor: '#1e293b', padding: 12, borderRadius: 10, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(244, 63, 94, 0.3)' },
   notifItemTitle: { fontSize: 12, fontWeight: 'bold', color: '#fb7185' },
   notifItemBody: { fontSize: 11, color: '#cbd5e1', marginTop: 2 },
+
+  /* Cuentas & Nómina */
+  accountCard: {
+    width: 220,
+    backgroundColor: '#101a36',
+    borderRadius: 16,
+    padding: 14,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#1e2b4d',
+  },
+  accountCardPayroll: {
+    borderColor: 'rgba(168, 85, 247, 0.4)',
+    backgroundColor: 'rgba(16, 26, 54, 0.9)',
+  },
+  accountCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  accountCardName: { fontSize: 13, fontWeight: 'bold', color: '#ffffff', flex: 1 },
+  accountTypeBadge: {
+    backgroundColor: 'rgba(148, 163, 184, 0.1)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  payrollBadge: { backgroundColor: 'rgba(168, 85, 247, 0.2)', borderWidth: 1, borderColor: 'rgba(168, 85, 247, 0.4)' },
+  accountTypeBadgeText: { color: '#94a3b8', fontSize: 10, fontWeight: 'bold' },
+  payrollBadgeText: { color: '#c084fc', fontSize: 10, fontWeight: 'bold' },
+  accountBalanceLabel: { fontSize: 10, color: '#94a3b8' },
+  accountBalanceValue: { fontSize: 18, fontWeight: '900', color: '#ffffff', marginTop: 2 },
+  payrollInfoBox: {
+    backgroundColor: 'rgba(30, 41, 59, 0.5)',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  payrollInfoText: { fontSize: 10, color: '#cbd5e1', fontWeight: '500' },
+  payrollAutoBadge: { fontSize: 9, color: '#34d399', fontWeight: 'bold', marginTop: 3 },
+  payrollManualBadge: { fontSize: 9, color: '#94a3b8', marginTop: 3 },
+  payrollDepositBtn: {
+    backgroundColor: '#a855f7',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  payrollDepositBtnText: { color: '#ffffff', fontSize: 10, fontWeight: 'bold' },
 });
