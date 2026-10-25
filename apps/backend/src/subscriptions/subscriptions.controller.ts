@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nes
 import { SubscriptionsService } from './subscriptions.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, UserPayload } from '../auth/get-user.decorator';
+import { RecurrencePeriod } from '@prisma/client';
 
 @UseGuards(JwtAuthGuard)
 @Controller('api/subscriptions')
@@ -16,7 +17,15 @@ export class SubscriptionsController {
   @Post()
   async create(
     @CurrentUser() user: UserPayload,
-    @Body() body: { name: string; cost: number; nextBillingDate?: string },
+    @Body()
+    body: {
+      name: string;
+      cost: number;
+      period?: RecurrencePeriod;
+      nextBillingDate?: string;
+      autoDeduct?: boolean;
+      accountId?: string;
+    },
   ) {
     return this.subscriptionsService.create(user.householdId, body);
   }
@@ -25,9 +34,25 @@ export class SubscriptionsController {
   async update(
     @CurrentUser() user: UserPayload,
     @Param('id') id: string,
-    @Body() body: { name?: string; cost?: number },
+    @Body()
+    body: {
+      name?: string;
+      cost?: number;
+      period?: RecurrencePeriod;
+      nextBillingDate?: string;
+      autoDeduct?: boolean;
+      accountId?: string;
+    },
   ) {
     return this.subscriptionsService.update(user.householdId, id, body);
+  }
+
+  @Post(':id/deduct')
+  async manualDeduct(
+    @CurrentUser() user: UserPayload,
+    @Param('id') id: string,
+  ) {
+    return this.subscriptionsService.deductSubscription(user.householdId, id, user.userId);
   }
 
   @Delete(':id')

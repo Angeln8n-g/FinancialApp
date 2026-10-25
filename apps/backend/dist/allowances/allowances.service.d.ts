@@ -102,8 +102,8 @@ export declare class AllowancesService {
         householdId: string;
         amount: import("@prisma/client/runtime/library").Decimal;
         status: string;
-        memberId: string;
         reason: string;
+        memberId: string;
         allowanceId: string;
     }>;
     getRequests(householdId: string): Promise<({
@@ -142,8 +142,8 @@ export declare class AllowancesService {
         householdId: string;
         amount: import("@prisma/client/runtime/library").Decimal;
         status: string;
-        memberId: string;
         reason: string;
+        memberId: string;
         allowanceId: string;
     })[]>;
     respondRequest(householdId: string, requestId: string, status: 'APPROVED' | 'REJECTED'): Promise<{
@@ -152,8 +152,8 @@ export declare class AllowancesService {
         householdId: string;
         amount: import("@prisma/client/runtime/library").Decimal;
         status: string;
-        memberId: string;
         reason: string;
+        memberId: string;
         allowanceId: string;
     }>;
     remove(id: string, householdId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;

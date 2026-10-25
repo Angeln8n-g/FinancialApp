@@ -20,9 +20,12 @@ export declare class RemindersController {
             createdAt: Date;
             name: string;
             householdId: string;
+            accountId: string | null;
             cost: import("@prisma/client/runtime/library").Decimal;
             period: import(".prisma/client").$Enums.RecurrencePeriod;
             nextBillingDate: Date;
+            autoDeduct: boolean;
+            lastDeductAttempt: Date | null;
             isActive: boolean;
         } | null;
     } & {

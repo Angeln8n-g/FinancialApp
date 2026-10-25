@@ -115,8 +115,8 @@ export declare class AllowancesController {
         householdId: string;
         amount: import("@prisma/client/runtime/library").Decimal;
         status: string;
-        memberId: string;
         reason: string;
+        memberId: string;
         allowanceId: string;
     })[]>;
     createRequest(user: UserPayload, allowanceId: string, body: {
@@ -149,8 +149,8 @@ export declare class AllowancesController {
         householdId: string;
         amount: import("@prisma/client/runtime/library").Decimal;
         status: string;
-        memberId: string;
         reason: string;
+        memberId: string;
         allowanceId: string;
     }>;
     respondRequest(user: UserPayload, requestId: string, body: {
@@ -161,8 +161,8 @@ export declare class AllowancesController {
         householdId: string;
         amount: import("@prisma/client/runtime/library").Decimal;
         status: string;
-        memberId: string;
         reason: string;
+        memberId: string;
         allowanceId: string;
     }>;
     remove(user: UserPayload, id: string): Promise<import(".prisma/client").Prisma.BatchPayload>;

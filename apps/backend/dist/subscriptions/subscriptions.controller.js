@@ -31,6 +31,9 @@ let SubscriptionsController = class SubscriptionsController {
     async update(user, id, body) {
         return this.subscriptionsService.update(user.householdId, id, body);
     }
+    async manualDeduct(user, id) {
+        return this.subscriptionsService.deductSubscription(user.householdId, id, user.userId);
+    }
     async delete(user, id) {
         return this.subscriptionsService.delete(user.householdId, id);
     }
@@ -60,6 +63,14 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
     __metadata("design:returntype", Promise)
 ], SubscriptionsController.prototype, "update", null);
+__decorate([
+    (0, common_1.Post)(':id/deduct'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
+    __metadata("design:returntype", Promise)
+], SubscriptionsController.prototype, "manualDeduct", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),

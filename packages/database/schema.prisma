@@ -150,6 +150,7 @@ model Account {
   household     Household    @relation(fields: [householdId], references: [id], onDelete: Cascade)
   transactions  Transaction[]
   transfersTo   Transaction[] @relation("TransferToRelation")
+  subscriptions Subscription[]
 
   @@index([householdId])
 }
@@ -247,19 +248,24 @@ model Debt {
 }
 
 model Subscription {
-  id            String      @id @default(uuid())
-  householdId   String
-  name          String
-  cost          Decimal     @db.Decimal(10, 2)
-  period        RecurrencePeriod @default(MONTHLY)
-  nextBillingDate DateTime
-  isActive      Boolean     @default(true)
-  createdAt     DateTime    @default(now())
+  id                 String            @id @default(uuid())
+  householdId        String
+  accountId          String?
+  name               String
+  cost               Decimal           @db.Decimal(10, 2)
+  period             RecurrencePeriod  @default(MONTHLY)
+  nextBillingDate    DateTime
+  autoDeduct         Boolean           @default(false)
+  lastDeductAttempt  DateTime?
+  isActive           Boolean           @default(true)
+  createdAt          DateTime          @default(now())
 
-  household     Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  reminders     Reminder[]
+  household          Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  account            Account?          @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  reminders          Reminder[]
 
   @@index([householdId])
+  @@index([accountId])
 }
 
 model AuditLog {
