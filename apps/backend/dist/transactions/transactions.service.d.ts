@@ -36,8 +36,8 @@ export declare class TransactionsService {
         } | null;
         createdBy: {
             email: string;
-            id: string;
             fullName: string | null;
+            id: string;
             avatarUrl: string | null;
         } | null;
     } & {
@@ -50,12 +50,10 @@ export declare class TransactionsService {
         accountId: string;
         destinationAccountId: string | null;
         categoryId: string | null;
-        createdById: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
+        createdById: string | null;
         isCleared: boolean;
-        ocrProcessed: boolean;
-        ocrTextRaw: string | null;
         isEdited: boolean;
         editReason: string | null;
         editedAt: Date | null;
@@ -94,8 +92,8 @@ export declare class TransactionsService {
         } | null;
         createdBy: {
             email: string;
-            id: string;
             fullName: string | null;
+            id: string;
             avatarUrl: string | null;
         } | null;
     } & {
@@ -108,12 +106,10 @@ export declare class TransactionsService {
         accountId: string;
         destinationAccountId: string | null;
         categoryId: string | null;
-        createdById: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
+        createdById: string | null;
         isCleared: boolean;
-        ocrProcessed: boolean;
-        ocrTextRaw: string | null;
         isEdited: boolean;
         editReason: string | null;
         editedAt: Date | null;
@@ -176,12 +172,10 @@ export declare class TransactionsService {
         accountId: string;
         destinationAccountId: string | null;
         categoryId: string | null;
-        createdById: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
+        createdById: string | null;
         isCleared: boolean;
-        ocrProcessed: boolean;
-        ocrTextRaw: string | null;
         isEdited: boolean;
         editReason: string | null;
         editedAt: Date | null;
@@ -230,12 +224,10 @@ export declare class TransactionsService {
         accountId: string;
         destinationAccountId: string | null;
         categoryId: string | null;
-        createdById: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
+        createdById: string | null;
         isCleared: boolean;
-        ocrProcessed: boolean;
-        ocrTextRaw: string | null;
         isEdited: boolean;
         editReason: string | null;
         editedAt: Date | null;

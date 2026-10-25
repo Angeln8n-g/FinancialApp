@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import KPICards from '@/components/dashboard/KPICards';
+import QuickEntryBar from '@/components/dashboard/QuickEntryBar';
 import TransactionModal from '@/components/modals/TransactionModal';
 import AccountModal from '@/components/modals/AccountModal';
 import ReminderModal from '@/components/modals/ReminderModal';
@@ -16,6 +17,7 @@ import { useHouseholdSocket } from '@/hooks/useHouseholdSocket';
 import {
   ArrowDownRight,
   ArrowUpRight,
+  ArrowLeftRight,
   CalendarClock,
   Plus,
   Trash2,
@@ -48,7 +50,7 @@ export default function DashboardPage() {
 
   // Estados de Modales
   const [showTxModal, setShowTxModal] = useState(false);
-  const [txInitialType, setTxInitialType] = useState<'EXPENSE' | 'INCOME'>('EXPENSE');
+  const [txInitialType, setTxInitialType] = useState<'EXPENSE' | 'INCOME' | 'TRANSFER'>('EXPENSE');
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [showPayReminderModal, setShowPayReminderModal] = useState(false);
@@ -110,6 +112,38 @@ export default function DashboardPage() {
   useHouseholdSocket(household?.id, () => {
     fetchData();
   });
+
+  // Atajos de teclado globales (G = Gasto, I = Ingreso, T = Transferencia)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      const isEditing =
+        activeTag === 'input' ||
+        activeTag === 'textarea' ||
+        activeTag === 'select' ||
+        (document.activeElement as HTMLElement)?.isContentEditable;
+
+      if (isEditing) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === 'g' || e.key === 'G') {
+        e.preventDefault();
+        setTxInitialType('EXPENSE');
+        setShowTxModal(true);
+      } else if (e.key === 'i' || e.key === 'I') {
+        e.preventDefault();
+        setTxInitialType('INCOME');
+        setShowTxModal(true);
+      } else if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
+        setTxInitialType('TRANSFER');
+        setShowTxModal(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleToggleReminder = (r: any) => {
     if (!r.isPaid) {
@@ -220,16 +254,16 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
               <button
                 onClick={() => {
                   setTxInitialType('EXPENSE');
                   setShowTxModal(true);
                 }}
-                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
               >
                 <ArrowDownRight className="w-4 h-4 text-rose-400" />
-                <span>Registrar Gasto (-)</span>
+                <span>Gasto <kbd className="hidden md:inline px-1 py-0.5 rounded bg-rose-950/60 text-[10px] text-rose-300 font-mono">G</kbd></span>
               </button>
 
               <button
@@ -237,14 +271,36 @@ export default function DashboardPage() {
                   setTxInitialType('INCOME');
                   setShowTxModal(true);
                 }}
-                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
               >
                 <ArrowUpRight className="w-4 h-4 text-white" />
-                <span>Registrar Ingreso (+)</span>
+                <span>Ingreso <kbd className="hidden md:inline px-1 py-0.5 rounded bg-emerald-800 text-[10px] text-emerald-100 font-mono">I</kbd></span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setTxInitialType('TRANSFER');
+                  setShowTxModal(true);
+                }}
+                className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/30 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              >
+                <ArrowLeftRight className="w-4 h-4 text-blue-400" />
+                <span>Transferir <kbd className="hidden md:inline px-1 py-0.5 rounded bg-blue-950/60 text-[10px] text-blue-300 font-mono">T</kbd></span>
               </button>
             </div>
           </div>
         </section>
+
+        {/* ⚡ Barra de Entrada Rápida Inline */}
+        <QuickEntryBar
+          accounts={accounts}
+          categories={categories}
+          onSubmit={handleCreateTransaction}
+          onOpenModal={(type) => {
+            setTxInitialType(type);
+            setShowTxModal(true);
+          }}
+        />
 
         {/* 📊 KPI Cards */}
         <KPICards summary={summary} />

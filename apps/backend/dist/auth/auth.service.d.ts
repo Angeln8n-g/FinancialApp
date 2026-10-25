@@ -6,6 +6,7 @@ export declare class AuthService {
     private jwtService;
     constructor(prisma: PrismaService, jwtService: JwtService);
     private hashPassword;
+    private verifyPassword;
     login(loginDto: LoginDto): Promise<{
         accessToken: string;
         user: {

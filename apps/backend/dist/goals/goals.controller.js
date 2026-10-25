@@ -28,6 +28,12 @@ let GoalsController = class GoalsController {
     async create(user, body) {
         return this.goalsService.create(user.householdId, body);
     }
+    async update(user, id, body) {
+        return this.goalsService.update(user.householdId, id, body);
+    }
+    async contribute(user, id, body) {
+        return this.goalsService.contribute(user.householdId, id, body, user.userId);
+    }
     async delete(user, id) {
         return this.goalsService.delete(user.householdId, id);
     }
@@ -48,6 +54,24 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
     __metadata("design:returntype", Promise)
 ], GoalsController.prototype, "create", null);
+__decorate([
+    (0, common_1.Put)(':id'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
+    __metadata("design:returntype", Promise)
+], GoalsController.prototype, "update", null);
+__decorate([
+    (0, common_1.Post)(':id/contribute'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
+    __metadata("design:returntype", Promise)
+], GoalsController.prototype, "contribute", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),

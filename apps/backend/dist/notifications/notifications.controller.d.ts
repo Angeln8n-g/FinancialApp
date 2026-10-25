@@ -20,8 +20,8 @@ export declare class NotificationsController {
         pushToken: string;
     }): Promise<{
         email: string;
-        id: string;
         fullName: string | null;
+        id: string;
         avatarUrl: string | null;
         passwordHash: string | null;
         createdAt: Date;

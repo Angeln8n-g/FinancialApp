@@ -12,8 +12,8 @@ export declare class AllowancesController {
         member: {
             user: {
                 email: string;
-                id: string;
                 fullName: string | null;
+                id: string;
                 avatarUrl: string | null;
                 passwordHash: string | null;
                 createdAt: Date;
@@ -31,8 +31,8 @@ export declare class AllowancesController {
         id: string;
         createdAt: Date;
         householdId: string;
-        period: import(".prisma/client").$Enums.RecurrencePeriod;
         title: string;
+        period: import(".prisma/client").$Enums.RecurrencePeriod;
         memberId: string;
     }[]>;
     create(user: UserPayload, body: {
@@ -44,8 +44,8 @@ export declare class AllowancesController {
         id: string;
         createdAt: Date;
         householdId: string;
-        period: import(".prisma/client").$Enums.RecurrencePeriod;
         title: string;
+        period: import(".prisma/client").$Enums.RecurrencePeriod;
         limitAmount: import("@prisma/client/runtime/library").Decimal;
         memberId: string;
         spentAmount: import("@prisma/client/runtime/library").Decimal;
@@ -56,8 +56,8 @@ export declare class AllowancesController {
         id: string;
         createdAt: Date;
         householdId: string;
-        period: import(".prisma/client").$Enums.RecurrencePeriod;
         title: string;
+        period: import(".prisma/client").$Enums.RecurrencePeriod;
         limitAmount: import("@prisma/client/runtime/library").Decimal;
         memberId: string;
         spentAmount: import("@prisma/client/runtime/library").Decimal;
@@ -73,8 +73,8 @@ export declare class AllowancesController {
         id: string;
         createdAt: Date;
         householdId: string;
-        period: import(".prisma/client").$Enums.RecurrencePeriod;
         title: string;
+        period: import(".prisma/client").$Enums.RecurrencePeriod;
         limitAmount: import("@prisma/client/runtime/library").Decimal;
         memberId: string;
         spentAmount: import("@prisma/client/runtime/library").Decimal;
@@ -84,8 +84,8 @@ export declare class AllowancesController {
             id: string;
             createdAt: Date;
             householdId: string;
-            period: import(".prisma/client").$Enums.RecurrencePeriod;
             title: string;
+            period: import(".prisma/client").$Enums.RecurrencePeriod;
             limitAmount: import("@prisma/client/runtime/library").Decimal;
             memberId: string;
             spentAmount: import("@prisma/client/runtime/library").Decimal;
@@ -93,8 +93,8 @@ export declare class AllowancesController {
         member: {
             user: {
                 email: string;
-                id: string;
                 fullName: string | null;
+                id: string;
                 avatarUrl: string | null;
                 passwordHash: string | null;
                 createdAt: Date;
@@ -127,8 +127,8 @@ export declare class AllowancesController {
         member: {
             user: {
                 email: string;
-                id: string;
                 fullName: string | null;
+                id: string;
                 avatarUrl: string | null;
                 passwordHash: string | null;
                 createdAt: Date;

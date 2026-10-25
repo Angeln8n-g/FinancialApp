@@ -37,8 +37,8 @@ export declare class NotificationsService {
     markAllAsRead(userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
     registerPushToken(userId: string, pushToken: string): Promise<{
         email: string;
-        id: string;
         fullName: string | null;
+        id: string;
         avatarUrl: string | null;
         passwordHash: string | null;
         createdAt: Date;

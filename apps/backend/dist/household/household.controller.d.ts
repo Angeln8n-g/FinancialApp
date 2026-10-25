@@ -18,8 +18,8 @@ export declare class HouseholdController {
         member: {
             user: {
                 email: string;
-                id: string;
                 fullName: string | null;
+                id: string;
                 avatarUrl: string | null;
                 passwordHash: string | null;
                 createdAt: Date;
@@ -62,8 +62,8 @@ export declare class HouseholdController {
     updateRole(user: UserPayload, memberId: string, dto: UpdateRoleDto): Promise<{
         user: {
             email: string;
-            id: string;
             fullName: string | null;
+            id: string;
             avatarUrl: string | null;
             passwordHash: string | null;
             createdAt: Date;
@@ -83,8 +83,8 @@ export declare class HouseholdController {
     }): Promise<{
         user: {
             email: string;
-            id: string;
             fullName: string | null;
+            id: string;
             avatarUrl: string | null;
             passwordHash: string | null;
             createdAt: Date;

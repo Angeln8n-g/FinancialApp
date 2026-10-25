@@ -17,8 +17,8 @@ export declare class HouseholdService {
         member: {
             user: {
                 email: string;
-                id: string;
                 fullName: string | null;
+                id: string;
                 avatarUrl: string | null;
                 passwordHash: string | null;
                 createdAt: Date;
@@ -61,8 +61,8 @@ export declare class HouseholdService {
     updateRole(currentUserId: string, householdId: string, memberId: string, dto: UpdateRoleDto): Promise<{
         user: {
             email: string;
-            id: string;
             fullName: string | null;
+            id: string;
             avatarUrl: string | null;
             passwordHash: string | null;
             createdAt: Date;
@@ -80,8 +80,8 @@ export declare class HouseholdService {
     updateCustomTitle(currentUserId: string, householdId: string, memberId: string, customTitle: string): Promise<{
         user: {
             email: string;
-            id: string;
             fullName: string | null;
+            id: string;
             avatarUrl: string | null;
             passwordHash: string | null;
             createdAt: Date;

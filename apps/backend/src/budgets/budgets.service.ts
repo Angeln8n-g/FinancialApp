@@ -14,6 +14,10 @@ export class BudgetsService {
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const totalDaysInMonth = endOfMonth.getDate();
+    const currentDay = now.getDate();
+    const daysRemaining = Math.max(1, totalDaysInMonth - currentDay + 1);
 
     const result: any[] = [];
 
@@ -24,23 +28,32 @@ export class BudgetsService {
           categoryId: b.categoryId,
           type: TransactionType.EXPENSE,
           date: { gte: startOfMonth },
+          isVoided: false,
         },
         _sum: { amount: true },
       });
 
       const spentAmount = Number(spentTx._sum.amount || 0);
       const limitAmount = Number(b.limitAmount);
-      const actualSpent = spentAmount;
-      const percentage = limitAmount > 0 ? Math.min(Math.round((actualSpent / limitAmount) * 100), 100) : 0;
+      const remainingAmount = limitAmount - spentAmount;
+      const isOverbudget = spentAmount > limitAmount;
+      // Porcentaje real sin tope artificial de 100% para reflejar sobregiros
+      const percentage = limitAmount > 0 ? Math.round((spentAmount / limitAmount) * 100) : 0;
+      const dailyRemaining = remainingAmount > 0 ? Math.round((remainingAmount / daysRemaining) * 100) / 100 : 0;
 
       result.push({
         id: b.id,
-        categoryName: b.category.name,
-        categoryIcon: b.category.icon,
-        categoryColor: b.category.color,
+        categoryId: b.categoryId,
+        categoryName: b.category?.name || 'Categoría',
+        categoryIcon: b.category?.icon || '📊',
+        categoryColor: b.category?.color || '#10B981',
         limitAmount,
-        spentAmount: actualSpent,
+        spentAmount,
+        remainingAmount,
+        isOverbudget,
         percentage,
+        dailyRemaining,
+        daysRemaining,
       });
     }
 

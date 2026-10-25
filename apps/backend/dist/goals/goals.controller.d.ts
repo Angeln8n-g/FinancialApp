@@ -8,8 +8,11 @@ export declare class GoalsController {
         name: string;
         targetAmount: number;
         currentAmount: number;
+        remainingAmount: number;
         targetDate: Date | null;
+        daysRemaining: number | null;
         percentage: number;
+        isCompleted: boolean;
         suggestedMonthly: number;
     }[]>;
     create(user: UserPayload, body: {
@@ -17,6 +20,32 @@ export declare class GoalsController {
         targetAmount: number;
         currentAmount?: number;
         targetDate?: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        name: string;
+        householdId: string;
+        targetAmount: import("@prisma/client/runtime/library").Decimal;
+        currentAmount: import("@prisma/client/runtime/library").Decimal;
+        targetDate: Date | null;
+    }>;
+    update(user: UserPayload, id: string, body: {
+        name?: string;
+        targetAmount?: number;
+        targetDate?: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        name: string;
+        householdId: string;
+        targetAmount: import("@prisma/client/runtime/library").Decimal;
+        currentAmount: import("@prisma/client/runtime/library").Decimal;
+        targetDate: Date | null;
+    }>;
+    contribute(user: UserPayload, id: string, body: {
+        amount: number;
+        accountId?: string;
+        notes?: string;
     }): Promise<{
         id: string;
         createdAt: Date;
