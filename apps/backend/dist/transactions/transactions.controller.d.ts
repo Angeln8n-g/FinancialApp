@@ -14,6 +14,12 @@ export declare class TransactionsController {
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
+            payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+            payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+            payrollDay1: number | null;
+            payrollDay2: number | null;
+            payrollAutoDeposit: boolean;
+            lastPayrollDeposit: Date | null;
         };
         category: {
             id: string;
@@ -32,6 +38,12 @@ export declare class TransactionsController {
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
+            payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+            payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+            payrollDay1: number | null;
+            payrollDay2: number | null;
+            payrollAutoDeposit: boolean;
+            lastPayrollDeposit: Date | null;
         } | null;
         createdBy: {
             email: string;
@@ -46,12 +58,8 @@ export declare class TransactionsController {
         householdId: string;
         type: import(".prisma/client").$Enums.TransactionType;
         description: string | null;
-        accountId: string;
-        destinationAccountId: string | null;
-        categoryId: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
-        createdById: string | null;
         isCleared: boolean;
         isEdited: boolean;
         editReason: string | null;
@@ -59,6 +67,10 @@ export declare class TransactionsController {
         isVoided: boolean;
         voidReason: string | null;
         voidedAt: Date | null;
+        accountId: string;
+        destinationAccountId: string | null;
+        categoryId: string | null;
+        createdById: string | null;
     })[]>;
     getSummary(user: UserPayload): Promise<{
         totalBalance: number;
@@ -76,6 +88,12 @@ export declare class TransactionsController {
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
+            payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+            payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+            payrollDay1: number | null;
+            payrollDay2: number | null;
+            payrollAutoDeposit: boolean;
+            lastPayrollDeposit: Date | null;
         };
         category: {
             id: string;
@@ -94,6 +112,12 @@ export declare class TransactionsController {
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
+            payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+            payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+            payrollDay1: number | null;
+            payrollDay2: number | null;
+            payrollAutoDeposit: boolean;
+            lastPayrollDeposit: Date | null;
         } | null;
         createdBy: {
             email: string;
@@ -108,12 +132,8 @@ export declare class TransactionsController {
         householdId: string;
         type: import(".prisma/client").$Enums.TransactionType;
         description: string | null;
-        accountId: string;
-        destinationAccountId: string | null;
-        categoryId: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
-        createdById: string | null;
         isCleared: boolean;
         isEdited: boolean;
         editReason: string | null;
@@ -121,6 +141,10 @@ export declare class TransactionsController {
         isVoided: boolean;
         voidReason: string | null;
         voidedAt: Date | null;
+        accountId: string;
+        destinationAccountId: string | null;
+        categoryId: string | null;
+        createdById: string | null;
     }>;
     update(user: UserPayload, id: string, body: {
         amount?: number;
@@ -138,6 +162,12 @@ export declare class TransactionsController {
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
+            payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+            payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+            payrollDay1: number | null;
+            payrollDay2: number | null;
+            payrollAutoDeposit: boolean;
+            lastPayrollDeposit: Date | null;
         };
         category: {
             id: string;
@@ -156,6 +186,12 @@ export declare class TransactionsController {
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
+            payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+            payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+            payrollDay1: number | null;
+            payrollDay2: number | null;
+            payrollAutoDeposit: boolean;
+            lastPayrollDeposit: Date | null;
         } | null;
     } & {
         id: string;
@@ -164,12 +200,8 @@ export declare class TransactionsController {
         householdId: string;
         type: import(".prisma/client").$Enums.TransactionType;
         description: string | null;
-        accountId: string;
-        destinationAccountId: string | null;
-        categoryId: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
-        createdById: string | null;
         isCleared: boolean;
         isEdited: boolean;
         editReason: string | null;
@@ -177,6 +209,10 @@ export declare class TransactionsController {
         isVoided: boolean;
         voidReason: string | null;
         voidedAt: Date | null;
+        accountId: string;
+        destinationAccountId: string | null;
+        categoryId: string | null;
+        createdById: string | null;
     }>;
     voidTransaction(user: UserPayload, id: string, body: {
         voidReason: string;
@@ -190,6 +226,12 @@ export declare class TransactionsController {
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
+            payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+            payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+            payrollDay1: number | null;
+            payrollDay2: number | null;
+            payrollAutoDeposit: boolean;
+            lastPayrollDeposit: Date | null;
         };
         category: {
             id: string;
@@ -208,6 +250,12 @@ export declare class TransactionsController {
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
+            payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+            payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+            payrollDay1: number | null;
+            payrollDay2: number | null;
+            payrollAutoDeposit: boolean;
+            lastPayrollDeposit: Date | null;
         } | null;
     } & {
         id: string;
@@ -216,12 +264,8 @@ export declare class TransactionsController {
         householdId: string;
         type: import(".prisma/client").$Enums.TransactionType;
         description: string | null;
-        accountId: string;
-        destinationAccountId: string | null;
-        categoryId: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         date: Date;
-        createdById: string | null;
         isCleared: boolean;
         isEdited: boolean;
         editReason: string | null;
@@ -229,6 +273,10 @@ export declare class TransactionsController {
         isVoided: boolean;
         voidReason: string | null;
         voidedAt: Date | null;
+        accountId: string;
+        destinationAccountId: string | null;
+        categoryId: string | null;
+        createdById: string | null;
     }>;
     importBankStatement(user: UserPayload, body: {
         rawContent: string;

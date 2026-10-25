@@ -20,6 +20,12 @@ enum AccountType {
   CREDIT_CARD
   INVESTMENT
   SAVINGS
+  PAYROLL
+}
+
+enum PayrollFrequency {
+  MONTHLY
+  BIWEEKLY
 }
 
 enum TransactionType {
@@ -127,9 +133,18 @@ model Account {
   householdId   String
   name          String
   type          AccountType
-  balance       Decimal      @default(0.00) @db.Decimal(12, 2)
-  currency      String       @default("USD")
-  createdAt     DateTime     @default(now())
+  balance       Decimal           @default(0.00) @db.Decimal(12, 2)
+  currency      String            @default("USD")
+  
+  // Nómina y Depósito Automático
+  payrollAmount       Decimal?          @db.Decimal(12, 2)
+  payrollFrequency    PayrollFrequency?
+  payrollDay1         Int?              // Día del mes (1-31) para mensual o primer pago quincenal
+  payrollDay2         Int?              // Día del mes (1-31) para segundo pago quincenal
+  payrollAutoDeposit  Boolean           @default(false)
+  lastPayrollDeposit  DateTime?
+
+  createdAt     DateTime          @default(now())
   updatedAt     DateTime     @updatedAt
 
   household     Household    @relation(fields: [householdId], references: [id], onDelete: Cascade)

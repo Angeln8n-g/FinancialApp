@@ -1,8 +1,92 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAccountDto, UpdateAccountDto } from './accounts.dto';
+import { EventsGateway } from '../events/events.gateway';
 export declare class AccountsService {
     private prisma;
-    constructor(prisma: PrismaService);
+    private eventsGateway;
+    private readonly logger;
+    constructor(prisma: PrismaService, eventsGateway: EventsGateway);
+    isPayrollDue(account: any, now?: Date): boolean;
+    executePayrollDeposit(account: any, currentUserId?: string, now?: Date): Promise<{
+        transaction: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            householdId: string;
+            type: import(".prisma/client").$Enums.TransactionType;
+            description: string | null;
+            amount: import("@prisma/client/runtime/library").Decimal;
+            date: Date;
+            isCleared: boolean;
+            isEdited: boolean;
+            editReason: string | null;
+            editedAt: Date | null;
+            isVoided: boolean;
+            voidReason: string | null;
+            voidedAt: Date | null;
+            accountId: string;
+            destinationAccountId: string | null;
+            categoryId: string | null;
+            createdById: string | null;
+        };
+        updatedAccount: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            name: string;
+            householdId: string;
+            type: import(".prisma/client").$Enums.AccountType;
+            balance: import("@prisma/client/runtime/library").Decimal;
+            currency: string;
+            payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+            payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+            payrollDay1: number | null;
+            payrollDay2: number | null;
+            payrollAutoDeposit: boolean;
+            lastPayrollDeposit: Date | null;
+        };
+    }>;
+    processPendingPayroll(householdId?: string): Promise<number>;
+    manualPayrollDeposit(householdId: string, accountId: string, currentUserId?: string): Promise<{
+        message: string;
+        transaction: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            householdId: string;
+            type: import(".prisma/client").$Enums.TransactionType;
+            description: string | null;
+            amount: import("@prisma/client/runtime/library").Decimal;
+            date: Date;
+            isCleared: boolean;
+            isEdited: boolean;
+            editReason: string | null;
+            editedAt: Date | null;
+            isVoided: boolean;
+            voidReason: string | null;
+            voidedAt: Date | null;
+            accountId: string;
+            destinationAccountId: string | null;
+            categoryId: string | null;
+            createdById: string | null;
+        };
+        account: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            name: string;
+            householdId: string;
+            type: import(".prisma/client").$Enums.AccountType;
+            balance: import("@prisma/client/runtime/library").Decimal;
+            currency: string;
+            payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+            payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+            payrollDay1: number | null;
+            payrollDay2: number | null;
+            payrollAutoDeposit: boolean;
+            lastPayrollDeposit: Date | null;
+        };
+    }>;
     findAllByHousehold(householdId: string): Promise<{
         id: string;
         createdAt: Date;
@@ -12,6 +96,12 @@ export declare class AccountsService {
         type: import(".prisma/client").$Enums.AccountType;
         balance: import("@prisma/client/runtime/library").Decimal;
         currency: string;
+        payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+        payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+        payrollDay1: number | null;
+        payrollDay2: number | null;
+        payrollAutoDeposit: boolean;
+        lastPayrollDeposit: Date | null;
     }[]>;
     findOne(householdId: string, accountId: string): Promise<{
         id: string;
@@ -22,6 +112,12 @@ export declare class AccountsService {
         type: import(".prisma/client").$Enums.AccountType;
         balance: import("@prisma/client/runtime/library").Decimal;
         currency: string;
+        payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+        payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+        payrollDay1: number | null;
+        payrollDay2: number | null;
+        payrollAutoDeposit: boolean;
+        lastPayrollDeposit: Date | null;
     }>;
     create(householdId: string, dto: CreateAccountDto): Promise<{
         id: string;
@@ -32,6 +128,12 @@ export declare class AccountsService {
         type: import(".prisma/client").$Enums.AccountType;
         balance: import("@prisma/client/runtime/library").Decimal;
         currency: string;
+        payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+        payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+        payrollDay1: number | null;
+        payrollDay2: number | null;
+        payrollAutoDeposit: boolean;
+        lastPayrollDeposit: Date | null;
     }>;
     update(householdId: string, accountId: string, dto: UpdateAccountDto): Promise<{
         id: string;
@@ -42,6 +144,12 @@ export declare class AccountsService {
         type: import(".prisma/client").$Enums.AccountType;
         balance: import("@prisma/client/runtime/library").Decimal;
         currency: string;
+        payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+        payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+        payrollDay1: number | null;
+        payrollDay2: number | null;
+        payrollAutoDeposit: boolean;
+        lastPayrollDeposit: Date | null;
     }>;
     delete(householdId: string, accountId: string): Promise<{
         id: string;
@@ -52,5 +160,11 @@ export declare class AccountsService {
         type: import(".prisma/client").$Enums.AccountType;
         balance: import("@prisma/client/runtime/library").Decimal;
         currency: string;
+        payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+        payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+        payrollDay1: number | null;
+        payrollDay2: number | null;
+        payrollAutoDeposit: boolean;
+        lastPayrollDeposit: Date | null;
     }>;
 }

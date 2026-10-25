@@ -8,6 +8,7 @@ import KPICards from '@/components/dashboard/KPICards';
 import QuickEntryBar from '@/components/dashboard/QuickEntryBar';
 import TransactionModal from '@/components/modals/TransactionModal';
 import AccountModal from '@/components/modals/AccountModal';
+import EditAccountModal from '@/components/modals/EditAccountModal';
 import ReminderModal from '@/components/modals/ReminderModal';
 import PayReminderModal from '@/components/modals/PayReminderModal';
 import EditTransactionModal from '@/components/modals/EditTransactionModal';
@@ -23,6 +24,7 @@ import {
   Trash2,
   Check,
   Building2,
+  Briefcase,
   CreditCard,
   Banknote,
   PiggyBank,
@@ -52,6 +54,8 @@ export default function DashboardPage() {
   const [showTxModal, setShowTxModal] = useState(false);
   const [txInitialType, setTxInitialType] = useState<'EXPENSE' | 'INCOME' | 'TRANSFER'>('EXPENSE');
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showEditAccountModal, setShowEditAccountModal] = useState(false);
+  const [selectedAccountForEdit, setSelectedAccountForEdit] = useState<any>(null);
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [showPayReminderModal, setShowPayReminderModal] = useState(false);
   const [selectedReminderForPay, setSelectedReminderForPay] = useState<any>(null);
@@ -180,6 +184,33 @@ export default function DashboardPage() {
     await fetchData();
   };
 
+  const handleUpdateAccount = async (accountId: string, data: any) => {
+    await apiFetch(`/api/accounts/${accountId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    await fetchData();
+  };
+
+  const handleDeleteAccount = async (accountId: string) => {
+    await apiFetch(`/api/accounts/${accountId}`, {
+      method: 'DELETE',
+    });
+    await fetchData();
+  };
+
+  const handleManualPayrollDeposit = async (accountId: string) => {
+    try {
+      const res = await apiFetch(`/api/accounts/${accountId}/payroll/deposit`, {
+        method: 'POST',
+      });
+      await fetchData();
+      alert(res?.message || 'Ingreso de nómina registrado con éxito.');
+    } catch (err: any) {
+      alert(err?.message || 'Error al abonar nómina.');
+    }
+  };
+
   const handleCreateReminder = async (data: any) => {
     await apiFetch('/api/reminders', {
       method: 'POST',
@@ -214,6 +245,8 @@ export default function DashboardPage() {
 
   const getAccountIcon = (type: string) => {
     switch (type) {
+      case 'PAYROLL':
+        return <Briefcase className="w-4 h-4 text-emerald-400" />;
       case 'CASH':
         return <Banknote className="w-4 h-4 text-emerald-400" />;
       case 'CREDIT_CARD':
@@ -401,28 +434,94 @@ export default function DashboardPage() {
                 </button>
               </div>
             ) : (
-              accounts.map((acc) => (
-                <div
-                  key={acc.id}
-                  className="mint-card p-3.5 flex items-center justify-between hover:border-[#2D3E6B] transition-colors"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#162347] border border-[#1E2B4D] flex items-center justify-center">
-                      {getAccountIcon(acc.type)}
+              accounts.map((acc) => {
+                const isPayroll = acc.type === 'PAYROLL';
+                const hasPayrollConfig = isPayroll && acc.payrollAmount && Number(acc.payrollAmount) > 0;
+
+                return (
+                  <div
+                    key={acc.id}
+                    className={`mint-card p-3.5 space-y-2.5 transition-colors group border ${
+                      isPayroll ? 'border-emerald-500/30 bg-gradient-to-br from-[#101A36] to-emerald-950/15' : 'border-[#1E2B4D] hover:border-[#2D3E6B]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-9 h-9 rounded-xl border flex items-center justify-center ${
+                          isPayroll
+                            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                            : 'bg-[#162347] border-[#1E2B4D]'
+                        }`}>
+                          {getAccountIcon(acc.type)}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-semibold text-slate-100">{acc.name}</p>
+                            {isPayroll && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                Nómina
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">
+                            {isPayroll ? 'Cuenta de Nómina' : acc.type.replace('_', ' ')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <p className={`text-sm font-bold tabular-nums ${Number(acc.balance) < 0 ? 'text-rose-400' : 'text-slate-100'}`}>
+                            ${Number(acc.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-[10px] text-slate-400">{acc.currency}</p>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            setSelectedAccountForEdit(acc);
+                            setShowEditAccountModal(true);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg bg-[#162347] hover:bg-[#1D2D5A] text-slate-400 hover:text-emerald-300 border border-[#1E2B4D] transition-all cursor-pointer"
+                          title="Configurar cuenta"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-100">{acc.name}</p>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">{acc.type.replace('_', ' ')}</p>
-                    </div>
+
+                    {/* Fila de detalles para cuenta de nómina */}
+                    {isPayroll && (
+                      <div className="pt-2 border-t border-[#1E2B4D]/60 flex items-center justify-between text-[11px]">
+                        <div className="text-slate-300 flex items-center gap-1.5">
+                          {hasPayrollConfig ? (
+                            <span>
+                              Fijo: <strong className="text-emerald-400 font-semibold tabular-nums">
+                                ${Number(acc.payrollAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                              </strong>{' '}
+                              <span className="text-slate-400">
+                                ({acc.payrollFrequency === 'BIWEEKLY' ? `quincenal • días ${acc.payrollDay1 || 15} y ${acc.payrollDay2 || 30}` : `mensual • día ${acc.payrollDay1 || 30}`})
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-amber-400 font-medium">Sin monto fijo configurado</span>
+                          )}
+                        </div>
+
+                        {hasPayrollConfig && (
+                          <button
+                            onClick={() => handleManualPayrollDeposit(acc.id)}
+                            className="px-2 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold transition-all cursor-pointer shadow-xs"
+                            title="Abonar el sueldo de nómina en esta cuenta inmediatamente"
+                          >
+                            + Cobrar Nómina
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-right">
-                    <p className={`text-sm font-bold tabular-nums ${Number(acc.balance) < 0 ? 'text-rose-400' : 'text-slate-100'}`}>
-                      ${Number(acc.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </p>
-                    <p className="text-[10px] text-slate-400">{acc.currency}</p>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
@@ -557,6 +656,17 @@ export default function DashboardPage() {
         isOpen={showAccountModal}
         onClose={() => setShowAccountModal(false)}
         onSubmit={handleCreateAccount}
+      />
+
+      <EditAccountModal
+        isOpen={showEditAccountModal}
+        onClose={() => {
+          setShowEditAccountModal(false);
+          setSelectedAccountForEdit(null);
+        }}
+        account={selectedAccountForEdit}
+        onConfirm={handleUpdateAccount}
+        onDelete={handleDeleteAccount}
       />
 
       <ReminderModal

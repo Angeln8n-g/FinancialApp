@@ -17,6 +17,11 @@ class CreateAccountDto {
     type;
     balance;
     currency;
+    payrollAmount;
+    payrollFrequency;
+    payrollDay1;
+    payrollDay2;
+    payrollAutoDeposit;
 }
 exports.CreateAccountDto = CreateAccountDto;
 __decorate([
@@ -38,11 +43,46 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateAccountDto.prototype, "currency", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)({}, { message: 'El monto de nómina debe ser un número válido' }),
+    (0, class_validator_1.IsPositive)({ message: 'El monto de nómina debe ser mayor a cero' }),
+    __metadata("design:type", Number)
+], CreateAccountDto.prototype, "payrollAmount", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(client_1.PayrollFrequency, { message: 'La frecuencia debe ser MONTHLY o BIWEEKLY' }),
+    __metadata("design:type", String)
+], CreateAccountDto.prototype, "payrollFrequency", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)({}, { message: 'El día 1 debe ser entre 1 y 31' }),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(31),
+    __metadata("design:type", Number)
+], CreateAccountDto.prototype, "payrollDay1", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)({}, { message: 'El día 2 debe ser entre 1 y 31' }),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(31),
+    __metadata("design:type", Number)
+], CreateAccountDto.prototype, "payrollDay2", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], CreateAccountDto.prototype, "payrollAutoDeposit", void 0);
 class UpdateAccountDto {
     name;
     type;
     balance;
     currency;
+    payrollAmount;
+    payrollFrequency;
+    payrollDay1;
+    payrollDay2;
+    payrollAutoDeposit;
 }
 exports.UpdateAccountDto = UpdateAccountDto;
 __decorate([
@@ -65,4 +105,34 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdateAccountDto.prototype, "currency", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)({}, { message: 'El monto de nómina debe ser un número válido' }),
+    (0, class_validator_1.IsPositive)({ message: 'El monto de nómina debe ser mayor a cero' }),
+    __metadata("design:type", Number)
+], UpdateAccountDto.prototype, "payrollAmount", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(client_1.PayrollFrequency),
+    __metadata("design:type", String)
+], UpdateAccountDto.prototype, "payrollFrequency", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(31),
+    __metadata("design:type", Number)
+], UpdateAccountDto.prototype, "payrollDay1", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(31),
+    __metadata("design:type", Number)
+], UpdateAccountDto.prototype, "payrollDay2", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], UpdateAccountDto.prototype, "payrollAutoDeposit", void 0);
 //# sourceMappingURL=accounts.dto.js.map

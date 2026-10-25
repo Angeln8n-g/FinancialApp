@@ -33,6 +33,14 @@ export class AccountsController {
     return this.accountsService.update(user.householdId, id, dto);
   }
 
+  @Post(':id/payroll/deposit')
+  async manualPayrollDeposit(
+    @CurrentUser() user: UserPayload,
+    @Param('id') id: string,
+  ) {
+    return this.accountsService.manualPayrollDeposit(user.householdId, id, user.userId);
+  }
+
   @Delete(':id')
   async delete(@CurrentUser() user: UserPayload, @Param('id') id: string) {
     return this.accountsService.delete(user.householdId, id);

@@ -35,6 +35,9 @@ let AccountsController = class AccountsController {
     async update(user, id, dto) {
         return this.accountsService.update(user.householdId, id, dto);
     }
+    async manualPayrollDeposit(user, id) {
+        return this.accountsService.manualPayrollDeposit(user.householdId, id, user.userId);
+    }
     async delete(user, id) {
         return this.accountsService.delete(user.householdId, id);
     }
@@ -72,6 +75,14 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, accounts_dto_1.UpdateAccountDto]),
     __metadata("design:returntype", Promise)
 ], AccountsController.prototype, "update", null);
+__decorate([
+    (0, common_1.Post)(':id/payroll/deposit'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
+    __metadata("design:returntype", Promise)
+], AccountsController.prototype, "manualPayrollDeposit", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
