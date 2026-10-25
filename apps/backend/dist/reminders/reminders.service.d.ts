@@ -8,6 +8,7 @@ export declare class RemindersService {
         debt: {
             id: string;
             createdAt: Date;
+            updatedAt: Date;
             householdId: string;
             type: import(".prisma/client").$Enums.DebtType;
             dueDate: Date | null;
@@ -15,6 +16,11 @@ export declare class RemindersService {
             totalAmount: import("@prisma/client/runtime/library").Decimal;
             remainingAmount: import("@prisma/client/runtime/library").Decimal;
             interestRate: import("@prisma/client/runtime/library").Decimal;
+            targetPayoffDate: Date | null;
+            monthlyTargetPayment: import("@prisma/client/runtime/library").Decimal | null;
+            mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy | null;
+            isPaidOff: boolean;
+            notes: string | null;
         } | null;
         subscription: {
             id: string;

@@ -28,6 +28,12 @@ let DebtsController = class DebtsController {
     async create(user, body) {
         return this.debtsService.create(user.householdId, body);
     }
+    async update(user, id, body) {
+        return this.debtsService.update(user.householdId, id, body);
+    }
+    async payDebt(user, id, body) {
+        return this.debtsService.payDebt(user.householdId, id, body, user.userId);
+    }
     async delete(user, id) {
         return this.debtsService.delete(user.householdId, id);
     }
@@ -48,6 +54,24 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
     __metadata("design:returntype", Promise)
 ], DebtsController.prototype, "create", null);
+__decorate([
+    (0, common_1.Put)(':id'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
+    __metadata("design:returntype", Promise)
+], DebtsController.prototype, "update", null);
+__decorate([
+    (0, common_1.Post)(':id/pay'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
+    __metadata("design:returntype", Promise)
+], DebtsController.prototype, "payDebt", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),

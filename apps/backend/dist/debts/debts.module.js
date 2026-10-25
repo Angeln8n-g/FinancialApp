@@ -10,11 +10,13 @@ exports.DebtsModule = void 0;
 const common_1 = require("@nestjs/common");
 const debts_service_1 = require("./debts.service");
 const debts_controller_1 = require("./debts.controller");
+const notifications_module_1 = require("../notifications/notifications.module");
 let DebtsModule = class DebtsModule {
 };
 exports.DebtsModule = DebtsModule;
 exports.DebtsModule = DebtsModule = __decorate([
     (0, common_1.Module)({
+        imports: [notifications_module_1.NotificationsModule],
         controllers: [debts_controller_1.DebtsController],
         providers: [debts_service_1.DebtsService],
         exports: [debts_service_1.DebtsService],
