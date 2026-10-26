@@ -458,6 +458,22 @@ export default function BudgetsAndGoalsPage() {
                         </span>
                       )}
                     </div>
+
+                    {/* Compromiso recurrente de suscripciones atadas a este presupuesto */}
+                    {Number(b.committedRecurringAmount) > 0 && (
+                      <div className="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-[#0A1128] border border-[#1E2B4D]/70 text-slate-400">
+                        <span className="flex items-center gap-1.5 text-indigo-300 font-medium">
+                          <span>🔄</span>
+                          <span>Compromiso fijo recurrente:</span>
+                        </span>
+                        <span className="tabular-nums font-semibold text-slate-200">
+                          ${Number(b.committedRecurringAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}/mes
+                          <span className="text-[10px] text-slate-500 font-normal ml-1">
+                            ({b.recurringSubscriptionsCount} {b.recurringSubscriptionsCount === 1 ? 'servicio' : 'servicios'})
+                          </span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })}

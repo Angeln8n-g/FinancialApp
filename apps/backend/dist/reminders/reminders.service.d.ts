@@ -28,6 +28,7 @@ export declare class RemindersService {
             name: string;
             householdId: string;
             accountId: string | null;
+            categoryId: string | null;
             cost: import("@prisma/client/runtime/library").Decimal;
             period: import(".prisma/client").$Enums.RecurrencePeriod;
             nextBillingDate: Date;

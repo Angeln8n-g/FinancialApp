@@ -160,6 +160,52 @@ describe('SubscriptionsService', () => {
       expect(mockEventsGateway.notifyHouseholdChange).toHaveBeenCalledWith('hh-1', 'transaction', 'CREATE');
     });
 
+    it('should deduct and assign explicit categoryId to transaction when subscription has categoryId', async () => {
+      const billingDate = new Date(2026, 9, 15);
+      mockPrismaService.subscription.findFirst.mockResolvedValue({
+        id: 'sub-ent',
+        householdId: 'hh-1',
+        name: 'Disney+',
+        cost: 12.0,
+        period: RecurrencePeriod.MONTHLY,
+        nextBillingDate: billingDate,
+        accountId: 'acc-1',
+        categoryId: 'cat-ent',
+      });
+
+      mockPrismaService.account.findFirst.mockResolvedValue({
+        id: 'acc-1',
+        householdId: 'hh-1',
+        name: 'Banco Principal',
+        balance: 100.0,
+      });
+
+      mockPrismaService.transaction.create.mockResolvedValue({
+        id: 'tx-2',
+        amount: 12.0,
+        categoryId: 'cat-ent',
+      });
+
+      mockPrismaService.account.update.mockResolvedValue({
+        id: 'acc-1',
+        balance: 88.0,
+      });
+
+      mockPrismaService.subscription.update.mockResolvedValue({ id: 'sub-ent' });
+      mockPrismaService.householdMember.findMany.mockResolvedValue([{ userId: 'user-1' }]);
+
+      const res = await service.deductSubscription('hh-1', 'sub-ent', 'user-1');
+
+      expect(res.success).toBe(true);
+      expect(mockPrismaService.transaction.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          categoryId: 'cat-ent',
+          amount: 12.0,
+        }),
+      });
+      expect(mockEventsGateway.notifyHouseholdChange).toHaveBeenCalledWith('hh-1', 'budget', 'UPDATE');
+    });
+
     it('should not deduct money and send alert notification when funds are insufficient', async () => {
       mockPrismaService.subscription.findFirst.mockResolvedValue({
         id: 'sub-2',

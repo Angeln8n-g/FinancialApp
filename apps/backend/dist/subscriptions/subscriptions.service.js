@@ -42,7 +42,7 @@ let SubscriptionsService = SubscriptionsService_1 = class SubscriptionsService {
     async deductSubscription(householdId, subscriptionId, currentUserId, now = new Date()) {
         const subscription = await this.prisma.subscription.findFirst({
             where: { id: subscriptionId, householdId },
-            include: { account: true },
+            include: { account: true, category: true },
         });
         if (!subscription) {
             throw new common_1.NotFoundException('Suscripción no encontrada');
@@ -94,27 +94,31 @@ let SubscriptionsService = SubscriptionsService_1 = class SubscriptionsService {
         }
         const nextDate = this.calculateNextBillingDate(subscription.nextBillingDate, subscription.period);
         const result = await this.prisma.$transaction(async (tx) => {
-            let category = await tx.category.findFirst({
-                where: {
-                    householdId,
-                    name: { in: ['Servicios', 'Suscripciones', 'Streaming'], mode: 'insensitive' },
-                },
-            });
-            if (!category) {
-                category = await tx.category.create({
-                    data: {
+            let targetCategoryId = subscription.categoryId;
+            if (!targetCategoryId) {
+                let category = await tx.category.findFirst({
+                    where: {
                         householdId,
-                        name: 'Servicios',
-                        icon: '📺',
-                        color: '#3B82F6',
+                        name: { in: ['Servicios', 'Suscripciones', 'Streaming'], mode: 'insensitive' },
                     },
                 });
+                if (!category) {
+                    category = await tx.category.create({
+                        data: {
+                            householdId,
+                            name: 'Servicios',
+                            icon: '📺',
+                            color: '#3B82F6',
+                        },
+                    });
+                }
+                targetCategoryId = category.id;
             }
             const transaction = await tx.transaction.create({
                 data: {
                     householdId,
                     accountId: account.id,
-                    categoryId: category.id,
+                    categoryId: targetCategoryId,
                     type: client_1.TransactionType.EXPENSE,
                     amount: cost,
                     description: `Pago automático suscripción: ${subscription.name}`,
@@ -169,6 +173,7 @@ let SubscriptionsService = SubscriptionsService_1 = class SubscriptionsService {
         this.eventsGateway.notifyHouseholdChange(householdId, 'transaction', 'CREATE');
         this.eventsGateway.notifyHouseholdChange(householdId, 'account', 'UPDATE');
         this.eventsGateway.notifyHouseholdChange(householdId, 'subscription', 'UPDATE');
+        this.eventsGateway.notifyHouseholdChange(householdId, 'budget', 'UPDATE');
         this.eventsGateway.notifyHouseholdChange(householdId, 'notification', 'CREATE');
         return {
             success: true,
@@ -229,6 +234,9 @@ let SubscriptionsService = SubscriptionsService_1 = class SubscriptionsService {
                 account: {
                     select: { id: true, name: true, type: true, balance: true },
                 },
+                category: {
+                    select: { id: true, name: true, icon: true, color: true },
+                },
             },
             orderBy: { cost: 'desc' },
         });
@@ -246,6 +254,15 @@ let SubscriptionsService = SubscriptionsService_1 = class SubscriptionsService {
                     name: s.account.name,
                     type: s.account.type,
                     balance: Number(s.account.balance),
+                }
+                : null,
+            categoryId: s.categoryId,
+            category: s.category
+                ? {
+                    id: s.category.id,
+                    name: s.category.name,
+                    icon: s.category.icon,
+                    color: s.category.color,
                 }
                 : null,
         }));
@@ -268,6 +285,14 @@ let SubscriptionsService = SubscriptionsService_1 = class SubscriptionsService {
         if (data.cost <= 0) {
             throw new common_1.BadRequestException('El costo de la suscripción debe ser mayor a cero.');
         }
+        if (data.categoryId) {
+            const category = await this.prisma.category.findFirst({
+                where: { id: data.categoryId, householdId },
+            });
+            if (!category) {
+                throw new common_1.BadRequestException('La categoría de presupuesto seleccionada no existe o no pertenece a este hogar.');
+            }
+        }
         return this.prisma.subscription.create({
             data: {
                 householdId,
@@ -279,8 +304,9 @@ let SubscriptionsService = SubscriptionsService_1 = class SubscriptionsService {
                     : new Date(Date.now() + 30 * 86400000),
                 autoDeduct: data.autoDeduct ?? false,
                 accountId: data.accountId || null,
+                categoryId: data.categoryId || null,
             },
-            include: { account: true },
+            include: { account: true, category: true },
         });
     }
     async update(householdId, subId, data) {
@@ -289,6 +315,14 @@ let SubscriptionsService = SubscriptionsService_1 = class SubscriptionsService {
         });
         if (!existing) {
             throw new common_1.NotFoundException('Suscripción no encontrada');
+        }
+        if (data.categoryId) {
+            const category = await this.prisma.category.findFirst({
+                where: { id: data.categoryId, householdId },
+            });
+            if (!category) {
+                throw new common_1.BadRequestException('La categoría de presupuesto seleccionada no existe o no pertenece a este hogar.');
+            }
         }
         return this.prisma.subscription.update({
             where: { id: subId },
@@ -299,8 +333,9 @@ let SubscriptionsService = SubscriptionsService_1 = class SubscriptionsService {
                 ...(data.nextBillingDate !== undefined && { nextBillingDate: new Date(data.nextBillingDate) }),
                 ...(data.autoDeduct !== undefined && { autoDeduct: data.autoDeduct }),
                 ...(data.accountId !== undefined && { accountId: data.accountId || null }),
+                ...(data.categoryId !== undefined && { categoryId: data.categoryId || null }),
             },
-            include: { account: true },
+            include: { account: true, category: true },
         });
     }
     async delete(householdId, subId) {

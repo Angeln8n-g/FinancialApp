@@ -25,6 +25,7 @@ export class SubscriptionsController {
       nextBillingDate?: string;
       autoDeduct?: boolean;
       accountId?: string;
+      categoryId?: string;
     },
   ) {
     return this.subscriptionsService.create(user.householdId, body);
@@ -42,6 +43,7 @@ export class SubscriptionsController {
       nextBillingDate?: string;
       autoDeduct?: boolean;
       accountId?: string;
+      categoryId?: string | null;
     },
   ) {
     return this.subscriptionsService.update(user.householdId, id, body);

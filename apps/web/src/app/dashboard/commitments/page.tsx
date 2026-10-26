@@ -70,6 +70,7 @@ export default function CommitmentsPage() {
   const [sNextBillingDate, setSNextBillingDate] = useState('');
   const [sAutoDeduct, setSAutoDeduct] = useState(true);
   const [sAccountId, setSAccountId] = useState('');
+  const [sCategoryId, setSCategoryId] = useState('');
 
   // Form Suscripción (Edición)
   const [eName, setEName] = useState('');
@@ -78,6 +79,10 @@ export default function CommitmentsPage() {
   const [eNextBillingDate, setENextBillingDate] = useState('');
   const [eAutoDeduct, setEAutoDeduct] = useState(false);
   const [eAccountId, setEAccountId] = useState('');
+  const [eCategoryId, setECategoryId] = useState('');
+
+  // Categorías del Hogar
+  const [categories, setCategories] = useState<any[]>([]);
 
   // Form Recordatorio
   const [remTitle, setRemTitle] = useState('');
@@ -93,7 +98,7 @@ export default function CommitmentsPage() {
     }
 
     try {
-      const [resDebts, resSubs, resAccounts] = await Promise.all([
+      const [resDebts, resSubs, resAccounts, resCategories] = await Promise.all([
         apiFetch('/api/debts').catch(() => []),
         apiFetch('/api/subscriptions').catch(() => ({
           totalMonthlyConsumption: 0,
@@ -101,11 +106,13 @@ export default function CommitmentsPage() {
           subscriptions: [],
         })),
         apiFetch('/api/accounts').catch(() => []),
+        apiFetch('/api/categories').catch(() => []),
       ]);
 
       setDebts(Array.isArray(resDebts) ? resDebts : []);
       setSubData(resSubs);
       setAccounts(Array.isArray(resAccounts) ? resAccounts : []);
+      setCategories(Array.isArray(resCategories) ? resCategories : []);
 
       if (Array.isArray(resAccounts) && resAccounts.length > 0 && !sAccountId) {
         setSAccountId(resAccounts[0].id);
@@ -271,6 +278,7 @@ export default function CommitmentsPage() {
           nextBillingDate: sNextBillingDate ? sNextBillingDate : undefined,
           autoDeduct: sAutoDeduct,
           accountId: sAutoDeduct && sAccountId ? sAccountId : undefined,
+          categoryId: sCategoryId || undefined,
         }),
       });
 
@@ -280,6 +288,7 @@ export default function CommitmentsPage() {
       setSPeriod('MONTHLY');
       setSNextBillingDate('');
       setSAutoDeduct(true);
+      setSCategoryId('');
       fetchData();
     } catch (err: any) {
       alert(err.message || 'Error creando suscripción');
@@ -302,6 +311,7 @@ export default function CommitmentsPage() {
     }
     setEAutoDeduct(sub.autoDeduct ?? false);
     setEAccountId(sub.accountId || (accounts[0]?.id || ''));
+    setECategoryId(sub.categoryId || '');
     setShowEditSubModal(true);
   };
 
@@ -319,6 +329,7 @@ export default function CommitmentsPage() {
           nextBillingDate: eNextBillingDate ? eNextBillingDate : undefined,
           autoDeduct: eAutoDeduct,
           accountId: eAutoDeduct && eAccountId ? eAccountId : null,
+          categoryId: eCategoryId || null,
         }),
       });
 
@@ -773,6 +784,27 @@ export default function CommitmentsPage() {
                       </span>
                     </div>
 
+                    {/* Badge de Categoría de Presupuesto */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {s.category ? (
+                        <span
+                          className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-md border"
+                          style={{
+                            backgroundColor: `${s.category.color || '#3B82F6'}18`,
+                            borderColor: `${s.category.color || '#3B82F6'}40`,
+                            color: s.category.color || '#93C5FD',
+                          }}
+                        >
+                          <span>{s.category.icon || '🏷️'}</span>
+                          <span>{s.category.name}</span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-500 italic">
+                          ⚪ Sin categoría asignada
+                        </span>
+                      )}
+                    </div>
+
                     {/* Fecha de Próximo Cobro */}
                     <p className="text-[11px] text-slate-400 tabular-nums">
                       Próximo cobro: <strong className="text-slate-200">{new Date(s.nextBillingDate).toLocaleDateString()}</strong>
@@ -1163,6 +1195,28 @@ export default function CommitmentsPage() {
                 />
               </div>
 
+              {/* Categoría de Presupuesto */}
+              <div>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                  Categoría de Presupuesto Mensual
+                </label>
+                <select
+                  value={sCategoryId}
+                  onChange={(e) => setSCategoryId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 cursor-pointer transition-colors"
+                >
+                  <option value="">⚪ Sin categoría asignada (General)</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.icon || '🏷️'} {cat.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  💡 Al vincularla, los cobros de esta suscripción computarán automáticamente en el presupuesto mensual de dicha categoría.
+                </p>
+              </div>
+
               {/* Configuración de Débito Automático */}
               <div className="p-3.5 rounded-xl bg-[#0A1128] border border-emerald-500/30 space-y-3">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -1326,6 +1380,28 @@ export default function CommitmentsPage() {
                   onChange={(e) => setENextBillingDate(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 transition-colors"
                 />
+              </div>
+
+              {/* Categoría de Presupuesto */}
+              <div>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                  Categoría de Presupuesto Mensual
+                </label>
+                <select
+                  value={eCategoryId}
+                  onChange={(e) => setECategoryId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 cursor-pointer transition-colors"
+                >
+                  <option value="">⚪ Sin categoría asignada (General)</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.icon || '🏷️'} {cat.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  💡 Los cobros de esta suscripción computarán automáticamente en el presupuesto de esta categoría.
+                </p>
               </div>
 
               {/* Configuración de Débito Automático */}

@@ -46,6 +46,20 @@ interface SubscriptionItem {
     type: string;
     balance: number;
   } | null;
+  categoryId?: string | null;
+  category?: {
+    id: string;
+    name: string;
+    icon?: string;
+    color?: string;
+  } | null;
+}
+
+interface CategoryItem {
+  id: string;
+  name: string;
+  icon?: string;
+  color?: string;
 }
 
 interface AccountItem {
@@ -60,6 +74,7 @@ export default function MobileCommitmentsScreen() {
   const [debts, setDebts] = useState<DebtItem[]>([]);
   const [subscriptions, setSubscriptions] = useState<SubscriptionItem[]>([]);
   const [accounts, setAccounts] = useState<AccountItem[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [totalMonthlyConsumption, setTotalMonthlyConsumption] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -93,6 +108,7 @@ export default function MobileCommitmentsScreen() {
   const [sCost, setSCost] = useState('');
   const [sAutoDeduct, setSAutoDeduct] = useState(false);
   const [sAccountId, setSAccountId] = useState('');
+  const [sCategoryId, setSCategoryId] = useState('');
   const [sNextDate, setSNextDate] = useState('');
   const [isSubmittingSub, setIsSubmittingSub] = useState(false);
 
@@ -101,6 +117,7 @@ export default function MobileCommitmentsScreen() {
   const [editSubCost, setEditSubCost] = useState('');
   const [editAutoDeduct, setEditAutoDeduct] = useState(false);
   const [editAccountId, setEditAccountId] = useState('');
+  const [editCategoryId, setEditCategoryId] = useState('');
 
   // Formulario Recordatorio
   const [remTitle, setRemTitle] = useState('');
@@ -114,10 +131,11 @@ export default function MobileCommitmentsScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [resDebts, resSubs, resAccounts] = await Promise.all([
+      const [resDebts, resSubs, resAccounts, resCategories] = await Promise.all([
         fetchWithAuth('/api/debts'),
         fetchWithAuth('/api/subscriptions'),
         fetchWithAuth('/api/accounts'),
+        fetchWithAuth('/api/categories'),
       ]);
 
       if (resDebts.ok) {
@@ -166,9 +184,25 @@ export default function MobileCommitmentsScreen() {
                     balance: Number(s.account.balance || 0),
                   }
                 : null,
+              categoryId: s.categoryId || null,
+              category: s.category
+                ? {
+                    id: s.category.id,
+                    name: s.category.name,
+                    icon: s.category.icon,
+                    color: s.category.color,
+                  }
+                : null,
             }))
           );
           setTotalMonthlyConsumption(Number(sData.totalMonthlyConsumption || 0));
+        }
+      }
+
+      if (resCategories.ok) {
+        const cData = await resCategories.json();
+        if (Array.isArray(cData)) {
+          setCategories(cData);
         }
       }
 
@@ -362,6 +396,7 @@ export default function MobileCommitmentsScreen() {
           cost: parseFloat(sCost),
           autoDeduct: sAutoDeduct,
           accountId: sAutoDeduct && sAccountId ? sAccountId : undefined,
+          categoryId: sCategoryId || undefined,
           nextBillingDate: sNextDate ? new Date(sNextDate).toISOString() : undefined,
         }),
       });
@@ -376,6 +411,7 @@ export default function MobileCommitmentsScreen() {
       setSCost('');
       setSAutoDeduct(false);
       setSAccountId('');
+      setSCategoryId('');
       setSNextDate('');
       Alert.alert('¡Éxito!', 'Suscripción recurrente registrada.');
       loadData();
@@ -392,6 +428,7 @@ export default function MobileCommitmentsScreen() {
     setEditSubCost(s.cost.toString());
     setEditAutoDeduct(s.autoDeduct);
     setEditAccountId(s.accountId || (accounts.length > 0 ? accounts[0].id : ''));
+    setEditCategoryId(s.categoryId || '');
     setShowEditSubModal(true);
   };
 
@@ -407,6 +444,7 @@ export default function MobileCommitmentsScreen() {
           cost: parseFloat(editSubCost),
           autoDeduct: editAutoDeduct,
           accountId: editAutoDeduct && editAccountId ? editAccountId : undefined,
+          categoryId: editCategoryId || null,
         }),
       });
 
@@ -764,7 +802,7 @@ export default function MobileCommitmentsScreen() {
                     <Text style={styles.subName} numberOfLines={1}>
                       {s.name}
                     </Text>
-                    {/* Badge Débito Automático */}
+                    {/* Badge Débito Automático y Categoría */}
                     <View style={styles.subBadgeRow}>
                       {s.autoDeduct ? (
                         <View style={styles.autoDeductBadge}>
@@ -775,6 +813,25 @@ export default function MobileCommitmentsScreen() {
                       ) : (
                         <View style={styles.manualDeductBadge}>
                           <Text style={styles.manualDeductBadgeText}>⚪ Cobro Manual</Text>
+                        </View>
+                      )}
+                      {s.category ? (
+                        <View
+                          style={[
+                            styles.subCategoryBadge,
+                            {
+                              backgroundColor: `${s.category.color || '#3b82f6'}20`,
+                              borderColor: s.category.color || '#3b82f6',
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.subCategoryBadgeText, { color: s.category.color || '#93c5fd' }]}>
+                            {s.category.icon || '🏷️'} {s.category.name}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={styles.noCategoryBadge}>
+                          <Text style={styles.noCategoryBadgeText}>⚪ General</Text>
                         </View>
                       )}
                     </View>
@@ -1065,6 +1122,41 @@ export default function MobileCommitmentsScreen() {
                 onChangeText={setSCost}
               />
 
+              {/* Selector de Categoría de Presupuesto */}
+              <Text style={styles.inputLabel}>Categoría de Presupuesto Mensual</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.accountChipsScroll}>
+                <View style={styles.accountChipsRow}>
+                  <TouchableOpacity
+                    style={[styles.accountChip, !sCategoryId && styles.accountChipSelected]}
+                    onPress={() => setSCategoryId('')}
+                  >
+                    <Text style={[styles.accountChipName, !sCategoryId && styles.accountChipTextActive]}>
+                      ⚪ General
+                    </Text>
+                    <Text style={[styles.accountChipBalance, !sCategoryId && styles.accountChipTextActive]}>
+                      Sin presupuesto
+                    </Text>
+                  </TouchableOpacity>
+                  {categories.map((cat) => {
+                    const isSelected = sCategoryId === cat.id;
+                    return (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[styles.accountChip, isSelected && styles.accountChipSelected]}
+                        onPress={() => setSCategoryId(cat.id)}
+                      >
+                        <Text style={[styles.accountChipName, isSelected && styles.accountChipTextActive]}>
+                          {cat.icon || '🏷️'} {cat.name}
+                        </Text>
+                        <Text style={[styles.accountChipBalance, isSelected && styles.accountChipTextActive]}>
+                          Presupuesto
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+
               {/* Switch Débito Automático */}
               <TouchableOpacity
                 style={styles.autoDeductToggle}
@@ -1171,6 +1263,41 @@ export default function MobileCommitmentsScreen() {
                 keyboardType="numeric"
                 placeholderTextColor="#94a3b8"
               />
+
+              {/* Selector de Categoría de Presupuesto */}
+              <Text style={styles.inputLabel}>Categoría de Presupuesto Mensual</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.accountChipsScroll}>
+                <View style={styles.accountChipsRow}>
+                  <TouchableOpacity
+                    style={[styles.accountChip, !editCategoryId && styles.accountChipSelected]}
+                    onPress={() => setEditCategoryId('')}
+                  >
+                    <Text style={[styles.accountChipName, !editCategoryId && styles.accountChipTextActive]}>
+                      ⚪ General
+                    </Text>
+                    <Text style={[styles.accountChipBalance, !editCategoryId && styles.accountChipTextActive]}>
+                      Sin presupuesto
+                    </Text>
+                  </TouchableOpacity>
+                  {categories.map((cat) => {
+                    const isSelected = editCategoryId === cat.id;
+                    return (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[styles.accountChip, isSelected && styles.accountChipSelected]}
+                        onPress={() => setEditCategoryId(cat.id)}
+                      >
+                        <Text style={[styles.accountChipName, isSelected && styles.accountChipTextActive]}>
+                          {cat.icon || '🏷️'} {cat.name}
+                        </Text>
+                        <Text style={[styles.accountChipBalance, isSelected && styles.accountChipTextActive]}>
+                          Presupuesto
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </ScrollView>
 
               {/* Switch Débito Automático */}
               <TouchableOpacity
@@ -1433,7 +1560,7 @@ const styles = StyleSheet.create({
   },
   subCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   subName: { fontSize: 14, fontWeight: 'bold', color: '#ffffff' },
-  subBadgeRow: { marginTop: 4 },
+  subBadgeRow: { marginTop: 4, flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   autoDeductBadge: {
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
     paddingHorizontal: 6,
@@ -1450,6 +1577,22 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   manualDeductBadgeText: { color: '#94a3b8', fontSize: 10 },
+  subCategoryBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  subCategoryBadgeText: { fontSize: 10, fontWeight: '600' },
+  noCategoryBadge: {
+    backgroundColor: 'rgba(148, 163, 184, 0.08)',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  noCategoryBadgeText: { color: '#64748b', fontSize: 9, fontStyle: 'italic' },
   subCost: { fontSize: 15, fontWeight: 'bold', color: '#c084fc' },
   subCycleText: { fontSize: 10, color: '#64748b' },
 

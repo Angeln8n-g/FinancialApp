@@ -26,6 +26,8 @@ interface BudgetItem {
   percentage: number;
   dailyRemaining: number;
   daysRemaining: number;
+  committedRecurringAmount?: number;
+  recurringSubscriptionsCount?: number;
 }
 
 interface GoalItem {
@@ -126,6 +128,8 @@ export default function MobileBudgetsScreen() {
                 percentage,
                 dailyRemaining: Number(item.dailyRemaining || 0),
                 daysRemaining: Number(item.daysRemaining || 1),
+                committedRecurringAmount: Number(item.committedRecurringAmount || 0),
+                recurringSubscriptionsCount: Number(item.recurringSubscriptionsCount || 0),
               };
             })
           );
@@ -467,6 +471,15 @@ export default function MobileBudgetsScreen() {
                   <Text style={styles.dailyRemainingText}>~RD${fmt(b.dailyRemaining)}/día</Text>
                 )}
               </View>
+
+              {/* Suscripciones fijas comprometidas en esta categoría */}
+              {Number(b.committedRecurringAmount || 0) > 0 && (
+                <View style={styles.recurringBox}>
+                  <Text style={styles.recurringBoxText}>
+                    🔄 Compromiso fijo: RD${fmt(b.committedRecurringAmount)}/mes ({b.recurringSubscriptionsCount || 0} serv.)
+                  </Text>
+                </View>
+              )}
             </View>
           );
         })
@@ -829,6 +842,16 @@ const styles = StyleSheet.create({
   overbudgetWarningText: { color: '#fb7185', fontSize: 11, fontWeight: 'bold' },
   budgetAvailableText: { color: '#94a3b8', fontSize: 10 },
   dailyRemainingText: { color: '#34d399', fontSize: 10, fontWeight: 'bold' },
+  recurringBox: {
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.25)',
+  },
+  recurringBoxText: { color: '#a5b4fc', fontSize: 10, fontWeight: '600' },
 
   /* METAS */
   goalCard: { borderColor: 'rgba(168, 85, 247, 0.3)' },

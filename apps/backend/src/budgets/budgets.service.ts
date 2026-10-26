@@ -41,6 +41,22 @@ export class BudgetsService {
       const percentage = limitAmount > 0 ? Math.round((spentAmount / limitAmount) * 100) : 0;
       const dailyRemaining = remainingAmount > 0 ? Math.round((remainingAmount / daysRemaining) * 100) / 100 : 0;
 
+      // Calcular monto mensual de suscripciones recurrentes comprometidas en esta categoría
+      const recurringSubs = await this.prisma.subscription.findMany({
+        where: {
+          householdId,
+          categoryId: b.categoryId,
+          isActive: true,
+        },
+      });
+
+      const committedRecurringAmount = recurringSubs.reduce((acc, sub) => {
+        const cost = Number(sub.cost);
+        if (sub.period === 'YEARLY') return acc + cost / 12;
+        if (sub.period === 'WEEKLY') return acc + cost * 4;
+        return acc + cost;
+      }, 0);
+
       result.push({
         id: b.id,
         categoryId: b.categoryId,
@@ -54,6 +70,8 @@ export class BudgetsService {
         percentage,
         dailyRemaining,
         daysRemaining,
+        committedRecurringAmount: Math.round(committedRecurringAmount * 100) / 100,
+        recurringSubscriptionsCount: recurringSubs.length,
       });
     }
 
