@@ -4,7 +4,7 @@ import { OcrService } from './ocr.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import { TransactionType } from '@prisma/client';
 
-@Controller('ocr')
+@Controller(['ocr', 'api/ocr'])
 export class OcrController {
   constructor(
     private readonly ocrService: OcrService,

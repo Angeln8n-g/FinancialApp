@@ -94,7 +94,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], OcrController.prototype, "confirmReceipt", null);
 exports.OcrController = OcrController = __decorate([
-    (0, common_1.Controller)('ocr'),
+    (0, common_1.Controller)(['ocr', 'api/ocr']),
     __metadata("design:paramtypes", [ocr_service_1.OcrService,
         transactions_service_1.TransactionsService])
 ], OcrController);

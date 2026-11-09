@@ -130,7 +130,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], QuickEntryController.prototype, "telegramWebhook", null);
 exports.QuickEntryController = QuickEntryController = __decorate([
-    (0, common_1.Controller)('quick-entry'),
+    (0, common_1.Controller)(['quick-entry', 'api/quick-entry']),
     __metadata("design:paramtypes", [quick_entry_service_1.QuickEntryService])
 ], QuickEntryController);
 //# sourceMappingURL=quick-entry.controller.js.map

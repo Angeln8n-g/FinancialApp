@@ -2,7 +2,7 @@ import { Controller, Post, Get, Body, Request, UseGuards, HttpCode, HttpStatus }
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { QuickEntryService } from './quick-entry.service';
 
-@Controller('quick-entry')
+@Controller(['quick-entry', 'api/quick-entry'])
 export class QuickEntryController {
   constructor(private readonly quickEntryService: QuickEntryService) {}
 
