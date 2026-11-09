@@ -41,6 +41,27 @@ export class NotificationsService {
     return notif;
   }
 
+  async create(
+    dataOrHouseholdId: any,
+    title?: string,
+    body?: string,
+  ) {
+    if (typeof dataOrHouseholdId === 'string') {
+      const member = await this.prisma.householdMember.findFirst({
+        where: { householdId: dataOrHouseholdId },
+        select: { userId: true },
+      });
+      if (!member) return null;
+      return this.createNotification({
+        userId: member.userId,
+        householdId: dataOrHouseholdId,
+        title: title || 'Notificación',
+        body: body || '',
+      });
+    }
+    return this.createNotification(dataOrHouseholdId);
+  }
+
   async markAsRead(id: string, userId: string) {
     return this.prisma.notification.updateMany({
       where: { id, userId },

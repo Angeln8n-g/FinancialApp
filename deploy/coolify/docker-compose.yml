@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  db:
+    image: ankane/pgvector:v0.5.1
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hogariq}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-coolify_secret_db_pass_1234}
+      POSTGRES_DB: ${POSTGRES_DB:-hogariq_production}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hogariq} -d ${POSTGRES_DB:-hogariq_production}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  backend:
+    image: ghcr.io/hogariq/backend:v1.0.0
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hogariq}:${POSTGRES_PASSWORD:-coolify_secret_db_pass_1234}@db:5432/${POSTGRES_DB:-hogariq_production}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-coolify_jwt_super_secret_production_key}
+      PORT: 3000
+      STORAGE_DIR: /app/uploads
+    volumes:
+      - app_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    image: ghcr.io/hogariq/web:v1.0.0
+    restart: always
+    environment:
+      NEXT_PUBLIC_API_URL: ${COOLIFY_FQDN_API:-https://api.hogariq.yourdomain.com}
+      PORT: 3000
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  redisdata:
+  app_uploads:

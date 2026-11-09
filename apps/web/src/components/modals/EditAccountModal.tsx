@@ -20,6 +20,7 @@ export default function EditAccountModal({
 }: EditAccountModalProps) {
   const [name, setName] = useState('');
   const [type, setType] = useState('BANK_ACCOUNT');
+  const [currency, setCurrency] = useState('USD');
 
   // Configuración de Nómina
   const [payrollAmount, setPayrollAmount] = useState('');
@@ -35,6 +36,7 @@ export default function EditAccountModal({
     if (account) {
       setName(account.name || '');
       setType(account.type || 'BANK_ACCOUNT');
+      setCurrency(account.currency || 'USD');
       setPayrollAmount(account.payrollAmount ? account.payrollAmount.toString() : '');
       setPayrollFrequency(account.payrollFrequency || 'BIWEEKLY');
       setPayrollDay1(account.payrollDay1 ? account.payrollDay1.toString() : '15');
@@ -62,6 +64,7 @@ export default function EditAccountModal({
       const payload: any = {
         name: name.trim(),
         type,
+        currency,
       };
 
       if (isPayroll) {
@@ -149,22 +152,47 @@ export default function EditAccountModal({
             />
           </div>
 
-          <div>
-            <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
-              Tipo de Cuenta
-            </label>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 cursor-pointer transition-colors"
-            >
-              <option value="BANK_ACCOUNT" className="bg-[#101A36]">🏦 Cuenta Bancaria Corriente / Débito</option>
-              <option value="PAYROLL" className="bg-[#101A36]">💼 Cuenta de Nómina (Ingreso Automático)</option>
-              <option value="CASH" className="bg-[#101A36]">💵 Efectivo</option>
-              <option value="CREDIT_CARD" className="bg-[#101A36]">💳 Tarjeta de Crédito</option>
-              <option value="SAVINGS" className="bg-[#101A36]">🐷 Cuenta de Ahorros</option>
-              <option value="INVESTMENT" className="bg-[#101A36]">📈 Inversión / Otros</option>
-            </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                Tipo de Cuenta
+              </label>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 cursor-pointer transition-colors"
+              >
+                <option value="BANK_ACCOUNT" className="bg-[#101A36]">🏦 Bancaria / Débito</option>
+                <option value="PAYROLL" className="bg-[#101A36]">💼 Nómina (Auto)</option>
+                <option value="CASH" className="bg-[#101A36]">💵 Efectivo</option>
+                <option value="CREDIT_CARD" className="bg-[#101A36]">💳 Tarjeta de Crédito</option>
+                <option value="SAVINGS" className="bg-[#101A36]">🐷 Ahorros</option>
+                <option value="INVESTMENT" className="bg-[#101A36]">📈 Inversión / Otros</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                Moneda
+              </label>
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 cursor-pointer transition-colors"
+              >
+                <option value="USD">🇺🇸 USD ($ Dólar)</option>
+                <option value="EUR">🇪🇺 EUR (€ Euro)</option>
+                <option value="DOP">🇩🇴 DOP (RD$ Peso Dom.)</option>
+                <option value="MXN">🇲🇽 MXN ($ Peso Mex.)</option>
+                <option value="COP">🇨🇴 COP ($ Peso Col.)</option>
+                <option value="ARS">🇦🇷 ARS ($ Peso Arg.)</option>
+                <option value="CLP">🇨🇱 CLP ($ Peso Ch.)</option>
+                <option value="PEN">🇵🇪 PEN (S/ Sol)</option>
+                <option value="GBP">🇬🇧 GBP (£ Libra)</option>
+                <option value="BRL">🇧🇷 BRL (R$ Real)</option>
+                <option value="USDT">🪙 USDT (Tether)</option>
+              </select>
+            </div>
           </div>
 
           {/* Configuración de Nómina si es tipo PAYROLL */}

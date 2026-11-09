@@ -10,11 +10,13 @@ exports.TransactionsModule = void 0;
 const common_1 = require("@nestjs/common");
 const transactions_service_1 = require("./transactions.service");
 const transactions_controller_1 = require("./transactions.controller");
+const currency_module_1 = require("../currency/currency.module");
 let TransactionsModule = class TransactionsModule {
 };
 exports.TransactionsModule = TransactionsModule;
 exports.TransactionsModule = TransactionsModule = __decorate([
     (0, common_1.Module)({
+        imports: [currency_module_1.CurrencyModule],
         controllers: [transactions_controller_1.TransactionsController],
         providers: [transactions_service_1.TransactionsService],
         exports: [transactions_service_1.TransactionsService],

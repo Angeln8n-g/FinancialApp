@@ -26,6 +26,120 @@ let DebtsService = DebtsService_1 = class DebtsService {
         this.notificationsService = notificationsService;
         this.eventsGateway = eventsGateway;
     }
+    calculateOperationalDates(d, now = new Date()) {
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
+        const currentDay = now.getDate();
+        let nextClosingDate = null;
+        let daysUntilCutoff = null;
+        if (d.cutoffDay && d.cutoffDay >= 1 && d.cutoffDay <= 31) {
+            let year = currentYear;
+            let month = currentMonth;
+            if (currentDay > d.cutoffDay) {
+                month += 1;
+                if (month > 11) {
+                    month = 0;
+                    year += 1;
+                }
+            }
+            const daysInTargetMonth = new Date(year, month + 1, 0).getDate();
+            const safeDay = Math.min(d.cutoffDay, daysInTargetMonth);
+            nextClosingDate = new Date(year, month, safeDay, 23, 59, 59);
+            const diff = nextClosingDate.getTime() - now.getTime();
+            daysUntilCutoff = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+        }
+        let nextPaymentDueDate = null;
+        let daysUntilPaymentDue = null;
+        if (d.paymentDueDay && d.paymentDueDay >= 1 && d.paymentDueDay <= 31) {
+            let year = currentYear;
+            let month = currentMonth;
+            if (currentDay > d.paymentDueDay) {
+                month += 1;
+                if (month > 11) {
+                    month = 0;
+                    year += 1;
+                }
+            }
+            const daysInTargetMonth = new Date(year, month + 1, 0).getDate();
+            const safeDay = Math.min(d.paymentDueDay, daysInTargetMonth);
+            nextPaymentDueDate = new Date(year, month, safeDay, 23, 59, 59);
+            const diff = nextPaymentDueDate.getTime() - now.getTime();
+            daysUntilPaymentDue = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        }
+        else if (d.dueDate) {
+            nextPaymentDueDate = new Date(d.dueDate);
+            const diff = nextPaymentDueDate.getTime() - now.getTime();
+            daysUntilPaymentDue = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        }
+        const alertDays = d.alertDaysBefore ?? 3;
+        const isDueSoon = daysUntilPaymentDue !== null && daysUntilPaymentDue >= 0 && daysUntilPaymentDue <= alertDays;
+        const isOverdue = daysUntilPaymentDue !== null && daysUntilPaymentDue < 0;
+        let alertBadge = 'NORMAL';
+        if (isOverdue)
+            alertBadge = 'OVERDUE';
+        else if (isDueSoon)
+            alertBadge = 'DUE_SOON';
+        return {
+            nextClosingDate,
+            daysUntilCutoff,
+            nextPaymentDueDate,
+            daysUntilPaymentDue,
+            isDueSoon,
+            isOverdue,
+            alertBadge,
+        };
+    }
+    async syncDebtReminder(householdId, debt) {
+        try {
+            const isPaidOff = debt.isPaidOff || Number(debt.remainingAmount) <= 0;
+            if (isPaidOff) {
+                await this.prisma.reminder.updateMany({
+                    where: { debtId: debt.id, isPaid: false },
+                    data: { isPaid: true },
+                });
+                return;
+            }
+            if (debt.autoAlert === false)
+                return;
+            const dates = this.calculateOperationalDates(debt);
+            if (!dates.nextPaymentDueDate)
+                return;
+            const amount = debt.minimumPayment
+                ? Number(debt.minimumPayment)
+                : debt.monthlyTargetPayment
+                    ? Number(debt.monthlyTargetPayment)
+                    : Number(debt.remainingAmount);
+            const title = `Vencimiento Pago: ${debt.contactName}`;
+            const existing = await this.prisma.reminder.findFirst({
+                where: { debtId: debt.id, isPaid: false },
+            });
+            if (existing) {
+                await this.prisma.reminder.update({
+                    where: { id: existing.id },
+                    data: {
+                        title,
+                        amount,
+                        dueDate: dates.nextPaymentDueDate,
+                    },
+                });
+            }
+            else {
+                await this.prisma.reminder.create({
+                    data: {
+                        householdId,
+                        debtId: debt.id,
+                        title,
+                        amount,
+                        dueDate: dates.nextPaymentDueDate,
+                        isPaid: false,
+                    },
+                });
+            }
+        }
+        catch (e) {
+            this.logger.warn(`Error sincronizando recordatorio para deuda ${debt.id}: ${e.message}`);
+        }
+    }
     async findAll(householdId) {
         const debts = await this.prisma.debt.findMany({
             where: { householdId },
@@ -49,6 +163,7 @@ let DebtsService = DebtsService_1 = class DebtsService {
                 monthsRemaining = Math.max(1, monthsDiff);
                 suggestedMonthlyPayment = remaining > 0 ? Math.ceil(remaining / monthsRemaining) : 0;
             }
+            const operational = this.calculateOperationalDates(d, now);
             return {
                 id: d.id,
                 contactName: d.contactName,
@@ -67,6 +182,12 @@ let DebtsService = DebtsService_1 = class DebtsService {
                 monthsRemaining,
                 daysRemaining,
                 suggestedMonthlyPayment,
+                cutoffDay: d.cutoffDay || null,
+                paymentDueDay: d.paymentDueDay || null,
+                minimumPayment: d.minimumPayment ? Number(d.minimumPayment) : null,
+                alertDaysBefore: d.alertDaysBefore ?? 3,
+                autoAlert: d.autoAlert !== false,
+                ...operational,
             };
         });
     }
@@ -75,7 +196,7 @@ let DebtsService = DebtsService_1 = class DebtsService {
             throw new common_1.BadRequestException('El monto total de la deuda debe ser mayor a cero');
         }
         const remaining = data.remainingAmount !== undefined ? data.remainingAmount : data.totalAmount;
-        return this.prisma.debt.create({
+        const created = await this.prisma.debt.create({
             data: {
                 householdId,
                 contactName: data.contactName.trim(),
@@ -89,8 +210,19 @@ let DebtsService = DebtsService_1 = class DebtsService {
                 mitigationStrategy: data.mitigationStrategy || client_1.MitigationStrategy.CUSTOM,
                 notes: data.notes?.trim() || null,
                 isPaidOff: remaining <= 0,
+                cutoffDay: data.cutoffDay || null,
+                paymentDueDay: data.paymentDueDay || null,
+                minimumPayment: data.minimumPayment || null,
+                alertDaysBefore: data.alertDaysBefore !== undefined ? data.alertDaysBefore : 3,
+                autoAlert: data.autoAlert !== false,
             },
         });
+        await this.syncDebtReminder(householdId, created);
+        this.eventsGateway.emitHouseholdDataChanged(householdId, {
+            type: 'DEBT_CREATED',
+            debtId: created.id,
+        });
+        return created;
     }
     async update(householdId, debtId, data) {
         const debt = await this.prisma.debt.findFirst({
@@ -100,7 +232,7 @@ let DebtsService = DebtsService_1 = class DebtsService {
             throw new common_1.NotFoundException('Deuda no encontrada');
         }
         const remaining = data.remainingAmount !== undefined ? data.remainingAmount : Number(debt.remainingAmount);
-        return this.prisma.debt.update({
+        const updated = await this.prisma.debt.update({
             where: { id: debtId },
             data: {
                 ...(data.contactName !== undefined && { contactName: data.contactName.trim() }),
@@ -114,9 +246,20 @@ let DebtsService = DebtsService_1 = class DebtsService {
                 ...(data.monthlyTargetPayment !== undefined && { monthlyTargetPayment: data.monthlyTargetPayment }),
                 ...(data.mitigationStrategy !== undefined && { mitigationStrategy: data.mitigationStrategy }),
                 ...(data.notes !== undefined && { notes: data.notes?.trim() || null }),
+                ...(data.cutoffDay !== undefined && { cutoffDay: data.cutoffDay }),
+                ...(data.paymentDueDay !== undefined && { paymentDueDay: data.paymentDueDay }),
+                ...(data.minimumPayment !== undefined && { minimumPayment: data.minimumPayment }),
+                ...(data.alertDaysBefore !== undefined && { alertDaysBefore: data.alertDaysBefore }),
+                ...(data.autoAlert !== undefined && { autoAlert: data.autoAlert }),
                 isPaidOff: data.isPaidOff !== undefined ? data.isPaidOff : remaining <= 0,
             },
         });
+        await this.syncDebtReminder(householdId, updated);
+        this.eventsGateway.emitHouseholdDataChanged(householdId, {
+            type: 'DEBT_UPDATED',
+            debtId: updated.id,
+        });
+        return updated;
     }
     async payDebt(householdId, debtId, data, currentUserId) {
         const { amount, accountId, notes } = data;
@@ -135,53 +278,27 @@ let DebtsService = DebtsService_1 = class DebtsService {
         }
         const newRemaining = Math.max(0, currentRemaining - amount);
         const isNowPaidOff = newRemaining === 0;
-        let accountToDebit = null;
-        if (accountId) {
-            accountToDebit = await this.prisma.account.findFirst({
-                where: { id: accountId, householdId },
-            });
-            if (!accountToDebit) {
-                throw new common_1.NotFoundException('Cuenta de origen no encontrada');
-            }
-            if (Number(accountToDebit.balance) < amount) {
-                throw new common_1.BadRequestException(`Saldo insuficiente en "${accountToDebit.name}". Se requieren $${amount.toFixed(2)}, pero solo hay $${Number(accountToDebit.balance).toFixed(2)} disponibles.`);
-            }
-        }
         const result = await this.prisma.$transaction(async (tx) => {
-            let createdTransaction = null;
-            if (accountToDebit) {
-                let category = await tx.category.findFirst({
-                    where: {
-                        householdId,
-                        name: { in: ['Pago de Deuda', 'Deudas', 'Préstamos', 'Creditos'], mode: 'insensitive' },
-                    },
+            if (accountId) {
+                const account = await tx.account.findFirst({
+                    where: { id: accountId, householdId },
                 });
-                if (!category) {
-                    category = await tx.category.create({
-                        data: {
-                            householdId,
-                            name: 'Pago de Deuda',
-                            icon: '💳',
-                            color: '#F43F5E',
-                        },
-                    });
+                if (!account) {
+                    throw new common_1.NotFoundException('Cuenta de débito no encontrada.');
                 }
-                createdTransaction = await tx.transaction.create({
+                await tx.account.update({
+                    where: { id: accountId },
+                    data: { balance: { decrement: amount } },
+                });
+                await tx.transaction.create({
                     data: {
                         householdId,
-                        accountId: accountToDebit.id,
-                        categoryId: category.id,
+                        accountId,
                         type: client_1.TransactionType.EXPENSE,
                         amount,
-                        description: notes || `Abono a deuda: ${debt.contactName}`,
+                        description: `Abono Deuda: ${debt.contactName}${notes ? ` - ${notes}` : ''}`,
                         date: new Date(),
-                        createdById: currentUserId || null,
-                    },
-                });
-                await tx.account.update({
-                    where: { id: accountToDebit.id },
-                    data: {
-                        balance: { decrement: amount },
+                        ...(currentUserId && { createdById: currentUserId }),
                     },
                 });
             }
@@ -198,53 +315,33 @@ let DebtsService = DebtsService_1 = class DebtsService {
                     data: { isPaid: true },
                 });
             }
-            else {
-                await tx.reminder.updateMany({
-                    where: { debtId, isPaid: false },
-                    data: { amount: newRemaining },
-                });
-            }
-            return { updatedDebt, createdTransaction };
+            return updatedDebt;
         });
-        this.logger.log(`Abono a deuda registrado: $${amount} para "${debt.contactName}". Nuevo saldo: $${newRemaining}`);
-        const members = await this.prisma.householdMember.findMany({
-            where: { householdId },
-            select: { userId: true },
+        await this.notificationsService.create(householdId, 'Abono a Deuda Registrado', `Se registró un abono de RD$${amount.toLocaleString()} a "${debt.contactName}". Saldo restante: RD$${newRemaining.toLocaleString()}.`);
+        this.eventsGateway.emitHouseholdDataChanged(householdId, {
+            type: 'DEBT_PAID',
+            debtId,
+            amount,
+            isPaidOff: isNowPaidOff,
         });
-        for (const m of members) {
-            await this.notificationsService.createNotification({
-                userId: m.userId,
-                householdId,
-                title: isNowPaidOff ? '🎉 ¡Deuda liquidada con éxito!' : 'Abono a deuda registrado',
-                body: isNowPaidOff
-                    ? `¡Felicitaciones! Se saldó completamente la deuda de "${debt.contactName}" con un abono final de $${amount.toFixed(2)}.`
-                    : `Se abonaron $${amount.toFixed(2)} a "${debt.contactName}". Saldo pendiente actual: $${newRemaining.toFixed(2)}.`,
-                type: 'DEBT_PAYMENT',
-                metadata: {
-                    debtId: debt.id,
-                    amount,
-                    newRemaining,
-                    isPaidOff: isNowPaidOff,
-                },
-            });
-        }
-        this.eventsGateway.notifyHouseholdChange(householdId, 'transaction', 'CREATE');
-        this.eventsGateway.notifyHouseholdChange(householdId, 'account', 'UPDATE');
-        this.eventsGateway.notifyHouseholdChange(householdId, 'debt', 'UPDATE');
-        this.eventsGateway.notifyHouseholdChange(householdId, 'notification', 'CREATE');
-        return {
-            success: true,
-            message: isNowPaidOff
-                ? `¡Deuda liquidada exitosamente!`
-                : `Abono de $${amount.toFixed(2)} registrado. Saldo restante: $${newRemaining.toFixed(2)}.`,
-            debt: result.updatedDebt,
-            transaction: result.createdTransaction,
-        };
+        return result;
     }
-    async delete(householdId, debtId) {
-        return this.prisma.debt.deleteMany({
-            where: { id: debtId, householdId },
+    async delete(householdId, id) {
+        const debt = await this.prisma.debt.findFirst({
+            where: { id, householdId },
         });
+        if (!debt) {
+            throw new common_1.NotFoundException('Deuda no encontrada');
+        }
+        await this.prisma.reminder.deleteMany({
+            where: { debtId: id },
+        });
+        await this.prisma.debt.delete({ where: { id } });
+        this.eventsGateway.emitHouseholdDataChanged(householdId, {
+            type: 'DEBT_DELETED',
+            debtId: id,
+        });
+        return { message: 'Deuda eliminada correctamente' };
     }
 };
 exports.DebtsService = DebtsService;

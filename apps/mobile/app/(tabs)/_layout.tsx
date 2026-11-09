@@ -1,11 +1,30 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import {
+  Home,
+  Calendar,
+  Target,
+  CreditCard,
+  Gem,
+  Users,
+  BarChart3,
+} from 'lucide-react-native';
+import { FamilyMint } from '@/constants/Colors';
 
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
+interface TabBarIconProps {
+  Icon: React.ComponentType<{ size: number; color: string; strokeWidth?: number }>;
+  focused: boolean;
+}
+
+function TabBarIcon({ Icon, focused }: TabBarIconProps) {
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>
+      <Icon
+        size={20}
+        color={focused ? FamilyMint.primary : FamilyMint.foregroundSubtle}
+        strokeWidth={focused ? 2.4 : 1.8}
+      />
     </View>
   );
 }
@@ -15,18 +34,19 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#c084fc',
-        tabBarInactiveTintColor: '#64748b',
+        tabBarActiveTintColor: FamilyMint.primary,
+        tabBarInactiveTintColor: FamilyMint.foregroundSubtle,
         tabBarStyle: {
-          backgroundColor: '#090d16',
-          borderTopColor: '#1e293b',
-          height: 62,
+          backgroundColor: FamilyMint.background,
+          borderTopColor: FamilyMint.border,
+          borderTopWidth: 1,
+          height: 64,
           paddingBottom: 8,
-          paddingTop: 6,
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 10,
-          fontWeight: 'bold',
+          fontWeight: '600',
         },
       }}
     >
@@ -34,49 +54,49 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Inicio',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabBarIcon Icon={Home} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
           title: 'Calendario',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📅" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabBarIcon Icon={Calendar} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="budgets"
         options={{
           title: 'Presupuestos',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🎯" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabBarIcon Icon={Target} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="commitments"
         options={{
           title: 'Compromisos',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💸" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabBarIcon Icon={CreditCard} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="patrimony"
         options={{
           title: 'Patrimonio',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💎" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabBarIcon Icon={Gem} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="family"
         options={{
           title: 'Familia',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="👨‍👩‍👧‍👦" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabBarIcon Icon={Users} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="reports"
         options={{
           title: 'Reportes',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📊" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabBarIcon Icon={BarChart3} focused={focused} />,
         }}
       />
     </Tabs>

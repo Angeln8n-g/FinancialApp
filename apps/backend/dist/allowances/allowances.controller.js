@@ -49,6 +49,27 @@ let AllowancesController = class AllowancesController {
     async remove(user, id) {
         return this.allowancesService.remove(id, user.householdId);
     }
+    async getMissions(user) {
+        return this.allowancesService.getMissions(user.householdId);
+    }
+    async createMission(user, body) {
+        return this.allowancesService.createMission(user.householdId, body);
+    }
+    async completeMission(user, id) {
+        return this.allowancesService.completeMission(user.householdId, id, user.userId);
+    }
+    async approveMission(user, id, body) {
+        return this.allowancesService.approveAndPayMission(user.householdId, id, body, user.userId);
+    }
+    async deleteMission(user, id) {
+        return this.allowancesService.deleteMission(user.householdId, id);
+    }
+    async getSavingsMatching(user) {
+        return this.allowancesService.getSavingsMatching(user.householdId);
+    }
+    async updateSavingsMatching(user, body) {
+        return this.allowancesService.updateSavingsMatching(user.householdId, body);
+    }
 };
 exports.AllowancesController = AllowancesController;
 __decorate([
@@ -125,6 +146,61 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
     __metadata("design:returntype", Promise)
 ], AllowancesController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Get)('missions'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
+    __metadata("design:returntype", Promise)
+], AllowancesController.prototype, "getMissions", null);
+__decorate([
+    (0, common_1.Post)('missions'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
+    __metadata("design:returntype", Promise)
+], AllowancesController.prototype, "createMission", null);
+__decorate([
+    (0, common_1.Put)('missions/:id/complete'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
+    __metadata("design:returntype", Promise)
+], AllowancesController.prototype, "completeMission", null);
+__decorate([
+    (0, common_1.Post)('missions/:id/approve'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
+    __metadata("design:returntype", Promise)
+], AllowancesController.prototype, "approveMission", null);
+__decorate([
+    (0, common_1.Delete)('missions/:id'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
+    __metadata("design:returntype", Promise)
+], AllowancesController.prototype, "deleteMission", null);
+__decorate([
+    (0, common_1.Get)('savings-matching'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
+    __metadata("design:returntype", Promise)
+], AllowancesController.prototype, "getSavingsMatching", null);
+__decorate([
+    (0, common_1.Post)('savings-matching'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
+    __metadata("design:returntype", Promise)
+], AllowancesController.prototype, "updateSavingsMatching", null);
 exports.AllowancesController = AllowancesController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('api/allowances'),

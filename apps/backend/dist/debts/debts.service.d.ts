@@ -2,31 +2,29 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EventsGateway } from '../events/events.gateway';
 import { MitigationStrategy } from '@prisma/client';
+export interface DebtOperationalDates {
+    nextClosingDate: Date | null;
+    daysUntilCutoff: number | null;
+    nextPaymentDueDate: Date | null;
+    daysUntilPaymentDue: number | null;
+    isDueSoon: boolean;
+    isOverdue: boolean;
+    alertBadge: 'NORMAL' | 'DUE_SOON' | 'OVERDUE';
+}
 export declare class DebtsService {
     private prisma;
     private notificationsService;
     private eventsGateway;
     private readonly logger;
     constructor(prisma: PrismaService, notificationsService: NotificationsService, eventsGateway: EventsGateway);
-    findAll(householdId: string): Promise<{
-        id: string;
-        contactName: string;
-        type: import(".prisma/client").$Enums.DebtType;
-        totalAmount: number;
-        remainingAmount: number;
-        paidAmount: number;
-        progressPercentage: number;
-        isPaidOff: boolean;
-        interestRate: number;
-        dueDate: Date | null;
-        targetPayoffDate: Date | null;
-        monthlyTargetPayment: number | null;
-        mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy;
-        notes: string | null;
-        monthsRemaining: number | null;
-        daysRemaining: number | null;
-        suggestedMonthlyPayment: number;
-    }[]>;
+    calculateOperationalDates(d: {
+        cutoffDay?: number | null;
+        paymentDueDay?: number | null;
+        dueDate?: Date | string | null;
+        alertDaysBefore?: number | null;
+    }, now?: Date): DebtOperationalDates;
+    private syncDebtReminder;
+    findAll(householdId: string): Promise<any>;
     create(householdId: string, data: {
         contactName: string;
         totalAmount: number;
@@ -37,23 +35,12 @@ export declare class DebtsService {
         monthlyTargetPayment?: number;
         mitigationStrategy?: MitigationStrategy;
         notes?: string;
-    }): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        householdId: string;
-        type: import(".prisma/client").$Enums.DebtType;
-        dueDate: Date | null;
-        contactName: string;
-        totalAmount: import("@prisma/client/runtime/library").Decimal;
-        remainingAmount: import("@prisma/client/runtime/library").Decimal;
-        interestRate: import("@prisma/client/runtime/library").Decimal;
-        targetPayoffDate: Date | null;
-        monthlyTargetPayment: import("@prisma/client/runtime/library").Decimal | null;
-        mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy | null;
-        isPaidOff: boolean;
-        notes: string | null;
-    }>;
+        cutoffDay?: number;
+        paymentDueDay?: number;
+        minimumPayment?: number;
+        alertDaysBefore?: number;
+        autoAlert?: boolean;
+    }): Promise<any>;
     update(householdId: string, debtId: string, data: {
         contactName?: string;
         totalAmount?: number;
@@ -65,48 +52,18 @@ export declare class DebtsService {
         mitigationStrategy?: MitigationStrategy;
         notes?: string;
         isPaidOff?: boolean;
-    }): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        householdId: string;
-        type: import(".prisma/client").$Enums.DebtType;
-        dueDate: Date | null;
-        contactName: string;
-        totalAmount: import("@prisma/client/runtime/library").Decimal;
-        remainingAmount: import("@prisma/client/runtime/library").Decimal;
-        interestRate: import("@prisma/client/runtime/library").Decimal;
-        targetPayoffDate: Date | null;
-        monthlyTargetPayment: import("@prisma/client/runtime/library").Decimal | null;
-        mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy | null;
-        isPaidOff: boolean;
-        notes: string | null;
-    }>;
+        cutoffDay?: number;
+        paymentDueDay?: number;
+        minimumPayment?: number;
+        alertDaysBefore?: number;
+        autoAlert?: boolean;
+    }): Promise<any>;
     payDebt(householdId: string, debtId: string, data: {
         amount: number;
         accountId?: string;
         notes?: string;
-    }, currentUserId?: string): Promise<{
-        success: boolean;
+    }, currentUserId?: string): Promise<any>;
+    delete(householdId: string, id: string): Promise<{
         message: string;
-        debt: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            householdId: string;
-            type: import(".prisma/client").$Enums.DebtType;
-            dueDate: Date | null;
-            contactName: string;
-            totalAmount: import("@prisma/client/runtime/library").Decimal;
-            remainingAmount: import("@prisma/client/runtime/library").Decimal;
-            interestRate: import("@prisma/client/runtime/library").Decimal;
-            targetPayoffDate: Date | null;
-            monthlyTargetPayment: import("@prisma/client/runtime/library").Decimal | null;
-            mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy | null;
-            isPaidOff: boolean;
-            notes: string | null;
-        };
-        transaction: any;
     }>;
-    delete(householdId: string, debtId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
 }

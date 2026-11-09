@@ -13,6 +13,8 @@ import ReminderModal from '@/components/modals/ReminderModal';
 import PayReminderModal from '@/components/modals/PayReminderModal';
 import EditTransactionModal from '@/components/modals/EditTransactionModal';
 import VoidTransactionModal from '@/components/modals/VoidTransactionModal';
+import ImportModal from '@/components/modals/ImportModal';
+import ReceiptScanModal from '@/components/modals/ReceiptScanModal';
 import { apiFetch, getUser, getHousehold, getToken } from '@/lib/api';
 import { useHouseholdSocket } from '@/hooks/useHouseholdSocket';
 import {
@@ -33,7 +35,9 @@ import {
   Ban,
   ArrowRight,
   TrendingUp,
-  Receipt
+  Receipt,
+  FileSpreadsheet,
+  Camera,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -41,6 +45,7 @@ export default function DashboardPage() {
 
   const [user, setUser] = useState<any>(null);
   const [household, setHousehold] = useState<any>(null);
+  const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [summary, setSummary] = useState<any>({ totalBalance: 0, monthlyIncome: 0, monthlyExpense: 0 });
   const [accounts, setAccounts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -52,6 +57,8 @@ export default function DashboardPage() {
 
   // Estados de Modales
   const [showTxModal, setShowTxModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [txInitialType, setTxInitialType] = useState<'EXPENSE' | 'INCOME' | 'TRANSFER'>('EXPENSE');
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showEditAccountModal, setShowEditAccountModal] = useState(false);
@@ -74,7 +81,7 @@ export default function DashboardPage() {
 
     try {
       const [sum, accs, txs, cats, rems, subs, dbts] = await Promise.all([
-        apiFetch('/api/transactions/summary').catch(() => ({ totalBalance: 0, monthlyIncome: 0, monthlyExpense: 0 })),
+        apiFetch(`/api/transactions/summary?currency=${selectedCurrency}`).catch(() => ({ totalBalance: 0, monthlyIncome: 0, monthlyExpense: 0 })),
         apiFetch('/api/accounts').catch(() => []),
         apiFetch('/api/transactions?limit=10').catch(() => []),
         apiFetch('/api/categories').catch(() => []),
@@ -95,7 +102,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, selectedCurrency]);
 
   useEffect(() => {
     const u = getUser();
@@ -320,6 +327,24 @@ export default function DashboardPage() {
                 <ArrowLeftRight className="w-4 h-4 text-blue-400" />
                 <span>Transferir <kbd className="hidden md:inline px-1 py-0.5 rounded bg-blue-950/60 text-[10px] text-blue-300 font-mono">T</kbd></span>
               </button>
+
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-[#162347] hover:bg-[#1D2D5A] text-slate-200 border border-[#1E2B4D] font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                title="Subir extracto bancario CSV / Excel para carga masiva"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                <span>Importar Extracto</span>
+              </button>
+
+              <button
+                onClick={() => setShowReceiptModal(true)}
+                className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                title="Escanear ticket o recibo de compra con OCR inteligente"
+              >
+                <Camera className="w-4 h-4 text-purple-400" />
+                <span>Escanear Ticket</span>
+              </button>
             </div>
           </div>
         </section>
@@ -329,6 +354,7 @@ export default function DashboardPage() {
           accounts={accounts}
           categories={categories}
           onSubmit={handleCreateTransaction}
+          onRefresh={fetchData}
           onOpenModal={(type) => {
             setTxInitialType(type);
             setShowTxModal(true);
@@ -336,7 +362,11 @@ export default function DashboardPage() {
         />
 
         {/* 📊 KPI Cards */}
-        <KPICards summary={summary} />
+        <KPICards
+          summary={summary}
+          selectedCurrency={selectedCurrency}
+          onCurrencyChange={(curr) => setSelectedCurrency(curr)}
+        />
 
         {/* ⏰ Recordatorios de Pago */}
         <div className="mint-card p-5 sm:p-6 space-y-4">
@@ -708,6 +738,22 @@ export default function DashboardPage() {
         }}
         transaction={selectedTxForVoid}
         onConfirm={handleConfirmVoidTx}
+      />
+
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        accounts={accounts}
+        categories={categories}
+        onImportComplete={fetchData}
+      />
+
+      <ReceiptScanModal
+        isOpen={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        accounts={accounts}
+        categories={categories}
+        onSuccess={fetchData}
       />
     </div>
   );

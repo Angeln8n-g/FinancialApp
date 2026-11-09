@@ -1,0 +1,101 @@
+name: hogariq
+version: "3.8"
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: web
+  author: HogarIQ Team
+  category: Finance
+  description:
+    en_us: "Modern Self-Hosted Family Financial Governance, OCR Receipt Scanner, 50/50 Splitwise, and Allowance Gamification."
+    es_es: "Plataforma de Finanzas Familiares Self-Hosted, Escáner OCR de Tickets, Gastos 50/50 y Gamificación de Mesadas."
+  developer: HogarIQ
+  icon: https://raw.githubusercontent.com/hogariq/hogariq/main/docs/assets/icon.png
+  screenshot_link:
+    - https://raw.githubusercontent.com/hogariq/hogariq/main/docs/assets/dashboard.png
+  tagline:
+    en_us: "Self-Hosted Family Financial Intelligence"
+    es_es: "Inteligencia Financiera Familiar y Privada"
+  title:
+    en_us: HogarIQ
+    es_es: HogarIQ
+  port_map: "3010"
+  scheme: http
+  index: /
+
+services:
+  db:
+    image: ankane/pgvector:v0.5.1
+    container_name: hogariq_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hogariq
+      POSTGRES_PASSWORD: ${HOGARIQ_DB_PASSWORD:-hogariq_casaos_secret_2026}
+      POSTGRES_DB: hogariq
+    volumes:
+      - /DATA/AppData/hogariq/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hogariq -d hogariq"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    x-casaos:
+      envs:
+        - container: POSTGRES_PASSWORD
+          description:
+            en_us: PostgreSQL Database Password
+            es_es: Contraseña de Base de Datos PostgreSQL
+      volumes:
+        - container: /var/lib/postgresql/data
+          description:
+            en_us: PostgreSQL Data Folder
+            es_es: Carpeta de Datos PostgreSQL
+
+  redis:
+    image: redis:7-alpine
+    container_name: hogariq_redis
+    restart: unless-stopped
+    volumes:
+      - /DATA/AppData/hogariq/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ghcr.io/hogariq/backend:v1.0.0
+    container_name: hogariq_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://hogariq:${HOGARIQ_DB_PASSWORD:-hogariq_casaos_secret_2026}@db:5432/hogariq?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${HOGARIQ_JWT_SECRET:-hogariq_casaos_jwt_secret_key_change_me}
+      PORT: 3000
+    volumes:
+      - /DATA/AppData/hogariq/uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    image: ghcr.io/hogariq/web:v1.0.0
+    container_name: hogariq_web
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      PORT: 3000
+    ports:
+      - "3010:3000"
+    depends_on:
+      - backend
+    x-casaos:
+      ports:
+        - container: "3000"
+          description:
+            en_us: Web Interface Port
+            es_es: Puerto de la Interfaz Web

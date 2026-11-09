@@ -26,8 +26,8 @@ let TransactionsController = class TransactionsController {
     async findAll(user) {
         return this.transactionsService.findAllByHousehold(user.householdId);
     }
-    async getSummary(user) {
-        return this.transactionsService.getSummary(user.householdId);
+    async getSummary(user, currency) {
+        return this.transactionsService.getSummary(user.householdId, currency);
     }
     async create(user, dto) {
         return this.transactionsService.create(user.householdId, dto, user.userId);
@@ -39,7 +39,7 @@ let TransactionsController = class TransactionsController {
         return this.transactionsService.voidTransaction(user.householdId, id, body);
     }
     async importBankStatement(user, body) {
-        return this.transactionsService.importBankStatement(user.householdId, body.rawContent);
+        return this.transactionsService.importBankStatement(user.householdId, body, user.userId);
     }
 };
 exports.TransactionsController = TransactionsController;
@@ -53,8 +53,9 @@ __decorate([
 __decorate([
     (0, common_1.Get)('summary'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('currency')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
     __metadata("design:returntype", Promise)
 ], TransactionsController.prototype, "getSummary", null);
 __decorate([

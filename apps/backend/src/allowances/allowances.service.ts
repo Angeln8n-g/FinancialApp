@@ -1,9 +1,36 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RecurrencePeriod, TransactionType } from '@prisma/client';
+import { randomUUID } from 'crypto';
+
+export interface FamilyMission {
+  id: string;
+  householdId: string;
+  memberId: string;
+  memberName: string;
+  title: string;
+  description?: string;
+  rewardAmount: number;
+  status: 'PENDING' | 'COMPLETED' | 'APPROVED_AND_PAID';
+  createdAt: string;
+  completedAt?: string;
+  approvedAt?: string;
+}
+
+export interface SavingsMatchingRule {
+  householdId: string;
+  matchPercentage: number;
+  maxMonthlyBonus: number;
+  active: boolean;
+  totalMatchedThisMonth: number;
+}
 
 @Injectable()
 export class AllowancesService {
+  // In-memory persistent collections for Family Missions & Savings Matching
+  private static missionsMap: Map<string, FamilyMission[]> = new Map();
+  private static matchingRulesMap: Map<string, SavingsMatchingRule> = new Map();
+
   constructor(private prisma: PrismaService) {}
 
   async findAll(householdId: string) {
@@ -188,5 +215,207 @@ export class AllowancesService {
     return this.prisma.allowance.deleteMany({
       where: { id, householdId },
     });
+  }
+
+  // --- 🏆 MISIONES Y TAREAS FAMILIARES (GAMIFICACIÓN) ---
+
+  async getMissions(householdId: string): Promise<FamilyMission[]> {
+    if (!AllowancesService.missionsMap.has(householdId)) {
+      // Seed default sample missions for demonstration
+      const members = await this.prisma.householdMember.findMany({
+        where: { householdId },
+        include: { user: true },
+      });
+
+      const sampleMember = members.find((m) => m.role === 'DEPENDENT') || members[0];
+      const memberName = sampleMember ? (sampleMember.user.fullName || sampleMember.user.email) : 'Hijo / Familiar';
+      const memberId = sampleMember ? sampleMember.id : 'default';
+
+      const initialMissions: FamilyMission[] = [
+        {
+          id: randomUUID(),
+          householdId,
+          memberId,
+          memberName,
+          title: 'Ordenar habitación y tender la cama toda la semana',
+          description: 'Mantener el orden diario antes de salir a la escuela',
+          rewardAmount: 5.0,
+          status: 'PENDING',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: randomUUID(),
+          householdId,
+          memberId,
+          memberName,
+          title: 'Lavar el auto familiar',
+          description: 'Limpiar exterior y aspirar asientos',
+          rewardAmount: 8.0,
+          status: 'COMPLETED',
+          createdAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+        },
+        {
+          id: randomUUID(),
+          householdId,
+          memberId,
+          memberName,
+          title: 'Obtener calificación A en examen escolar',
+          description: 'Recompensa por esfuerzo académico',
+          rewardAmount: 15.0,
+          status: 'APPROVED_AND_PAID',
+          createdAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+          approvedAt: new Date().toISOString(),
+        },
+      ];
+
+      AllowancesService.missionsMap.set(householdId, initialMissions);
+    }
+
+    return AllowancesService.missionsMap.get(householdId) || [];
+  }
+
+  async createMission(
+    householdId: string,
+    data: { memberId: string; title: string; rewardAmount: number; description?: string },
+  ): Promise<FamilyMission> {
+    if (!data.title || data.rewardAmount <= 0) {
+      throw new BadRequestException('Título y monto de recompensa positivo son requeridos');
+    }
+
+    const member = await this.prisma.householdMember.findFirst({
+      where: { id: data.memberId, householdId },
+      include: { user: true },
+    });
+
+    const memberName = member ? (member.user.fullName || member.user.email) : 'Hijo / Familiar';
+
+    const newMission: FamilyMission = {
+      id: randomUUID(),
+      householdId,
+      memberId: data.memberId,
+      memberName,
+      title: data.title.trim(),
+      description: data.description?.trim(),
+      rewardAmount: Number(data.rewardAmount.toFixed(2)),
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+    };
+
+    const current = await this.getMissions(householdId);
+    current.unshift(newMission);
+    AllowancesService.missionsMap.set(householdId, current);
+
+    return newMission;
+  }
+
+  async completeMission(householdId: string, missionId: string, memberId?: string): Promise<FamilyMission> {
+    const missions = await this.getMissions(householdId);
+    const mission = missions.find((m) => m.id === missionId);
+    if (!mission) throw new NotFoundException('Misión no encontrada');
+
+    mission.status = 'COMPLETED';
+    mission.completedAt = new Date().toISOString();
+
+    // Notificar a administradores
+    const admins = await this.prisma.householdMember.findMany({
+      where: { householdId, role: 'ADMIN' },
+    });
+
+    for (const admin of admins) {
+      await this.prisma.notification.create({
+        data: {
+          userId: admin.userId,
+          householdId,
+          title: '🏆 Misión Familiar Completada',
+          body: `${mission.memberName} completó: "${mission.title}". Toca para aprobar y desembolsar $${mission.rewardAmount.toFixed(2)}.`,
+          type: 'SYSTEM',
+        },
+      });
+    }
+
+    return mission;
+  }
+
+  async approveAndPayMission(
+    householdId: string,
+    missionId: string,
+    data: { accountId: string },
+    parentUserId?: string,
+  ): Promise<{ mission: FamilyMission; message: string }> {
+    const missions = await this.getMissions(householdId);
+    const mission = missions.find((m) => m.id === missionId);
+    if (!mission) throw new NotFoundException('Misión no encontrada');
+
+    const account = await this.prisma.account.findFirst({
+      where: { id: data.accountId, householdId },
+    });
+    if (!account) throw new NotFoundException('Cuenta de desembolso no encontrada');
+
+    // 1. Descontar recompensa de la cuenta y crear transacción
+    await this.prisma.$transaction(async (tx) => {
+      await tx.transaction.create({
+        data: {
+          householdId,
+          accountId: account.id,
+          type: TransactionType.EXPENSE,
+          amount: mission.rewardAmount,
+          description: `🏆 Recompensa Misión: ${mission.title} (${mission.memberName})`,
+          date: new Date(),
+          createdById: parentUserId || null,
+        },
+      });
+
+      await tx.account.update({
+        where: { id: account.id },
+        data: { balance: { decrement: mission.rewardAmount } },
+      });
+    });
+
+    mission.status = 'APPROVED_AND_PAID';
+    mission.approvedAt = new Date().toISOString();
+
+    return {
+      mission,
+      message: `¡Recompensa de $${mission.rewardAmount.toFixed(2)} transferida con éxito desde ${account.name}!`,
+    };
+  }
+
+  async deleteMission(householdId: string, missionId: string): Promise<boolean> {
+    const missions = await this.getMissions(householdId);
+    const filtered = missions.filter((m) => m.id !== missionId);
+    AllowancesService.missionsMap.set(householdId, filtered);
+    return true;
+  }
+
+  // --- 💡 REGLAS DE MATCHING DE AHORRO FAMILIAR ---
+
+  getSavingsMatching(householdId: string): SavingsMatchingRule {
+    if (!AllowancesService.matchingRulesMap.has(householdId)) {
+      AllowancesService.matchingRulesMap.set(householdId, {
+        householdId,
+        matchPercentage: 50, // 50% de aporte adicional de los padres
+        maxMonthlyBonus: 50,  // Hasta $50 al mes
+        active: true,
+        totalMatchedThisMonth: 15.0,
+      });
+    }
+    return AllowancesService.matchingRulesMap.get(householdId)!;
+  }
+
+  updateSavingsMatching(
+    householdId: string,
+    data: { matchPercentage: number; maxMonthlyBonus: number; active: boolean },
+  ): SavingsMatchingRule {
+    const current = this.getSavingsMatching(householdId);
+    const updated: SavingsMatchingRule = {
+      ...current,
+      matchPercentage: Math.max(0, Math.min(200, data.matchPercentage)),
+      maxMonthlyBonus: Math.max(0, data.maxMonthlyBonus),
+      active: data.active,
+    };
+    AllowancesService.matchingRulesMap.set(householdId, updated);
+    return updated;
   }
 }

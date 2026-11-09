@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
+import { CurrencyService } from '../currency/currency.service';
 import { CreateTransactionDto } from './transactions.dto';
 import { TransactionType } from '@prisma/client';
 
@@ -9,6 +10,7 @@ export class TransactionsService {
   constructor(
     private prisma: PrismaService,
     private eventsGateway: EventsGateway,
+    private currencyService: CurrencyService,
   ) {}
 
   async findAllByHousehold(householdId: string) {
@@ -120,58 +122,171 @@ export class TransactionsService {
     return createdTx;
   }
 
-  // 📄 3. Importación Masiva de Extractos Bancarios (CSV/PDF/OFX)
-  async importBankStatement(householdId: string, rawContent: string) {
-    const account = await this.prisma.account.findFirst({
-      where: { householdId },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    if (!account) throw new NotFoundException('No hay una cuenta activa para importar el extracto');
-
-    const lines = rawContent.split(/\r?\n/).filter(line => line.trim().length > 0);
-    const imported: any[] = [];
-
-    for (const line of lines) {
-      // Formato CSV simple: fecha, descripcion, monto
-      const parts = line.split(',');
-      if (parts.length >= 2) {
-        const desc = parts[1]?.trim() || parts[0]?.trim();
-        const amountMatch = (parts[2] || parts[1] || '').match(/(\d+([.,]\d{1,2})?)/);
-        const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '.')) : 25.0;
-
-        if (amount > 0) {
-          const tx = await this.create(householdId, {
-            accountId: account.id,
-            type: TransactionType.EXPENSE,
-            amount,
-            description: `[Importado] ${desc}`,
-          });
-          imported.push(tx);
-        }
-      }
+  // 📄 3. Importación Masiva de Extractos Bancarios (CSV/Excel/OFX con Detección de Duplicados)
+  async importBankStatement(
+    householdId: string,
+    dto: {
+      accountId?: string;
+      rawContent?: string;
+      transactions?: Array<{
+        date?: string;
+        description: string;
+        amount: number;
+        type: TransactionType;
+        categoryId?: string;
+        accountId?: string;
+      }>;
+    },
+    currentUserId?: string,
+  ) {
+    let targetAccount: any = null;
+    if (dto.accountId) {
+      targetAccount = await this.prisma.account.findFirst({
+        where: { id: dto.accountId, householdId },
+      });
+    }
+    if (!targetAccount) {
+      targetAccount = await this.prisma.account.findFirst({
+        where: { householdId },
+        orderBy: { createdAt: 'asc' },
+      });
     }
 
-    return {
-      message: `Se importaron ${imported.length} transacciones masivamente con éxito`,
-      importedCount: imported.length,
-    };
+    if (!targetAccount) {
+      throw new NotFoundException('No hay una cuenta activa para importar el extracto');
+    }
+
+    // A. Si viene la lista de transacciones previsualizadas y confirmadas desde el modal
+    if (dto.transactions && Array.isArray(dto.transactions)) {
+      const imported: any[] = [];
+      let skippedCount = 0;
+
+      for (const item of dto.transactions) {
+        const itemAmount = Number(item.amount);
+        if (isNaN(itemAmount) || itemAmount <= 0) continue;
+
+        const txDate = item.date ? new Date(item.date) : new Date();
+        const startOfDay = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate());
+        const endOfDay = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate(), 23, 59, 59, 999);
+        const itemAccountId = item.accountId || targetAccount.id;
+
+        // 🛡️ Detección de duplicados: misma cuenta, mismo día, mismo monto y descripción idéntica
+        const duplicate = await this.prisma.transaction.findFirst({
+          where: {
+            householdId,
+            accountId: itemAccountId,
+            amount: itemAmount,
+            type: item.type,
+            date: { gte: startOfDay, lte: endOfDay },
+            description: item.description,
+            isVoided: false,
+          },
+        });
+
+        if (duplicate) {
+          skippedCount++;
+          continue;
+        }
+
+        const created = await this.create(
+          householdId,
+          {
+            accountId: itemAccountId,
+            type: item.type,
+            amount: itemAmount,
+            description: item.description,
+            categoryId: item.categoryId,
+            date: txDate.toISOString(),
+          },
+          currentUserId,
+        );
+        imported.push(created);
+      }
+
+      return {
+        success: true,
+        message: `Se importaron ${imported.length} transacciones correctamente${
+          skippedCount > 0 ? ` (${skippedCount} omitidas por duplicadas)` : ''
+        }`,
+        importedCount: imported.length,
+        skippedCount,
+      };
+    }
+
+    // B. Fallback para texto plano CSV en crudo si se envía rawContent
+    if (dto.rawContent) {
+      const lines = dto.rawContent.split(/\r?\n/).filter((line) => line.trim().length > 0);
+      const imported: any[] = [];
+
+      for (const line of lines) {
+        const parts = line.split(/[;,]/);
+        if (parts.length >= 2) {
+          const desc = parts[1]?.trim() || parts[0]?.trim();
+          const amountMatch = (parts[2] || parts[1] || '').match(/(\d+([.,]\d{1,2})?)/);
+          const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '.')) : 25.0;
+
+          if (amount > 0) {
+            const isNegative = (parts[2] || parts[1] || '').includes('-');
+            const type = isNegative ? TransactionType.EXPENSE : TransactionType.INCOME;
+
+            const tx = await this.create(
+              householdId,
+              {
+                accountId: targetAccount.id,
+                type,
+                amount,
+                description: `[Importado] ${desc}`,
+              },
+              currentUserId,
+            );
+            imported.push(tx);
+          }
+        }
+      }
+
+      return {
+        success: true,
+        message: `Se importaron ${imported.length} transacciones en crudo con éxito`,
+        importedCount: imported.length,
+        skippedCount: 0,
+      };
+    }
+
+    throw new BadRequestException('Se requieren transacciones estructuradas o rawContent');
   }
 
-  async getSummary(householdId: string) {
+  async getSummary(householdId: string, requestedCurrency?: string) {
     const accounts = await this.prisma.account.findMany({
       where: { householdId },
     });
 
-    const totalBalance = accounts.reduce((acc, account) => acc + Number(account.balance), 0);
+    const baseCurrency = (requestedCurrency || accounts[0]?.currency || 'USD').toUpperCase();
+    await this.currencyService.refreshRates();
+
+    // 💡 Consolidación de balance total convirtiendo cada cuenta a la moneda base
+    const totalBalance = accounts.reduce((acc, account) => {
+      const converted = this.currencyService.convert(
+        Number(account.balance),
+        account.currency || 'USD',
+        baseCurrency,
+      );
+      return acc + converted;
+    }, 0);
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const daysInMonth = endOfMonth.getDate();
+    const currentDay = now.getDate();
+    const daysRemaining = Math.max(1, daysInMonth - currentDay + 1);
 
     const monthlyTransactions = await this.prisma.transaction.findMany({
       where: {
         householdId,
         date: { gte: startOfMonth },
+      },
+      include: {
+        account: true,
       },
     });
 
@@ -180,18 +295,112 @@ export class TransactionsService {
 
     for (const t of monthlyTransactions) {
       if (t.isVoided) continue; // 🚫 Ignorar transacciones anuladas del cálculo mensual
+      const txCurrency = t.account?.currency || baseCurrency;
+      const amountConverted = this.currencyService.convert(
+        Number(t.amount),
+        txCurrency,
+        baseCurrency,
+      );
       if (t.type === TransactionType.INCOME) {
-        monthlyIncome += Number(t.amount);
+        monthlyIncome += amountConverted;
       } else if (t.type === TransactionType.EXPENSE) {
-        monthlyExpense += Number(t.amount);
+        monthlyExpense += amountConverted;
       }
     }
 
+    // 💡 CÁLCULO DE SAFE-TO-SPEND (Disponible Real Diario Libre de Culpa)
+    // 1. Saldo Líquido Disponible consolidado a moneda base
+    const liquidBalance = accounts
+      .filter((a) => ['CASH', 'BANK_ACCOUNT', 'PAYROLL', 'SAVINGS'].includes(a.type))
+      .reduce((acc, a) => {
+        const bal = Math.max(0, Number(a.balance));
+        return acc + this.currencyService.convert(bal, a.currency || 'USD', baseCurrency);
+      }, 0);
+
+    // 2. Recordatorios de pago impagos del mes
+    const pendingReminders = await this.prisma.reminder.findMany({
+      where: {
+        householdId,
+        isPaid: false,
+        dueDate: { lte: endOfMonth },
+      },
+    });
+    const pendingRemindersTotal = pendingReminders.reduce((acc, r) => acc + Number(r.amount), 0);
+
+    // 3. Suscripciones activas pendientes para este mes
+    const reminderSubIds = new Set(
+      pendingReminders.filter((r) => r.subscriptionId).map((r) => r.subscriptionId),
+    );
+    const activeSubscriptions = await this.prisma.subscription.findMany({
+      where: {
+        householdId,
+        isActive: true,
+        nextBillingDate: { lte: endOfMonth },
+      },
+      include: {
+        account: true,
+      },
+    });
+    const pendingSubscriptionsTotal = activeSubscriptions
+      .filter((s) => !reminderSubIds.has(s.id))
+      .reduce((acc, s) => {
+        const costConverted = this.currencyService.convert(
+          Number(s.cost),
+          s.account?.currency || 'USD',
+          baseCurrency,
+        );
+        return acc + costConverted;
+      }, 0);
+
+    // 4. Deudas por pagar con cuota o pago mínimo de este mes
+    const reminderDebtIds = new Set(
+      pendingReminders.filter((r) => r.debtId).map((r) => r.debtId),
+    );
+    const activeDebts = await this.prisma.debt.findMany({
+      where: {
+        householdId,
+        isPaidOff: false,
+        type: 'OWED_BY_ME',
+      },
+    });
+    const upcomingDebtsTotal = activeDebts
+      .filter((d) => !reminderDebtIds.has(d.id))
+      .reduce((acc, d) => {
+        const payment = Number(d.minimumPayment || d.monthlyTargetPayment || 0);
+        return acc + payment;
+      }, 0);
+
+    const pendingCommitments = pendingRemindersTotal + pendingSubscriptionsTotal + upcomingDebtsTotal;
+    const safeToSpendMonth = Math.max(0, liquidBalance - pendingCommitments);
+    const safeToSpendDaily = Math.round((safeToSpendMonth / daysRemaining) * 100) / 100;
+
+    let healthStatus: 'HEALTHY' | 'MODERATE' | 'CRITICAL' = 'HEALTHY';
+    if (safeToSpendMonth === 0 || liquidBalance < pendingCommitments) {
+      healthStatus = 'CRITICAL';
+    } else if (safeToSpendDaily < 15) {
+      healthStatus = 'MODERATE';
+    }
+
     return {
-      totalBalance,
-      monthlyIncome,
-      monthlyExpense,
+      totalBalance: Math.round(totalBalance * 100) / 100,
+      monthlyIncome: Math.round(monthlyIncome * 100) / 100,
+      monthlyExpense: Math.round(monthlyExpense * 100) / 100,
+      baseCurrency,
       accountsCount: accounts.length,
+      safeToSpend: {
+        liquidBalance: Math.round(liquidBalance * 100) / 100,
+        pendingCommitments: Math.round(pendingCommitments * 100) / 100,
+        safeToSpendMonth: Math.round(safeToSpendMonth * 100) / 100,
+        safeToSpendDaily,
+        daysRemaining,
+        daysInMonth,
+        healthStatus,
+        breakdown: {
+          pendingRemindersTotal: Math.round(pendingRemindersTotal * 100) / 100,
+          pendingSubscriptionsTotal: Math.round(pendingSubscriptionsTotal * 100) / 100,
+          upcomingDebtsTotal: Math.round(upcomingDebtsTotal * 100) / 100,
+        },
+      },
     };
   }
 

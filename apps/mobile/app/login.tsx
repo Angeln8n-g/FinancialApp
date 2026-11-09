@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Logo from '@/components/Logo';
+import { FamilyMint } from '@/constants/Colors';
 import { getApiUrl, setApiUrl, setAuthToken, setUser, setHousehold, getAuthToken } from '@/constants/Api';
 import { checkBiometricsAvailable, authenticateWithBiometrics } from '@/constants/Biometrics';
 
@@ -189,7 +190,7 @@ export default function MobileLoginScreen() {
                   marginTop: 6,
                 }}
               >
-                <Text style={{ color: '#C084FC', fontSize: 14, fontWeight: '700' }}>
+                <Text style={{ color: FamilyMint.primary, fontSize: 14, fontWeight: '700' }}>
                   🔒 Desbloquear con Huella / FaceID
                 </Text>
               </TouchableOpacity>
@@ -220,16 +221,16 @@ export default function MobileLoginScreen() {
 const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: FamilyMint.background,
     justifyContent: 'center',
     padding: 20,
   },
   card: {
-    backgroundColor: '#1E293B',
+    backgroundColor: FamilyMint.surface,
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: 'rgba(168, 85, 247, 0.25)',
+    borderColor: FamilyMint.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.5,
@@ -260,14 +261,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   input: {
-    backgroundColor: '#0F172A',
+    backgroundColor: FamilyMint.surfaceElevated,
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
     color: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: FamilyMint.border,
   },
   hint: {
     fontSize: 11,
@@ -284,7 +285,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   btnSubmit: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: FamilyMint.primary,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',

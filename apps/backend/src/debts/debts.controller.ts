@@ -28,6 +28,11 @@ export class DebtsController {
       monthlyTargetPayment?: number;
       mitigationStrategy?: MitigationStrategy;
       notes?: string;
+      cutoffDay?: number;
+      paymentDueDay?: number;
+      minimumPayment?: number;
+      alertDaysBefore?: number;
+      autoAlert?: boolean;
     },
   ) {
     return this.debtsService.create(user.householdId, body);
@@ -49,6 +54,11 @@ export class DebtsController {
       mitigationStrategy?: MitigationStrategy;
       notes?: string;
       isPaidOff?: boolean;
+      cutoffDay?: number;
+      paymentDueDay?: number;
+      minimumPayment?: number;
+      alertDaysBefore?: number;
+      autoAlert?: boolean;
     },
   ) {
     return this.debtsService.update(user.householdId, id, body);

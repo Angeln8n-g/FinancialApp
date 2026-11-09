@@ -12,6 +12,10 @@ import {
   RefreshControl,
 } from 'react-native';
 import { fetchWithAuth } from '@/constants/Api';
+import { FamilyMint } from '@/constants/Colors';
+import { Edit3, Trash2 } from 'lucide-react-native';
+import EditBudgetModal from '@/components/modals/EditBudgetModal';
+import EditGoalModal from '@/components/modals/EditGoalModal';
 
 interface BudgetItem {
   id: string;
@@ -67,6 +71,10 @@ export default function MobileBudgetsScreen() {
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
+  const [selectedBudgetForEdit, setSelectedBudgetForEdit] = useState<any | null>(null);
+  const [showEditBudgetModal, setShowEditBudgetModal] = useState(false);
+  const [selectedGoalForEdit, setSelectedGoalForEdit] = useState<any | null>(null);
+  const [showEditGoalModal, setShowEditGoalModal] = useState(false);
 
   // Formulario Presupuesto
   const [selectedCatId, setSelectedCatId] = useState('');
@@ -590,7 +598,21 @@ export default function MobileBudgetsScreen() {
                   );
                 })}
               </View>
-            </ScrollView>
+                  {/* Modales de Edición */}
+      <EditBudgetModal
+        visible={showEditBudgetModal}
+        onClose={() => setShowEditBudgetModal(false)}
+        budget={selectedBudgetForEdit}
+        onSuccess={() => loadData()}
+      />
+
+      <EditGoalModal
+        visible={showEditGoalModal}
+        onClose={() => setShowEditGoalModal(false)}
+        goal={selectedGoalForEdit}
+        onSuccess={() => loadData()}
+      />
+    </ScrollView>
 
             <Text style={styles.inputLabel}>Límite Mensual (RD$)</Text>
             <TextInput

@@ -300,4 +300,187 @@ export class HouseholdService {
 
     return { message: 'Integrante eliminado correctamente' };
   }
+
+  // 🤝 MÓDULO DE GASTOS COMPARTIDOS (SPLIT FAMILIAR TIPO SPLITWISE)
+  async getSplitSummary(householdId: string) {
+    // 1. Obtener última fecha de liquidación registrada
+    const lastSettleLog = await this.prisma.auditLog.findFirst({
+      where: {
+        householdId,
+        action: 'SETTLE_SPLIT',
+      },
+      orderBy: { timestamp: 'desc' },
+    });
+
+    const sinceDate = lastSettleLog ? lastSettleLog.timestamp : new Date(0);
+
+    // 2. Miembros adultos activos del hogar
+    const members = await this.prisma.householdMember.findMany({
+      where: { householdId },
+      include: {
+        user: {
+          select: { id: true, email: true, fullName: true, avatarUrl: true },
+        },
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+
+    // 3. Transacciones compartidas desde la última liquidación
+    // Se consideran gastos que incluyan la etiqueta [🤝 o [SPLIT o [COMPARTIDO
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        householdId,
+        type: 'EXPENSE',
+        isVoided: false,
+        date: { gte: sinceDate },
+      },
+      include: {
+        createdBy: {
+          select: { id: true, fullName: true, email: true },
+        },
+        account: {
+          select: { id: true, name: true, currency: true },
+        },
+        category: true,
+      },
+      orderBy: { date: 'desc' },
+    });
+
+    // Filtrar aquellas transacciones marcadas como compartidas
+    const splitTxs = transactions.filter(
+      (t) =>
+        t.description &&
+        (t.description.includes('🤝') ||
+          t.description.includes('[SPLIT') ||
+          t.description.includes('[COMPARTIDO') ||
+          t.description.includes('Compartido')),
+    );
+
+    // 4. Calcular aportes por miembro
+    const memberPayments: Record<string, number> = {};
+    members.forEach((m) => {
+      memberPayments[m.userId] = 0;
+    });
+
+    let totalPool = 0;
+    for (const tx of splitTxs) {
+      const amount = Number(tx.amount);
+      const payerId = tx.createdById || members[0]?.userId;
+      if (payerId && memberPayments[payerId] !== undefined) {
+        memberPayments[payerId] += amount;
+      } else if (members.length > 0) {
+        memberPayments[members[0].userId] += amount;
+      }
+      totalPool += amount;
+    }
+
+    // Miembros adultos (excluyendo dependientes para el reparto de costos)
+    const adultMembers = members.filter((m) => m.role !== 'DEPENDENT');
+    const splitCount = adultMembers.length > 0 ? adultMembers.length : 1;
+    const fairSharePerMember = totalPool / splitCount;
+
+    // Resumen con saldo neto por integrante (+ a favor, - en deuda)
+    const membersSummary = members.map((m) => {
+      const paid = memberPayments[m.userId] || 0;
+      const isContributing = m.role !== 'DEPENDENT';
+      const fairShare = isContributing ? fairSharePerMember : 0;
+      const netBalance = Math.round((paid - fairShare) * 100) / 100;
+
+      return {
+        memberId: m.id,
+        userId: m.userId,
+        fullName: m.user.fullName || m.user.email.split('@')[0],
+        email: m.user.email,
+        customTitle: m.customTitle,
+        role: m.role,
+        paidAmount: Math.round(paid * 100) / 100,
+        fairShare: Math.round(fairShare * 100) / 100,
+        netBalance, // Positivo = se le debe dinero; Negativo = debe dinero
+      };
+    });
+
+    // 5. Algoritmo de resolución de deudas (Quién paga a quién para quedar en cero)
+    const debtors = membersSummary
+      .filter((m) => m.netBalance < -0.01)
+      .map((m) => ({ ...m, amountOwed: Math.abs(m.netBalance) }));
+
+    const creditors = membersSummary
+      .filter((m) => m.netBalance > 0.01)
+      .map((m) => ({ ...m, amountReceivable: m.netBalance }));
+
+    const settlements: Array<{
+      fromUserId: string;
+      fromName: string;
+      toUserId: string;
+      toName: string;
+      amount: number;
+    }> = [];
+
+    let dIdx = 0;
+    let cIdx = 0;
+
+    while (dIdx < debtors.length && cIdx < creditors.length) {
+      const debtor = debtors[dIdx];
+      const creditor = creditors[cIdx];
+
+      const settleAmount = Math.min(debtor.amountOwed, creditor.amountReceivable);
+
+      if (settleAmount > 0.01) {
+        settlements.push({
+          fromUserId: debtor.userId,
+          fromName: debtor.fullName,
+          toUserId: creditor.userId,
+          toName: creditor.fullName,
+          amount: Math.round(settleAmount * 100) / 100,
+        });
+      }
+
+      debtor.amountOwed -= settleAmount;
+      creditor.amountReceivable -= settleAmount;
+
+      if (debtor.amountOwed <= 0.01) dIdx++;
+      if (creditor.amountReceivable <= 0.01) cIdx++;
+    }
+
+    return {
+      totalPool: Math.round(totalPool * 100) / 100,
+      fairSharePerMember: Math.round(fairSharePerMember * 100) / 100,
+      lastSettledAt: lastSettleLog ? lastSettleLog.timestamp : null,
+      membersSummary,
+      settlements,
+      splitTransactions: splitTxs.map((t) => ({
+        id: t.id,
+        date: t.date,
+        amount: Number(t.amount),
+        description: t.description?.replace(/\[🤝[^\]]+\]|\[SPLIT[^\]]+\]/g, '').trim() || t.description,
+        payerName: t.createdBy?.fullName || t.createdBy?.email?.split('@')[0] || 'Miembro',
+        accountName: t.account?.name,
+        categoryName: t.category?.name || 'General',
+        categoryIcon: t.category?.icon || '📦',
+      })),
+    };
+  }
+
+  async settleSplit(householdId: string, currentUserId: string, note?: string) {
+    const summary = await this.getSplitSummary(householdId);
+
+    const log = await this.prisma.auditLog.create({
+      data: {
+        userId: currentUserId,
+        householdId,
+        action: 'SETTLE_SPLIT',
+        details:
+          note ||
+          `Liquidación de gastos comunes completada. Total liquidado: $${summary.totalPool.toFixed(
+            2,
+          )} entre ${summary.membersSummary.length} miembros.`,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Gastos comunes saldados correctamente. Las cuentas han quedado equilibradas a cero.',
+      settledAt: log.timestamp,
+    };
+  }
 }

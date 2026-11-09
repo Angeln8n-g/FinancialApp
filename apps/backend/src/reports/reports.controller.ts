@@ -1,4 +1,4 @@
-import { Controller, Get, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { ReportsService } from './reports.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -12,6 +12,17 @@ export class ReportsController {
   @Get('expense-distribution')
   async getExpenseDistribution(@CurrentUser() user: UserPayload) {
     return this.reportsService.getExpenseDistribution(user.householdId);
+  }
+
+  @Get('cashflow-projection')
+  async getCashflowProjection(
+    @CurrentUser() user: UserPayload,
+    @Query('days') days?: string,
+  ) {
+    return this.reportsService.getCashflowProjection(
+      user.householdId,
+      days ? parseInt(days) : 30,
+    );
   }
 
   @Get('export')

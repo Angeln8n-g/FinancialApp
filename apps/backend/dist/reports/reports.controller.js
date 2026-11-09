@@ -25,6 +25,9 @@ let ReportsController = class ReportsController {
     async getExpenseDistribution(user) {
         return this.reportsService.getExpenseDistribution(user.householdId);
     }
+    async getCashflowProjection(user, days) {
+        return this.reportsService.getCashflowProjection(user.householdId, days ? parseInt(days) : 30);
+    }
     async exportCsv(user, res) {
         const csv = await this.reportsService.generateCsv(user.householdId);
         res.setHeader('Content-Type', 'text/csv');
@@ -46,6 +49,14 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
     __metadata("design:returntype", Promise)
 ], ReportsController.prototype, "getExpenseDistribution", null);
+__decorate([
+    (0, common_1.Get)('cashflow-projection'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('days')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
+    __metadata("design:returntype", Promise)
+], ReportsController.prototype, "getCashflowProjection", null);
 __decorate([
     (0, common_1.Get)('export'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),

@@ -1,10 +1,13 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
+import { CurrencyService } from '../currency/currency.service';
 import { CreateTransactionDto } from './transactions.dto';
+import { TransactionType } from '@prisma/client';
 export declare class TransactionsService {
     private prisma;
     private eventsGateway;
-    constructor(prisma: PrismaService, eventsGateway: EventsGateway);
+    private currencyService;
+    constructor(prisma: PrismaService, eventsGateway: EventsGateway, currencyService: CurrencyService);
     findAllByHousehold(householdId: string): Promise<({
         account: {
             id: string;
@@ -141,15 +144,43 @@ export declare class TransactionsService {
         categoryId: string | null;
         createdById: string | null;
     }>;
-    importBankStatement(householdId: string, rawContent: string): Promise<{
+    importBankStatement(householdId: string, dto: {
+        accountId?: string;
+        rawContent?: string;
+        transactions?: Array<{
+            date?: string;
+            description: string;
+            amount: number;
+            type: TransactionType;
+            categoryId?: string;
+            accountId?: string;
+        }>;
+    }, currentUserId?: string): Promise<{
+        success: boolean;
         message: string;
         importedCount: number;
+        skippedCount: number;
     }>;
-    getSummary(householdId: string): Promise<{
+    getSummary(householdId: string, requestedCurrency?: string): Promise<{
         totalBalance: number;
         monthlyIncome: number;
         monthlyExpense: number;
+        baseCurrency: string;
         accountsCount: number;
+        safeToSpend: {
+            liquidBalance: number;
+            pendingCommitments: number;
+            safeToSpendMonth: number;
+            safeToSpendDaily: number;
+            daysRemaining: number;
+            daysInMonth: number;
+            healthStatus: "HEALTHY" | "MODERATE" | "CRITICAL";
+            breakdown: {
+                pendingRemindersTotal: number;
+                pendingSubscriptionsTotal: number;
+                upcomingDebtsTotal: number;
+            };
+        };
     }>;
     update(householdId: string, id: string, dto: {
         amount?: number;

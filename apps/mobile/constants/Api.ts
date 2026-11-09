@@ -161,7 +161,126 @@ export function logout() {
 
 export const API_URL = getApiUrl();
 
-export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
+export interface QueuedMutation {
+  id: string;
+  endpoint: string;
+  method: string;
+  body?: string;
+  headers?: Record<string, string>;
+  timestamp: number;
+  retryCount: number;
+}
+
+const OFFLINE_QUEUE_KEY = '@hogariq_offline_queue';
+const queueListeners: Set<(count: number) => void> = new Set();
+
+export async function getOfflineQueue(): Promise<QueuedMutation[]> {
+  try {
+    const raw = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getOfflineQueueCount(): Promise<number> {
+  const q = await getOfflineQueue();
+  return q.length;
+}
+
+function notifyQueueListeners(count: number) {
+  queueListeners.forEach((fn) => {
+    try {
+      fn(count);
+    } catch {}
+  });
+}
+
+export function subscribeOfflineQueue(callback: (count: number) => void): () => void {
+  queueListeners.add(callback);
+  getOfflineQueueCount().then(callback).catch(() => {});
+  return () => {
+    queueListeners.delete(callback);
+  };
+}
+
+export async function enqueueOfflineMutation(
+  endpoint: string,
+  method: string,
+  options: RequestInit = {}
+): Promise<QueuedMutation> {
+  const queue = await getOfflineQueue();
+  const mutation: QueuedMutation = {
+    id: `mut_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    endpoint,
+    method: method.toUpperCase(),
+    body: typeof options.body === 'string' ? options.body : undefined,
+    headers: (options.headers as Record<string, string>) || {},
+    timestamp: Date.now(),
+    retryCount: 0,
+  };
+  queue.push(mutation);
+  await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+  notifyQueueListeners(queue.length);
+  return mutation;
+}
+
+export async function flushOfflineQueue(): Promise<{ synced: number; failed: number; remaining: number }> {
+  const queue = await getOfflineQueue();
+  if (queue.length === 0) {
+    return { synced: 0, failed: 0, remaining: 0 };
+  }
+
+  let synced = 0;
+  let failed = 0;
+  const remainingQueue: QueuedMutation[] = [];
+
+  const currentApiUrl = getApiUrl();
+  const token = getAuthToken();
+
+  for (const item of queue) {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(item.headers || {}),
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const fullUrl = item.endpoint.startsWith('http') ? item.endpoint : `${currentApiUrl}${item.endpoint}`;
+      const res = await fetch(fullUrl, {
+        method: item.method,
+        headers,
+        body: item.body,
+      });
+
+      if (res.ok || (res.status >= 200 && res.status < 300)) {
+        synced++;
+      } else if (res.status >= 400 && res.status < 500) {
+        // Error irrecuperable de cliente: descartar para evitar taponar la cola
+        failed++;
+      } else {
+        // Error de servidor (5xx): mantener para reintento
+        item.retryCount = (item.retryCount || 0) + 1;
+        remainingQueue.push(item);
+      }
+    } catch {
+      // Red aún caída: conservar mutación
+      remainingQueue.push(item);
+    }
+  }
+
+  await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(remainingQueue));
+  notifyQueueListeners(remainingQueue.length);
+  return { synced, failed, remaining: remainingQueue.length };
+}
+
+export async function clearOfflineQueue(): Promise<void> {
+  await AsyncStorage.removeItem(OFFLINE_QUEUE_KEY);
+  notifyQueueListeners(0);
+}
+
+export async function fetchWithAuth(endpoint: string, options: RequestInit = {}): Promise<Response> {
   const currentApiUrl = getApiUrl();
   const token = getAuthToken();
 
@@ -174,9 +293,92 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  const method = (options.method || 'GET').toUpperCase();
   const fullUrl = endpoint.startsWith('http') ? endpoint : `${currentApiUrl}${endpoint}`;
-  return fetch(fullUrl, {
-    ...options,
-    headers,
-  });
+
+  try {
+    const res = await fetch(fullUrl, {
+      ...options,
+      headers,
+    });
+    return res;
+  } catch (err: any) {
+    const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+    const isNetworkError =
+      err?.message?.includes('Network request failed') ||
+      err?.name === 'TypeError' ||
+      err?.message?.includes('fetch failed') ||
+      err?.message?.includes('Failed to fetch');
+
+    if (isMutation && isNetworkError) {
+      console.warn(`[OfflineQueue] Encolando mutación offline ${method} ${endpoint}`);
+      await enqueueOfflineMutation(endpoint, method, options);
+
+      const mockBody = JSON.stringify({
+        _offlineQueued: true,
+        message: 'Guardado en cola offline. Se sincronizará automáticamente cuando recuperes conexión.',
+      });
+
+      if (typeof Response !== 'undefined') {
+        try {
+          return new Response(mockBody, {
+            status: 202,
+            statusText: 'Accepted (Offline Queued)',
+            headers: { 'Content-Type': 'application/json' },
+          });
+        } catch {}
+      }
+
+      return {
+        ok: true,
+        status: 202,
+        statusText: 'Accepted (Offline Queued)',
+        json: async () => JSON.parse(mockBody),
+        text: async () => mockBody,
+        headers: { get: () => 'application/json' } as any,
+      } as unknown as Response;
+    }
+
+    throw err;
+  }
+}
+
+
+/**
+ * Obtiene la lista de hogares disponibles para el usuario actual.
+ */
+export async function getAvailableHouseholds(): Promise<any[]> {
+  try {
+    const res = await fetchWithAuth('/api/auth/me');
+    if (res.ok) {
+      const data = await res.json();
+      return data.availableHouseholds || [];
+    }
+  } catch (e) {
+    console.error('Error fetching available households:', e);
+  }
+  return [];
+}
+
+/**
+ * Cambia el hogar activo del usuario, actualizando el JWT y el hogar en storage.
+ */
+export async function switchHouseholdApi(targetHouseholdId: string): Promise<boolean> {
+  try {
+    const res = await fetchWithAuth('/api/auth/switch-household', {
+      method: 'POST',
+      body: JSON.stringify({ householdId: targetHouseholdId }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.accessToken) setAuthToken(data.accessToken);
+      if (data.user) setUser(data.user);
+      if (data.household) setHousehold(data.household);
+      return true;
+    }
+  } catch (e) {
+    console.error('Error conmutando hogar:', e);
+  }
+  return false;
 }

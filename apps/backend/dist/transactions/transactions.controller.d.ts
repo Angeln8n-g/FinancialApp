@@ -72,11 +72,26 @@ export declare class TransactionsController {
         categoryId: string | null;
         createdById: string | null;
     })[]>;
-    getSummary(user: UserPayload): Promise<{
+    getSummary(user: UserPayload, currency?: string): Promise<{
         totalBalance: number;
         monthlyIncome: number;
         monthlyExpense: number;
+        baseCurrency: string;
         accountsCount: number;
+        safeToSpend: {
+            liquidBalance: number;
+            pendingCommitments: number;
+            safeToSpendMonth: number;
+            safeToSpendDaily: number;
+            daysRemaining: number;
+            daysInMonth: number;
+            healthStatus: "HEALTHY" | "MODERATE" | "CRITICAL";
+            breakdown: {
+                pendingRemindersTotal: number;
+                pendingSubscriptionsTotal: number;
+                upcomingDebtsTotal: number;
+            };
+        };
     }>;
     create(user: UserPayload, dto: CreateTransactionDto): Promise<{
         account: {
@@ -279,9 +294,20 @@ export declare class TransactionsController {
         createdById: string | null;
     }>;
     importBankStatement(user: UserPayload, body: {
-        rawContent: string;
+        accountId?: string;
+        rawContent?: string;
+        transactions?: Array<{
+            date?: string;
+            description: string;
+            amount: number;
+            type: any;
+            categoryId?: string;
+            accountId?: string;
+        }>;
     }): Promise<{
+        success: boolean;
         message: string;
         importedCount: number;
+        skippedCount: number;
     }>;
 }

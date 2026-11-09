@@ -12,4 +12,5 @@ export declare class EventsGateway implements OnGatewayConnection, OnGatewayDisc
         room: string;
     } | undefined;
     notifyHouseholdChange(householdId: string, entity: string, action: string, userId?: string): void;
+    emitHouseholdDataChanged(householdId: string, payload: any): void;
 }

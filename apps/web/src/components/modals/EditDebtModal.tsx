@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Pencil, X, Sparkles, Target, Calendar, TrendingDown, AlertTriangle } from 'lucide-react';
+import { Pencil, X, Sparkles, Target, Calendar, TrendingDown, AlertTriangle, Bell, Clock, ShieldAlert } from 'lucide-react';
 
 interface EditDebtModalProps {
   isOpen: boolean;
@@ -12,10 +12,16 @@ interface EditDebtModalProps {
     totalAmount: number;
     remainingAmount: number;
     interestRate: number;
+    dueDate?: string | null;
     targetPayoffDate?: string | null;
     monthlyTargetPayment?: number | null;
     mitigationStrategy?: 'AVALANCHE' | 'SNOWBALL' | 'CUSTOM' | null;
     notes?: string | null;
+    cutoffDay?: number | null;
+    paymentDueDay?: number | null;
+    minimumPayment?: number | null;
+    alertDaysBefore?: number | null;
+    autoAlert?: boolean | null;
   } | null;
   onConfirm: (
     debtId: string,
@@ -24,10 +30,16 @@ interface EditDebtModalProps {
       totalAmount?: number;
       remainingAmount?: number;
       interestRate?: number;
+      dueDate?: string | null;
       targetPayoffDate?: string | null;
       monthlyTargetPayment?: number | null;
       mitigationStrategy?: 'AVALANCHE' | 'SNOWBALL' | 'CUSTOM';
       notes?: string | null;
+      cutoffDay?: number | null;
+      paymentDueDay?: number | null;
+      minimumPayment?: number | null;
+      alertDaysBefore?: number | null;
+      autoAlert?: boolean;
     },
   ) => Promise<void>;
 }
@@ -42,10 +54,19 @@ export default function EditDebtModal({
   const [totalAmount, setTotalAmount] = useState('');
   const [remainingAmount, setRemainingAmount] = useState('');
   const [interestRate, setInterestRate] = useState('');
+  const [dueDate, setDueDate] = useState('');
   const [targetPayoffDate, setTargetPayoffDate] = useState('');
   const [monthlyTargetPayment, setMonthlyTargetPayment] = useState('');
   const [mitigationStrategy, setMitigationStrategy] = useState<'AVALANCHE' | 'SNOWBALL' | 'CUSTOM'>('CUSTOM');
   const [notes, setNotes] = useState('');
+
+  // Fechas operativas, cortes y alertas
+  const [cutoffDay, setCutoffDay] = useState('');
+  const [paymentDueDay, setPaymentDueDay] = useState('');
+  const [minimumPayment, setMinimumPayment] = useState('');
+  const [alertDaysBefore, setAlertDaysBefore] = useState('3');
+  const [autoAlert, setAutoAlert] = useState(true);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,6 +76,14 @@ export default function EditDebtModal({
       setTotalAmount(debt.totalAmount != null ? debt.totalAmount.toString() : '');
       setRemainingAmount(debt.remainingAmount != null ? debt.remainingAmount.toString() : '');
       setInterestRate(debt.interestRate != null ? debt.interestRate.toString() : '0');
+      
+      if (debt.dueDate) {
+        const d = new Date(debt.dueDate);
+        setDueDate(d.toISOString().split('T')[0]);
+      } else {
+        setDueDate('');
+      }
+
       if (debt.targetPayoffDate) {
         const d = new Date(debt.targetPayoffDate);
         setTargetPayoffDate(d.toISOString().split('T')[0]);
@@ -66,6 +95,13 @@ export default function EditDebtModal({
       );
       setMitigationStrategy(debt.mitigationStrategy || 'CUSTOM');
       setNotes(debt.notes || '');
+
+      setCutoffDay(debt.cutoffDay != null ? debt.cutoffDay.toString() : '');
+      setPaymentDueDay(debt.paymentDueDay != null ? debt.paymentDueDay.toString() : '');
+      setMinimumPayment(debt.minimumPayment != null ? debt.minimumPayment.toString() : '');
+      setAlertDaysBefore(debt.alertDaysBefore != null ? debt.alertDaysBefore.toString() : '3');
+      setAutoAlert(debt.autoAlert !== false);
+
       setError(null);
     }
   }, [debt]);
@@ -104,6 +140,18 @@ export default function EditDebtModal({
       return;
     }
 
+    const cDay = parseInt(cutoffDay, 10);
+    if (cutoffDay.trim() && (isNaN(cDay) || cDay < 1 || cDay > 31)) {
+      setError('El día de corte debe ser un número entre 1 y 31.');
+      return;
+    }
+
+    const pDay = parseInt(paymentDueDay, 10);
+    if (paymentDueDay.trim() && (isNaN(pDay) || pDay < 1 || pDay > 31)) {
+      setError('El día límite de pago debe ser un número entre 1 y 31.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -113,10 +161,16 @@ export default function EditDebtModal({
         totalAmount: parsedTotal,
         remainingAmount: parsedRem,
         interestRate: parseFloat(interestRate) || 0,
+        dueDate: dueDate ? dueDate : null,
         targetPayoffDate: targetPayoffDate ? targetPayoffDate : null,
         monthlyTargetPayment: monthlyTargetPayment ? parseFloat(monthlyTargetPayment) : null,
         mitigationStrategy,
         notes: notes.trim() || null,
+        cutoffDay: !isNaN(cDay) ? cDay : null,
+        paymentDueDay: !isNaN(pDay) ? pDay : null,
+        minimumPayment: minimumPayment ? parseFloat(minimumPayment) : null,
+        alertDaysBefore: parseInt(alertDaysBefore, 10) || 3,
+        autoAlert,
       });
       onClose();
     } catch (err: any) {
@@ -132,7 +186,7 @@ export default function EditDebtModal({
         <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#1E2B4D]">
           <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
             <Pencil className="w-5 h-5 text-emerald-400" />
-            <span>Editar Deuda y Plan de Mitigación</span>
+            <span>Editar Deuda, Fechas y Mitigación</span>
           </h3>
           <button
             onClick={onClose}
@@ -223,11 +277,112 @@ export default function EditDebtModal({
             </div>
           </div>
 
-          {/* Sección de Plan de Mitigación */}
+          {/* 📅 SECCIÓN: FECHAS DE PAGO, CORTES Y ALERTAS */}
+          <div className="p-4 rounded-xl bg-[#0A1128] border border-amber-500/30 space-y-3.5">
+            <div className="flex items-center gap-2 text-amber-400 font-semibold text-xs uppercase tracking-wider">
+              <Bell className="w-4 h-4 text-amber-400" />
+              <span>Fechas de Pago, Cortes y Alertas Automáticas</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                  Día de Corte Mensual (1 - 31)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={cutoffDay}
+                  onChange={(e) => setCutoffDay(e.target.value)}
+                  placeholder="Ej: 15"
+                  className="w-full px-3.5 py-2 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 tabular-nums transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                  Día Límite de Pago Mensual (1 - 31)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={paymentDueDay}
+                  onChange={(e) => setPaymentDueDay(e.target.value)}
+                  placeholder="Ej: 30"
+                  className="w-full px-3.5 py-2 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 tabular-nums transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                  Cuota Mínima Obligatoria ($)
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs font-bold">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={minimumPayment}
+                    onChange={(e) => setMinimumPayment(e.target.value)}
+                    placeholder="Ej: 120.00"
+                    className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 tabular-nums transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                  Fecha Límite Puntual (Opcional)
+                </label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-[#1E2B4D]/60">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoAlert}
+                  onChange={(e) => setAutoAlert(e.target.checked)}
+                  className="rounded border-[#1E2B4D] text-amber-500 focus:ring-0 cursor-pointer w-4 h-4 bg-[#101A36]"
+                />
+                <span className="text-xs text-slate-200 font-medium">
+                  Crear recordatorio de pago automático
+                </span>
+              </label>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-slate-400">Avisar</span>
+                <select
+                  value={alertDaysBefore}
+                  onChange={(e) => setAlertDaysBefore(e.target.value)}
+                  className="px-2 py-1 rounded-lg bg-[#101A36] border border-[#1E2B4D] text-slate-200 text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
+                >
+                  <option value="1">1 día antes</option>
+                  <option value="3">3 días antes</option>
+                  <option value="5">5 días antes</option>
+                  <option value="7">7 días antes</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* 🎯 SECCIÓN DE PLAN DE MITIGACIÓN */}
           <div className="p-4 rounded-xl bg-[#0A1128] border border-emerald-500/30 space-y-4">
             <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs uppercase tracking-wider">
               <Target className="w-4 h-4 text-emerald-400" />
-              <span>Plan de Mitigación y Saldado Objetivo</span>
+              <span>Estrategia de Mitigación y Desendeudamiento</span>
             </div>
 
             {/* Estrategia de Pago */}
@@ -289,9 +444,9 @@ export default function EditDebtModal({
             {/* Fecha Objetivo de Saldado */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                <label className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Fecha Objetivo de Saldado</span>
+                  <span>Fecha Meta para Liquidar</span>
                 </label>
                 <input
                   type="date"
@@ -303,7 +458,7 @@ export default function EditDebtModal({
 
               <div>
                 <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
-                  Cuota Mensual Comprometida ($)
+                  Aporte Mensual Objetivo ($)
                 </label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs font-bold">
@@ -325,7 +480,7 @@ export default function EditDebtModal({
             {suggestedMonthly !== null && suggestedMonthly > 0 && (
               <div className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
                 <span className="text-slate-300">
-                  Cuota sugerida para saldar en {monthsUntilTarget} meses:{' '}
+                  Aporte mensual recomendado para saldar en {monthsUntilTarget} meses:{' '}
                   <strong className="text-emerald-400 tabular-nums">
                     ${suggestedMonthly.toLocaleString('en-US', { minimumFractionDigits: 2 })}/mes
                   </strong>
@@ -349,7 +504,7 @@ export default function EditDebtModal({
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Número de contrato, contacto del asesor, detalles de penalización..."
+              placeholder="Número de contrato, contacto del asesor, penalidades por mora..."
               className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-emerald-400 transition-colors resize-none"
             />
           </div>

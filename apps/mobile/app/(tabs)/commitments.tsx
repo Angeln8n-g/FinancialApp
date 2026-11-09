@@ -10,8 +10,24 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
+  Switch,
 } from 'react-native';
 import { fetchWithAuth } from '@/constants/Api';
+import { FamilyMint } from '@/constants/Colors';
+import {
+  Edit3,
+  Trash2,
+  Calendar,
+  Bell,
+  Clock,
+  AlertTriangle,
+  Target,
+  Sparkles,
+  TrendingDown,
+  CreditCard,
+  Tv,
+} from 'lucide-react-native';
+import EditDebtModal from '@/components/modals/EditDebtModal';
 
 interface DebtItem {
   id: string;
@@ -30,6 +46,19 @@ interface DebtItem {
   daysRemaining?: number | null;
   suggestedMonthlyPayment?: number | null;
   isPaidOff?: boolean;
+  // Fechas operativas, cortes y alertas
+  cutoffDay?: number | null;
+  paymentDueDay?: number | null;
+  minimumPayment?: number | null;
+  alertDaysBefore?: number | null;
+  autoAlert?: boolean;
+  nextClosingDate?: string | null;
+  daysUntilCutoff?: number | null;
+  nextPaymentDueDate?: string | null;
+  daysUntilPaymentDue?: number | null;
+  isDueSoon?: boolean;
+  isOverdue?: boolean;
+  alertBadge?: 'NORMAL' | 'DUE_SOON' | 'OVERDUE';
 }
 
 interface SubscriptionItem {
@@ -85,6 +114,8 @@ export default function MobileCommitmentsScreen() {
   const [showSubModal, setShowSubModal] = useState(false);
   const [showEditSubModal, setShowEditSubModal] = useState(false);
   const [showReminderModal, setShowReminderModal] = useState(false);
+  const [selectedDebtForEdit, setSelectedDebtForEdit] = useState<any | null>(null);
+  const [showEditDebtModal, setShowEditDebtModal] = useState(false);
 
   // Formulario Crear Deuda
   const [dName, setDName] = useState('');
@@ -94,6 +125,11 @@ export default function MobileCommitmentsScreen() {
   const [dTargetDate, setDTargetDate] = useState('');
   const [dTargetMonthly, setDTargetMonthly] = useState('');
   const [dNotes, setDNotes] = useState('');
+  const [dCutoffDay, setDCutoffDay] = useState('');
+  const [dPaymentDueDay, setDPaymentDueDay] = useState('');
+  const [dMinimumPayment, setDMinimumPayment] = useState('');
+  const [dAlertDaysBefore, setDAlertDaysBefore] = useState('3');
+  const [dAutoAlert, setDAutoAlert] = useState(true);
   const [isSubmittingDebt, setIsSubmittingDebt] = useState(false);
 
   // Formulario Abonar a Deuda
@@ -159,6 +195,18 @@ export default function MobileCommitmentsScreen() {
               daysRemaining: d.daysRemaining,
               suggestedMonthlyPayment: d.suggestedMonthlyPayment ? Number(d.suggestedMonthlyPayment) : null,
               isPaidOff: d.isPaidOff || false,
+              cutoffDay: d.cutoffDay || null,
+              paymentDueDay: d.paymentDueDay || null,
+              minimumPayment: d.minimumPayment ? Number(d.minimumPayment) : null,
+              alertDaysBefore: d.alertDaysBefore ?? 3,
+              autoAlert: d.autoAlert !== false,
+              nextClosingDate: d.nextClosingDate || null,
+              daysUntilCutoff: d.daysUntilCutoff != null ? Number(d.daysUntilCutoff) : null,
+              nextPaymentDueDate: d.nextPaymentDueDate || null,
+              daysUntilPaymentDue: d.daysUntilPaymentDue != null ? Number(d.daysUntilPaymentDue) : null,
+              isDueSoon: !!d.isDueSoon,
+              isOverdue: !!d.isOverdue,
+              alertBadge: d.alertBadge || 'NORMAL',
             }))
           );
         }
@@ -251,6 +299,21 @@ export default function MobileCommitmentsScreen() {
       return;
     }
 
+    const cDay = parseInt(dCutoffDay, 10);
+    if (dCutoffDay.trim() && (isNaN(cDay) || cDay < 1 || cDay > 31)) {
+      Alert.alert('Día de Corte Inválido', 'El día de corte debe ser un número entre 1 y 31.');
+      return;
+    }
+
+    const pDay = parseInt(dPaymentDueDay, 10);
+    if (dPaymentDueDay.trim() && (isNaN(pDay) || pDay < 1 || pDay > 31)) {
+      Alert.alert('Día Límite Inválido', 'El día límite de pago debe ser un número entre 1 y 31.');
+      return;
+    }
+
+    const minPay = parseFloat(dMinimumPayment);
+    const alertDays = parseInt(dAlertDaysBefore, 10) || 3;
+
     try {
       setIsSubmittingDebt(true);
       const res = await fetchWithAuth('/api/debts', {
@@ -265,6 +328,11 @@ export default function MobileCommitmentsScreen() {
           targetPayoffDate: dTargetDate ? new Date(dTargetDate).toISOString() : undefined,
           monthlyTargetPayment: dTargetMonthly ? parseFloat(dTargetMonthly) : undefined,
           notes: dNotes.trim() || undefined,
+          cutoffDay: !isNaN(cDay) && cDay >= 1 && cDay <= 31 ? cDay : undefined,
+          paymentDueDay: !isNaN(pDay) && pDay >= 1 && pDay <= 31 ? pDay : undefined,
+          minimumPayment: !isNaN(minPay) && minPay > 0 ? minPay : undefined,
+          alertDaysBefore: alertDays,
+          autoAlert: dAutoAlert,
         }),
       });
 
@@ -280,6 +348,11 @@ export default function MobileCommitmentsScreen() {
       setDTargetDate('');
       setDTargetMonthly('');
       setDNotes('');
+      setDCutoffDay('');
+      setDPaymentDueDay('');
+      setDMinimumPayment('');
+      setDAlertDaysBefore('3');
+      setDAutoAlert(true);
       Alert.alert('¡Éxito!', 'Plan de deuda registrado con éxito.');
       loadData();
     } catch (e: any) {
@@ -679,14 +752,39 @@ export default function MobileCommitmentsScreen() {
                         <Text style={styles.rateText}>{d.interestRate}% Interés</Text>
                       </View>
                     )}
+                    {d.isOverdue && !isDone && (
+                      <View style={[styles.stratBadge, styles.overdueBadge]}>
+                        <Text style={styles.overdueBadgeText}>
+                          🚨 Vencida ({Math.abs(d.daysUntilPaymentDue || 0)}d)
+                        </Text>
+                      </View>
+                    )}
+                    {d.isDueSoon && !isDone && (
+                      <View style={[styles.stratBadge, styles.dueSoonBadge]}>
+                        <Text style={styles.dueSoonBadgeText}>
+                          ⏰ Vence en {d.daysUntilPaymentDue}d
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </View>
-                <TouchableOpacity
-                  style={styles.deleteIconBtn}
-                  onPress={() => handleDeleteDebt(d.id, d.contactName)}
-                >
-                  <Text style={{ fontSize: 14 }}>🗑️</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <TouchableOpacity
+                    style={styles.iconCircleBtn}
+                    onPress={() => {
+                      setSelectedDebtForEdit(d);
+                      setShowEditDebtModal(true);
+                    }}
+                  >
+                    <Edit3 size={15} color={FamilyMint.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteIconBtn}
+                    onPress={() => handleDeleteDebt(d.id, d.contactName)}
+                  >
+                    <Trash2 size={15} color={FamilyMint.expense} />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Saldo y Amortización */}
@@ -722,6 +820,48 @@ export default function MobileCommitmentsScreen() {
                   {isDone && <Text style={styles.debtDoneBadge}>✅ Liquidada</Text>}
                 </View>
               </View>
+
+              {/* Ciclo Operativo: Corte, Pago Límite y Cuota Mínima */}
+              {(d.cutoffDay || d.paymentDueDay || d.minimumPayment) && (
+                <View style={styles.operationalCardBox}>
+                  <View style={styles.operationalCardRow}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Calendar size={12} color={FamilyMint.warning} />
+                      <Text style={styles.operationalCardLabel}>Ciclo de Pago:</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      {d.cutoffDay && (
+                        <Text style={styles.operationalCardValue}>
+                          Corte: <Text style={{ color: FamilyMint.warning, fontWeight: '700' }}>Día {d.cutoffDay}</Text>
+                          {d.daysUntilCutoff != null && (
+                            <Text style={{ color: FamilyMint.foregroundSubtle, fontSize: 10 }}> ({d.daysUntilCutoff}d)</Text>
+                          )}
+                        </Text>
+                      )}
+                      {d.paymentDueDay && (
+                        <Text style={styles.operationalCardValue}>
+                          Límite: <Text style={{ color: FamilyMint.warning, fontWeight: '700' }}>Día {d.paymentDueDay}</Text>
+                          {d.daysUntilPaymentDue != null && !d.isOverdue && (
+                            <Text style={{ color: FamilyMint.foregroundSubtle, fontSize: 10 }}> ({d.daysUntilPaymentDue}d)</Text>
+                          )}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {d.minimumPayment && (
+                    <View style={[styles.operationalCardRow, { paddingTop: 6, marginTop: 4, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.06)' }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Bell size={12} color={FamilyMint.warning} />
+                        <Text style={styles.operationalCardLabel}>Pago Mínimo:</Text>
+                      </View>
+                      <Text style={styles.minimumPaymentValue}>
+                        RD${Number(d.minimumPayment).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
 
               {/* Metas y Proyección */}
               {(d.targetPayoffDate || d.monthlyTargetPayment) && (
@@ -973,6 +1113,87 @@ export default function MobileCommitmentsScreen() {
                 value={dTargetMonthly}
                 onChangeText={setDTargetMonthly}
               />
+
+              {/* Fechas de Pago, Cortes y Alertas Automáticas */}
+              <View style={styles.operationalBoxModal}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                  <Bell size={15} color={FamilyMint.warning} />
+                  <Text style={styles.operationalBoxTitle}>Fechas de Pago, Cortes y Alertas</Text>
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Día de Corte (1-31)</Text>
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="Ej. 15"
+                      placeholderTextColor="#94a3b8"
+                      keyboardType="numeric"
+                      value={dCutoffDay}
+                      onChangeText={setDCutoffDay}
+                      maxLength={2}
+                    />
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Día Límite Pago (1-31)</Text>
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="Ej. 30"
+                      placeholderTextColor="#94a3b8"
+                      keyboardType="numeric"
+                      value={dPaymentDueDay}
+                      onChangeText={setDPaymentDueDay}
+                      maxLength={2}
+                    />
+                  </View>
+                </View>
+
+                <Text style={styles.inputLabel}>Cuota Mínima Obligatoria (RD$)</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Ej. 1500.00"
+                  placeholderTextColor="#94a3b8"
+                  keyboardType="numeric"
+                  value={dMinimumPayment}
+                  onChangeText={setDMinimumPayment}
+                />
+
+                <View style={styles.switchRow}>
+                  <View style={{ flex: 1, marginRight: 8 }}>
+                    <Text style={styles.switchTitle}>Alerta Automática de Pago</Text>
+                    <Text style={styles.switchSub}>Genera recordatorios de vencimiento en el hogar</Text>
+                  </View>
+                  <Switch
+                    value={dAutoAlert}
+                    onValueChange={setDAutoAlert}
+                    trackColor={{ false: '#162347', true: 'rgba(245, 158, 11, 0.4)' }}
+                    thumbColor={dAutoAlert ? FamilyMint.warning : FamilyMint.foregroundSubtle}
+                  />
+                </View>
+
+                {dAutoAlert && (
+                  <View style={{ marginTop: 8 }}>
+                    <Text style={styles.inputLabel}>Anticipación del Recordatorio</Text>
+                    <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                      {['1', '3', '5', '7'].map((days) => {
+                        const isSel = dAlertDaysBefore === days;
+                        return (
+                          <TouchableOpacity
+                            key={days}
+                            style={[styles.daysChip, isSel && styles.daysChipActive]}
+                            onPress={() => setDAlertDaysBefore(days)}
+                          >
+                            <Text style={[styles.daysChipText, isSel && styles.daysChipTextActive]}>
+                              {days} {days === '1' ? 'día' : 'días'} antes
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+              </View>
 
               <View style={styles.modalActions}>
                 <TouchableOpacity
@@ -1415,6 +1636,17 @@ export default function MobileCommitmentsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* 6. MODAL EDITAR DEUDA */}
+      <EditDebtModal
+        visible={showEditDebtModal}
+        onClose={() => {
+          setShowEditDebtModal(false);
+          setSelectedDebtForEdit(null);
+        }}
+        debt={selectedDebtForEdit}
+        onSuccess={() => loadData()}
+      />
     </ScrollView>
   );
 }
@@ -1746,4 +1978,99 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveBtnText: { color: '#ffffff', fontSize: 12, fontWeight: 'bold' },
+  /* OPERATIONAL STYLES */
+  overdueBadge: {
+    backgroundColor: 'rgba(244, 63, 94, 0.15)',
+    borderColor: 'rgba(244, 63, 94, 0.4)',
+  },
+  overdueBadgeText: { color: '#f43f5e', fontSize: 10, fontWeight: '700' },
+  dueSoonBadge: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+  },
+  dueSoonBadgeText: { color: '#f59e0b', fontSize: 10, fontWeight: '700' },
+  operationalCardBox: {
+    backgroundColor: '#0a1128',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+    padding: 10,
+    marginBottom: 10,
+  },
+  operationalCardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  operationalCardLabel: {
+    fontSize: 10,
+    color: '#94a3b8',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  operationalCardValue: {
+    fontSize: 11,
+    color: '#e2e8f0',
+    fontWeight: '500',
+  },
+  minimumPaymentValue: {
+    fontSize: 11,
+    color: '#f59e0b',
+    fontWeight: '700',
+  },
+  operationalBoxModal: {
+    backgroundColor: '#0a1128',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    padding: 12,
+    marginBottom: 12,
+  },
+  operationalBoxTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#f59e0b',
+    textTransform: 'uppercase',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    marginTop: 4,
+  },
+  switchTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#e2e8f0',
+  },
+  switchSub: {
+    fontSize: 9,
+    color: '#94a3b8',
+    marginTop: 1,
+  },
+  daysChip: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#162347',
+    borderWidth: 1,
+    borderColor: '#1e2b4d',
+    alignItems: 'center',
+  },
+  daysChipActive: {
+    borderColor: '#f59e0b',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+  },
+  daysChipText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#94a3b8',
+  },
+  daysChipTextActive: {
+    color: '#f59e0b',
+    fontWeight: '700',
+  },
 });

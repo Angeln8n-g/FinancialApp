@@ -33,6 +33,17 @@ export declare class NotificationsService {
         isRead: boolean;
         metadata: string | null;
     }>;
+    create(dataOrHouseholdId: any, title?: string, body?: string): Promise<{
+        id: string;
+        createdAt: Date;
+        userId: string;
+        householdId: string;
+        type: string;
+        title: string;
+        body: string;
+        isRead: boolean;
+        metadata: string | null;
+    } | null>;
     markAsRead(id: string, userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
     markAllAsRead(userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
     registerPushToken(userId: string, pushToken: string): Promise<{

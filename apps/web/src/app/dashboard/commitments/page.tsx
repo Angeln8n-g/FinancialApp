@@ -25,6 +25,9 @@ import {
   CheckCircle2,
   Coins,
   ArrowRight,
+  Bell,
+  Clock,
+  Calendar,
 } from 'lucide-react';
 
 export default function CommitmentsPage() {
@@ -62,6 +65,11 @@ export default function CommitmentsPage() {
   const [dMonthlyTargetPayment, setDMonthlyTargetPayment] = useState('');
   const [dMitigationStrategy, setDMitigationStrategy] = useState<'AVALANCHE' | 'SNOWBALL' | 'CUSTOM'>('CUSTOM');
   const [dNotes, setDNotes] = useState('');
+  const [dCutoffDay, setDCutoffDay] = useState('');
+  const [dPaymentDueDay, setDPaymentDueDay] = useState('');
+  const [dMinimumPayment, setDMinimumPayment] = useState('');
+  const [dAlertDaysBefore, setDAlertDaysBefore] = useState('3');
+  const [dAutoAlert, setDAutoAlert] = useState(true);
 
   // Form Suscripción (Nueva)
   const [sName, setSName] = useState('');
@@ -198,6 +206,11 @@ export default function CommitmentsPage() {
     e.preventDefault();
     if (!dName || !dTotalAmount) return;
 
+    const cDay = parseInt(dCutoffDay, 10);
+    const pDay = parseInt(dPaymentDueDay, 10);
+    const minPay = parseFloat(dMinimumPayment);
+    const alertDays = parseInt(dAlertDaysBefore, 10) || 3;
+
     try {
       await apiFetch('/api/debts', {
         method: 'POST',
@@ -210,6 +223,11 @@ export default function CommitmentsPage() {
           monthlyTargetPayment: dMonthlyTargetPayment ? parseFloat(dMonthlyTargetPayment) : undefined,
           mitigationStrategy: dMitigationStrategy,
           notes: dNotes.trim() || undefined,
+          cutoffDay: !isNaN(cDay) && cDay >= 1 && cDay <= 31 ? cDay : undefined,
+          paymentDueDay: !isNaN(pDay) && pDay >= 1 && pDay <= 31 ? pDay : undefined,
+          minimumPayment: !isNaN(minPay) && minPay > 0 ? minPay : undefined,
+          alertDaysBefore: alertDays,
+          autoAlert: dAutoAlert,
         }),
       });
 
@@ -222,6 +240,11 @@ export default function CommitmentsPage() {
       setDMonthlyTargetPayment('');
       setDMitigationStrategy('CUSTOM');
       setDNotes('');
+      setDCutoffDay('');
+      setDPaymentDueDay('');
+      setDMinimumPayment('');
+      setDAlertDaysBefore('3');
+      setDAutoAlert(true);
       fetchData();
     } catch (err: any) {
       alert(err.message || 'Error creando deuda');
@@ -591,6 +614,16 @@ export default function CommitmentsPage() {
                             <CheckCircle2 className="w-3 h-3" /> Saldada
                           </span>
                         )}
+                        {d.isOverdue && !isPaid && (
+                          <span className="text-[10px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3 text-rose-400" /> Vencida ({Math.abs(d.daysUntilPaymentDue || 0)}d)
+                          </span>
+                        )}
+                        {d.isDueSoon && !isPaid && (
+                          <span className="text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-amber-400" /> Vence en {d.daysUntilPaymentDue}d
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -626,6 +659,46 @@ export default function CommitmentsPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Ciclo Operativo: Corte, Pago Límite y Cuota Mínima */}
+                    {(d.cutoffDay || d.paymentDueDay || d.minimumPayment) && (
+                      <div className="p-2.5 rounded-xl bg-[#0A1128] border border-amber-500/25 text-[11px] space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-amber-400" /> Ciclo de Pago:
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {d.cutoffDay && (
+                              <span className="text-slate-300 font-medium">
+                                Corte: <strong className="text-amber-300">Día {d.cutoffDay}</strong>
+                                {d.daysUntilCutoff != null && (
+                                  <span className="text-[10px] text-slate-400 ml-1">({d.daysUntilCutoff}d)</span>
+                                )}
+                              </span>
+                            )}
+                            {d.paymentDueDay && (
+                              <span className="text-slate-300 font-medium">
+                                Límite: <strong className="text-amber-300">Día {d.paymentDueDay}</strong>
+                                {d.daysUntilPaymentDue != null && !d.isOverdue && (
+                                  <span className="text-[10px] text-slate-400 ml-1">({d.daysUntilPaymentDue}d)</span>
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {d.minimumPayment && (
+                          <div className="flex items-center justify-between pt-1 border-t border-[#1E2B4D]/60">
+                            <span className="text-slate-400 flex items-center gap-1">
+                              <Bell className="w-3 h-3 text-amber-400" /> Pago Mínimo:
+                            </span>
+                            <span className="font-bold text-amber-300 tabular-nums">
+                              ${Number(d.minimumPayment).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Plan Objetivo de Mitigación */}
                     {(d.targetPayoffDate || d.monthlyTargetPayment || d.suggestedMonthlyPayment) && (
@@ -947,6 +1020,97 @@ export default function CommitmentsPage() {
                   placeholder="0.0"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 tabular-nums transition-colors"
                 />
+              </div>
+
+              {/* Fechas de Pago, Cortes y Alertas Automáticas */}
+              <div className="p-3.5 rounded-xl bg-[#0A1128] border border-amber-500/30 space-y-3">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+                  <Bell className="w-3.5 h-3.5" />
+                  <span>Fechas de Pago, Cortes y Alertas Automáticas</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">
+                      Día de Corte Mensual (1 - 31)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={dCutoffDay}
+                      onChange={(e) => setDCutoffDay(e.target.value)}
+                      placeholder="Ej. 15"
+                      className="w-full px-3 py-2 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 tabular-nums transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">
+                      Día Límite de Pago Mensual (1 - 31)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={dPaymentDueDay}
+                      onChange={(e) => setDPaymentDueDay(e.target.value)}
+                      placeholder="Ej. 30"
+                      className="w-full px-3 py-2 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 tabular-nums transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">
+                      Cuota Mínima Obligatoria ($)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs font-bold">
+                        $
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={dMinimumPayment}
+                        onChange={(e) => setDMinimumPayment(e.target.value)}
+                        placeholder="Ej. 120.00"
+                        className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 tabular-nums transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+                    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">
+                      Anticipación de Alerta
+                    </label>
+                    <select
+                      value={dAlertDaysBefore}
+                      onChange={(e) => setDAlertDaysBefore(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-200 text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
+                    >
+                      <option value="1">1 día antes</option>
+                      <option value="3">3 días antes</option>
+                      <option value="5">5 días antes</option>
+                      <option value="7">7 días antes</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-[#1E2B4D]/60 flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={dAutoAlert}
+                      onChange={(e) => setDAutoAlert(e.target.checked)}
+                      className="rounded border-[#1E2B4D] text-amber-500 focus:ring-0 cursor-pointer w-4 h-4 bg-[#101A36]"
+                    />
+                    <span className="text-xs text-slate-200 font-medium">
+                      Crear recordatorio de pago automático
+                    </span>
+                  </label>
+                </div>
               </div>
 
               {/* Sección Opcional: Plan de Mitigación */}

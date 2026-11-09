@@ -47,6 +47,12 @@ let HouseholdController = class HouseholdController {
     async removeMember(user, memberId) {
         return this.householdService.removeMember(user.userId, user.householdId, memberId);
     }
+    async getSplitSummary(user) {
+        return this.householdService.getSplitSummary(user.householdId);
+    }
+    async settleSplit(user, body) {
+        return this.householdService.settleSplit(user.householdId, user.userId, body?.note);
+    }
 };
 exports.HouseholdController = HouseholdController;
 __decorate([
@@ -112,6 +118,21 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
     __metadata("design:returntype", Promise)
 ], HouseholdController.prototype, "removeMember", null);
+__decorate([
+    (0, common_1.Get)('split-summary'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
+    __metadata("design:returntype", Promise)
+], HouseholdController.prototype, "getSplitSummary", null);
+__decorate([
+    (0, common_1.Post)('split-settle'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
+    __metadata("design:returntype", Promise)
+], HouseholdController.prototype, "settleSplit", null);
 exports.HouseholdController = HouseholdController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('api/household'),

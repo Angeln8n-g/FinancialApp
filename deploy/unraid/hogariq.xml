@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>HogarIQ</Name>
+  <Repository>ghcr.io/hogariq/web:v1.0.0</Repository>
+  <Registry>https://github.com/orgs/hogariq/packages</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/hogariq/hogariq/issues</Support>
+  <Project>https://github.com/hogariq/hogariq</Project>
+  <Overview>
+    HogarIQ es el sistema operativo financiero familiar definitivo para Homelab y Self-Hosting.
+    Incluye fórmula Safe-to-Spend en tiempo real, escáner de tickets por OCR local, gastos compartidos 50/50 estilo Splitwise, misiones y educación financiera para hijos, y sincronización offline-first con la app móvil.
+  </Overview>
+  <Category>Finance: Productivity: HomeAutomation: Other:</Category>
+  <WebUI>http://[IP]:[PORT:3010]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/hogariq/hogariq/main/deploy/unraid/hogariq.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/hogariq/hogariq/main/docs/assets/icon.png</Icon>
+  <ExtraParams>--restart unless-stopped</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText>Apoya el desarrollo de código abierto de HogarIQ</DonateText>
+  <DonateLink>https://github.com/sponsors/hogariq</DonateLink>
+  <Requires>PostgreSQL con soporte pgvector o contenedor complementario postgres.</Requires>
+
+  <!-- Puertos -->
+  <Config Name="Web UI Port" Target="3000" Default="3010" Mode="tcp" Description="Puerto Web de acceso a la interfaz de usuario de HogarIQ" Type="Port" Display="always" Required="true" Mask="false">3010</Config>
+
+  <!-- Variables de Entorno -->
+  <Config Name="API URL" Target="NEXT_PUBLIC_API_URL" Default="http://[IP]:3011" Description="URL del backend API para conexión web y mobile" Type="Variable" Display="always" Required="true" Mask="false">http://[IP]:3011</Config>
+  <Config Name="Database URL" Target="DATABASE_URL" Default="postgresql://hogariq:password@192.168.1.100:5432/hogariq_db?schema=public" Description="Cadena de conexión PostgreSQL (requiere pgvector para búsquedas vectoriales)" Type="Variable" Display="always" Required="true" Mask="true">postgresql://hogariq:password@192.168.1.100:5432/hogariq_db?schema=public</Config>
+  <Config Name="JWT Secret" Target="JWT_SECRET" Default="cambia_esta_clave_secreta_jwt_hogariq" Description="Clave secreta segura para firma de tokens de autenticación" Type="Variable" Display="always" Required="true" Mask="true">cambia_esta_clave_secreta_jwt_hogariq</Config>
+
+  <!-- Volúmenes -->
+  <Config Name="Uploads &amp; Attachments" Target="/app/uploads" Default="/mnt/user/appdata/hogariq/uploads" Description="Directorio persistente para tickets escaneados y adjuntos de facturas" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/hogariq/uploads</Config>
+</Container>

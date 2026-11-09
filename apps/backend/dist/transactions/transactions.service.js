@@ -13,13 +13,16 @@ exports.TransactionsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const events_gateway_1 = require("../events/events.gateway");
+const currency_service_1 = require("../currency/currency.service");
 const client_1 = require("@prisma/client");
 let TransactionsService = class TransactionsService {
     prisma;
     eventsGateway;
-    constructor(prisma, eventsGateway) {
+    currencyService;
+    constructor(prisma, eventsGateway, currencyService) {
         this.prisma = prisma;
         this.eventsGateway = eventsGateway;
+        this.currencyService = currencyService;
     }
     async findAllByHousehold(householdId) {
         return this.prisma.transaction.findMany({
@@ -118,48 +121,119 @@ let TransactionsService = class TransactionsService {
         this.eventsGateway.notifyHouseholdChange(householdId, 'transaction', 'CREATE');
         return createdTx;
     }
-    async importBankStatement(householdId, rawContent) {
-        const account = await this.prisma.account.findFirst({
-            where: { householdId },
-            orderBy: { createdAt: 'asc' },
-        });
-        if (!account)
+    async importBankStatement(householdId, dto, currentUserId) {
+        let targetAccount = null;
+        if (dto.accountId) {
+            targetAccount = await this.prisma.account.findFirst({
+                where: { id: dto.accountId, householdId },
+            });
+        }
+        if (!targetAccount) {
+            targetAccount = await this.prisma.account.findFirst({
+                where: { householdId },
+                orderBy: { createdAt: 'asc' },
+            });
+        }
+        if (!targetAccount) {
             throw new common_1.NotFoundException('No hay una cuenta activa para importar el extracto');
-        const lines = rawContent.split(/\r?\n/).filter(line => line.trim().length > 0);
-        const imported = [];
-        for (const line of lines) {
-            const parts = line.split(',');
-            if (parts.length >= 2) {
-                const desc = parts[1]?.trim() || parts[0]?.trim();
-                const amountMatch = (parts[2] || parts[1] || '').match(/(\d+([.,]\d{1,2})?)/);
-                const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '.')) : 25.0;
-                if (amount > 0) {
-                    const tx = await this.create(householdId, {
-                        accountId: account.id,
-                        type: client_1.TransactionType.EXPENSE,
-                        amount,
-                        description: `[Importado] ${desc}`,
-                    });
-                    imported.push(tx);
+        }
+        if (dto.transactions && Array.isArray(dto.transactions)) {
+            const imported = [];
+            let skippedCount = 0;
+            for (const item of dto.transactions) {
+                const itemAmount = Number(item.amount);
+                if (isNaN(itemAmount) || itemAmount <= 0)
+                    continue;
+                const txDate = item.date ? new Date(item.date) : new Date();
+                const startOfDay = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate());
+                const endOfDay = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate(), 23, 59, 59, 999);
+                const itemAccountId = item.accountId || targetAccount.id;
+                const duplicate = await this.prisma.transaction.findFirst({
+                    where: {
+                        householdId,
+                        accountId: itemAccountId,
+                        amount: itemAmount,
+                        type: item.type,
+                        date: { gte: startOfDay, lte: endOfDay },
+                        description: item.description,
+                        isVoided: false,
+                    },
+                });
+                if (duplicate) {
+                    skippedCount++;
+                    continue;
+                }
+                const created = await this.create(householdId, {
+                    accountId: itemAccountId,
+                    type: item.type,
+                    amount: itemAmount,
+                    description: item.description,
+                    categoryId: item.categoryId,
+                    date: txDate.toISOString(),
+                }, currentUserId);
+                imported.push(created);
+            }
+            return {
+                success: true,
+                message: `Se importaron ${imported.length} transacciones correctamente${skippedCount > 0 ? ` (${skippedCount} omitidas por duplicadas)` : ''}`,
+                importedCount: imported.length,
+                skippedCount,
+            };
+        }
+        if (dto.rawContent) {
+            const lines = dto.rawContent.split(/\r?\n/).filter((line) => line.trim().length > 0);
+            const imported = [];
+            for (const line of lines) {
+                const parts = line.split(/[;,]/);
+                if (parts.length >= 2) {
+                    const desc = parts[1]?.trim() || parts[0]?.trim();
+                    const amountMatch = (parts[2] || parts[1] || '').match(/(\d+([.,]\d{1,2})?)/);
+                    const amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '.')) : 25.0;
+                    if (amount > 0) {
+                        const isNegative = (parts[2] || parts[1] || '').includes('-');
+                        const type = isNegative ? client_1.TransactionType.EXPENSE : client_1.TransactionType.INCOME;
+                        const tx = await this.create(householdId, {
+                            accountId: targetAccount.id,
+                            type,
+                            amount,
+                            description: `[Importado] ${desc}`,
+                        }, currentUserId);
+                        imported.push(tx);
+                    }
                 }
             }
+            return {
+                success: true,
+                message: `Se importaron ${imported.length} transacciones en crudo con éxito`,
+                importedCount: imported.length,
+                skippedCount: 0,
+            };
         }
-        return {
-            message: `Se importaron ${imported.length} transacciones masivamente con éxito`,
-            importedCount: imported.length,
-        };
+        throw new common_1.BadRequestException('Se requieren transacciones estructuradas o rawContent');
     }
-    async getSummary(householdId) {
+    async getSummary(householdId, requestedCurrency) {
         const accounts = await this.prisma.account.findMany({
             where: { householdId },
         });
-        const totalBalance = accounts.reduce((acc, account) => acc + Number(account.balance), 0);
+        const baseCurrency = (requestedCurrency || accounts[0]?.currency || 'USD').toUpperCase();
+        await this.currencyService.refreshRates();
+        const totalBalance = accounts.reduce((acc, account) => {
+            const converted = this.currencyService.convert(Number(account.balance), account.currency || 'USD', baseCurrency);
+            return acc + converted;
+        }, 0);
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        const daysInMonth = endOfMonth.getDate();
+        const currentDay = now.getDate();
+        const daysRemaining = Math.max(1, daysInMonth - currentDay + 1);
         const monthlyTransactions = await this.prisma.transaction.findMany({
             where: {
                 householdId,
                 date: { gte: startOfMonth },
+            },
+            include: {
+                account: true,
             },
         });
         let monthlyIncome = 0;
@@ -167,18 +241,90 @@ let TransactionsService = class TransactionsService {
         for (const t of monthlyTransactions) {
             if (t.isVoided)
                 continue;
+            const txCurrency = t.account?.currency || baseCurrency;
+            const amountConverted = this.currencyService.convert(Number(t.amount), txCurrency, baseCurrency);
             if (t.type === client_1.TransactionType.INCOME) {
-                monthlyIncome += Number(t.amount);
+                monthlyIncome += amountConverted;
             }
             else if (t.type === client_1.TransactionType.EXPENSE) {
-                monthlyExpense += Number(t.amount);
+                monthlyExpense += amountConverted;
             }
         }
+        const liquidBalance = accounts
+            .filter((a) => ['CASH', 'BANK_ACCOUNT', 'PAYROLL', 'SAVINGS'].includes(a.type))
+            .reduce((acc, a) => {
+            const bal = Math.max(0, Number(a.balance));
+            return acc + this.currencyService.convert(bal, a.currency || 'USD', baseCurrency);
+        }, 0);
+        const pendingReminders = await this.prisma.reminder.findMany({
+            where: {
+                householdId,
+                isPaid: false,
+                dueDate: { lte: endOfMonth },
+            },
+        });
+        const pendingRemindersTotal = pendingReminders.reduce((acc, r) => acc + Number(r.amount), 0);
+        const reminderSubIds = new Set(pendingReminders.filter((r) => r.subscriptionId).map((r) => r.subscriptionId));
+        const activeSubscriptions = await this.prisma.subscription.findMany({
+            where: {
+                householdId,
+                isActive: true,
+                nextBillingDate: { lte: endOfMonth },
+            },
+            include: {
+                account: true,
+            },
+        });
+        const pendingSubscriptionsTotal = activeSubscriptions
+            .filter((s) => !reminderSubIds.has(s.id))
+            .reduce((acc, s) => {
+            const costConverted = this.currencyService.convert(Number(s.cost), s.account?.currency || 'USD', baseCurrency);
+            return acc + costConverted;
+        }, 0);
+        const reminderDebtIds = new Set(pendingReminders.filter((r) => r.debtId).map((r) => r.debtId));
+        const activeDebts = await this.prisma.debt.findMany({
+            where: {
+                householdId,
+                isPaidOff: false,
+                type: 'OWED_BY_ME',
+            },
+        });
+        const upcomingDebtsTotal = activeDebts
+            .filter((d) => !reminderDebtIds.has(d.id))
+            .reduce((acc, d) => {
+            const payment = Number(d.minimumPayment || d.monthlyTargetPayment || 0);
+            return acc + payment;
+        }, 0);
+        const pendingCommitments = pendingRemindersTotal + pendingSubscriptionsTotal + upcomingDebtsTotal;
+        const safeToSpendMonth = Math.max(0, liquidBalance - pendingCommitments);
+        const safeToSpendDaily = Math.round((safeToSpendMonth / daysRemaining) * 100) / 100;
+        let healthStatus = 'HEALTHY';
+        if (safeToSpendMonth === 0 || liquidBalance < pendingCommitments) {
+            healthStatus = 'CRITICAL';
+        }
+        else if (safeToSpendDaily < 15) {
+            healthStatus = 'MODERATE';
+        }
         return {
-            totalBalance,
-            monthlyIncome,
-            monthlyExpense,
+            totalBalance: Math.round(totalBalance * 100) / 100,
+            monthlyIncome: Math.round(monthlyIncome * 100) / 100,
+            monthlyExpense: Math.round(monthlyExpense * 100) / 100,
+            baseCurrency,
             accountsCount: accounts.length,
+            safeToSpend: {
+                liquidBalance: Math.round(liquidBalance * 100) / 100,
+                pendingCommitments: Math.round(pendingCommitments * 100) / 100,
+                safeToSpendMonth: Math.round(safeToSpendMonth * 100) / 100,
+                safeToSpendDaily,
+                daysRemaining,
+                daysInMonth,
+                healthStatus,
+                breakdown: {
+                    pendingRemindersTotal: Math.round(pendingRemindersTotal * 100) / 100,
+                    pendingSubscriptionsTotal: Math.round(pendingSubscriptionsTotal * 100) / 100,
+                    upcomingDebtsTotal: Math.round(upcomingDebtsTotal * 100) / 100,
+                },
+            },
         };
     }
     async update(householdId, id, dto) {
@@ -319,6 +465,7 @@ exports.TransactionsService = TransactionsService;
 exports.TransactionsService = TransactionsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        events_gateway_1.EventsGateway])
+        events_gateway_1.EventsGateway,
+        currency_service_1.CurrencyService])
 ], TransactionsService);
 //# sourceMappingURL=transactions.service.js.map

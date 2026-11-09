@@ -1,3 +1,8 @@
+import { Buffer } from 'buffer';
+if (typeof global.Buffer === 'undefined') {
+  global.Buffer = Buffer;
+}
+
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';

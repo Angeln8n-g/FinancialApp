@@ -12,6 +12,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { fetchWithAuth } from '@/constants/Api';
+import { FamilyMint } from '@/constants/Colors';
+import { Edit3, Trash2 } from 'lucide-react-native';
+import EditAssetModal from '@/components/modals/EditAssetModal';
 
 export default function MobilePatrimonyScreen() {
   const [patrimony, setPatrimony] = useState<any>({
@@ -47,6 +50,8 @@ export default function MobilePatrimonyScreen() {
   // Modal Revalorizar Activo
   const [showValuationModal, setShowValuationModal] = useState(false);
   const [selectedAssetForValuation, setSelectedAssetForValuation] = useState<any>(null);
+  const [selectedAssetForEdit, setSelectedAssetForEdit] = useState<any | null>(null);
+  const [showEditAssetModal, setShowEditAssetModal] = useState(false);
   const [newValuationValue, setNewValuationValue] = useState('');
   const [valuationNotes, setValuationNotes] = useState('');
 
@@ -623,7 +628,14 @@ export default function MobilePatrimonyScreen() {
                       </Text>
                     </TouchableOpacity>
                   ))}
-                </ScrollView>
+                      {/* Modal Editar Activo */}
+      <EditAssetModal
+        visible={showEditAssetModal}
+        onClose={() => setShowEditAssetModal(false)}
+        asset={selectedAssetForEdit}
+        onSuccess={() => loadData()}
+      />
+    </ScrollView>
               </View>
             )}
 

@@ -20,6 +20,11 @@ export declare class RemindersController {
             mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy | null;
             isPaidOff: boolean;
             notes: string | null;
+            cutoffDay: number | null;
+            paymentDueDay: number | null;
+            minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
+            alertDaysBefore: number | null;
+            autoAlert: boolean;
         } | null;
         subscription: {
             id: string;

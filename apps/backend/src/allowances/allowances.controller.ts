@@ -72,4 +72,51 @@ export class AllowancesController {
   async remove(@CurrentUser() user: UserPayload, @Param('id') id: string) {
     return this.allowancesService.remove(id, user.householdId);
   }
+
+  // --- 🏆 ENDPOINTS DE MISIONES Y MATCHING DE AHORRO ---
+
+  @Get('missions')
+  async getMissions(@CurrentUser() user: UserPayload) {
+    return this.allowancesService.getMissions(user.householdId);
+  }
+
+  @Post('missions')
+  async createMission(
+    @CurrentUser() user: UserPayload,
+    @Body() body: { memberId: string; title: string; rewardAmount: number; description?: string },
+  ) {
+    return this.allowancesService.createMission(user.householdId, body);
+  }
+
+  @Put('missions/:id/complete')
+  async completeMission(@CurrentUser() user: UserPayload, @Param('id') id: string) {
+    return this.allowancesService.completeMission(user.householdId, id, user.userId);
+  }
+
+  @Post('missions/:id/approve')
+  async approveMission(
+    @CurrentUser() user: UserPayload,
+    @Param('id') id: string,
+    @Body() body: { accountId: string },
+  ) {
+    return this.allowancesService.approveAndPayMission(user.householdId, id, body, user.userId);
+  }
+
+  @Delete('missions/:id')
+  async deleteMission(@CurrentUser() user: UserPayload, @Param('id') id: string) {
+    return this.allowancesService.deleteMission(user.householdId, id);
+  }
+
+  @Get('savings-matching')
+  async getSavingsMatching(@CurrentUser() user: UserPayload) {
+    return this.allowancesService.getSavingsMatching(user.householdId);
+  }
+
+  @Post('savings-matching')
+  async updateSavingsMatching(
+    @CurrentUser() user: UserPayload,
+    @Body() body: { matchPercentage: number; maxMonthlyBonus: number; active: boolean },
+  ) {
+    return this.allowancesService.updateSavingsMatching(user.householdId, body);
+  }
 }

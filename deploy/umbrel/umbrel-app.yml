@@ -1,0 +1,38 @@
+manifestVersion: 1
+id: hogariq
+name: HogarIQ
+tagline: Plataforma de Gobernanza Financiera Familiar 100% Privada y Self-Hosted
+category: finance
+version: "1.0.0"
+port: 3010
+description: >-
+  HogarIQ es el sistema operativo financiero definitivo para hogares modernos.
+  Diseñado para resolver los problemas reales de las familias:
+  - Fórmula Safe-to-Spend: Conoce con certeza cuánto puedes gastar hoy sin comprometer tus compromisos fijos y ahorros.
+  - OCR Local de Tickets y Facturas: Escanea comprobantes al instante sin enviar datos confidenciales a la nube de terceros.
+  - Gastos Compartidos 50/50 (Estilo Splitwise): Liquidación de cuentas claras entre parejas y adultos sin discusiones.
+  - Gamificación y Educación Financiera: Misiones y matching de ahorro para enseñar a los hijos hábitos saludables.
+  - Motor Offline-First: Registra gastos incluso sin internet; tus operaciones se sincronizan automáticamente.
+  100% de tus datos permanecen en tu servidor Umbrel con base de datos Postgres y soporte para pgvector.
+
+developer: HogarIQ Open Source Community
+website: https://github.com/hogariq/hogariq
+repo: https://github.com/hogariq/hogariq
+support: https://github.com/hogariq/hogariq/issues
+gallery:
+  - https://raw.githubusercontent.com/hogariq/hogariq/main/docs/assets/dashboard.png
+  - https://raw.githubusercontent.com/hogariq/hogariq/main/docs/assets/family.png
+  - https://raw.githubusercontent.com/hogariq/hogariq/main/docs/assets/ocr.png
+releaseNotes: >-
+  Lanzamiento Oficial v1.0.0:
+  - Módulo Safe-to-Spend con cálculo dinámico en tiempo real.
+  - OCR Heurístico Privado para tickets y facturas.
+  - Cuentas 50/50 y liquidación automatizada entre adultos.
+  - Misiones familiares y bonificación de ahorro para hijos.
+  - Cola offline en aplicación móvil Expo.
+dependencies: []
+torOnly: false
+submitter: HogarIQ Team
+submissionDate: 2026-11-09
+permissions:
+  - STORAGE

@@ -102,4 +102,44 @@ export declare class HouseholdController {
     removeMember(user: UserPayload, memberId: string): Promise<{
         message: string;
     }>;
+    getSplitSummary(user: UserPayload): Promise<{
+        totalPool: number;
+        fairSharePerMember: number;
+        lastSettledAt: Date | null;
+        membersSummary: {
+            memberId: string;
+            userId: string;
+            fullName: string;
+            email: string;
+            customTitle: string | null;
+            role: import(".prisma/client").$Enums.Role;
+            paidAmount: number;
+            fairShare: number;
+            netBalance: number;
+        }[];
+        settlements: {
+            fromUserId: string;
+            fromName: string;
+            toUserId: string;
+            toName: string;
+            amount: number;
+        }[];
+        splitTransactions: {
+            id: string;
+            date: Date;
+            amount: number;
+            description: string | null;
+            payerName: string;
+            accountName: string;
+            categoryName: string;
+            categoryIcon: string;
+        }[];
+    }>;
+    settleSplit(user: UserPayload, body?: {
+        note?: string;
+    }): Promise<{
+        success: boolean;
+        message: string;
+        settledAt: Date;
+    }>;
 }

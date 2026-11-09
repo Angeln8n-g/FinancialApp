@@ -1,0 +1,61 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: $APP_HOST
+      APP_PORT: 3000
+
+  db:
+    image: ankane/pgvector:v0.5.1
+    restart: on-failure
+    environment:
+      POSTGRES_USER: hogariq_umbrel
+      POSTGRES_PASSWORD: ${APP_PASSWORD:-umbrel_hogariq_secret_password}
+      POSTGRES_DB: hogariq_db
+    volumes:
+      - ${APP_DATA_DIR}/data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hogariq_umbrel -d hogariq_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ghcr.io/hogariq/backend:v1.0.0
+    restart: on-failure
+    environment:
+      DATABASE_URL: postgresql://hogariq_umbrel:${APP_PASSWORD:-umbrel_hogariq_secret_password}@db:5432/hogariq_db?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${APP_PASSWORD:-umbrel_hogariq_secret_password}_jwt
+      PORT: 3000
+      STORAGE_DIR: /app/uploads
+    volumes:
+      - ${APP_DATA_DIR}/data/uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    image: ghcr.io/hogariq/web:v1.0.0
+    restart: on-failure
+    environment:
+      NEXT_PUBLIC_API_URL: http://${APP_HOST}:3000
+      PORT: 3000
+    ports:
+      - "${APP_PORT:-3010}:3000"
+    depends_on:
+      - backend

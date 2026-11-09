@@ -41,6 +41,23 @@ let NotificationsService = class NotificationsService {
         this.eventsGateway.notifyHouseholdChange(data.householdId, 'notification', 'CREATE');
         return notif;
     }
+    async create(dataOrHouseholdId, title, body) {
+        if (typeof dataOrHouseholdId === 'string') {
+            const member = await this.prisma.householdMember.findFirst({
+                where: { householdId: dataOrHouseholdId },
+                select: { userId: true },
+            });
+            if (!member)
+                return null;
+            return this.createNotification({
+                userId: member.userId,
+                householdId: dataOrHouseholdId,
+                title: title || 'Notificación',
+                body: body || '',
+            });
+        }
+        return this.createNotification(dataOrHouseholdId);
+    }
     async markAsRead(id, userId) {
         return this.prisma.notification.updateMany({
             where: { id, userId },

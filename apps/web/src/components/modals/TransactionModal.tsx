@@ -45,6 +45,7 @@ export default function TransactionModal({
   const [destinationAccountId, setDestinationAccountId] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [description, setDescription] = useState('');
+  const [isSplit, setIsSplit] = useState(false);
   const [dateMode, setDateMode] = useState<'today' | 'yesterday' | 'custom'>('today');
   const [customDate, setCustomDate] = useState(new Date().toISOString().split('T')[0]);
   const [categorySearch, setCategorySearch] = useState('');
@@ -107,25 +108,32 @@ export default function TransactionModal({
 
     setSubmitting(true);
     try {
+      const finalDesc =
+        isSplit && type === 'EXPENSE'
+          ? `${description.trim() || 'Gasto Común'} [🤝 Compartido 50/50]`
+          : description.trim();
+
       await onSubmit({
         accountId,
         destinationAccountId: type === 'TRANSFER' ? destinationAccountId : undefined,
         categoryId: type !== 'TRANSFER' ? (categoryId || undefined) : undefined,
         type,
         amount: numAmount,
-        description: description.trim(),
+        description: finalDesc,
         date: getComputedDate(),
       });
 
       if (keepOpen) {
         setAmount('');
         setDescription('');
+        setIsSplit(false);
         setSuccessToast(`¡${type === 'INCOME' ? 'Ingreso' : type === 'TRANSFER' ? 'Transferencia' : 'Gasto'} de $${numAmount.toFixed(2)} guardado! Listo para el siguiente.`);
         setTimeout(() => setSuccessToast(''), 3500);
         setTimeout(() => amountInputRef.current?.focus(), 50);
       } else {
         setAmount('');
         setDescription('');
+        setIsSplit(false);
         onClose();
       }
     } finally {
@@ -464,6 +472,36 @@ export default function TransactionModal({
               className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-emerald-400 transition-colors"
             />
           </div>
+
+          {/* Toggle Gasto Compartido en Pareja (50/50) */}
+          {type === 'EXPENSE' && (
+            <div
+              onClick={() => setIsSplit(!isSplit)}
+              className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                isSplit
+                  ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                  : 'bg-[#0A1128] border-[#1E2B4D] text-slate-400 hover:border-slate-600'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-lg">🤝</span>
+                <div>
+                  <span className="text-xs font-semibold block text-slate-200">
+                    Gasto Común en Pareja / Hogar (50/50)
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    Se sumará al bote compartido y balance de liquidación familiar
+                  </span>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={isSplit}
+                onChange={() => setIsSplit(!isSplit)}
+                className="rounded accent-emerald-500 w-4 h-4 cursor-pointer"
+              />
+            </div>
+          )}
 
           {/* Acciones del Modal con Modo Continuo */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-[#1E2B4D]">

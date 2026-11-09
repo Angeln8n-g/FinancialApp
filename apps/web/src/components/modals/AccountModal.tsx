@@ -27,7 +27,7 @@ export default function AccountModal({
   const [name, setName] = useState('');
   const [type, setType] = useState('BANK_ACCOUNT');
   const [balance, setBalance] = useState('0');
-  const [currency] = useState('USD');
+  const [currency, setCurrency] = useState('USD');
 
   // Configuración de Nómina
   const [payrollAmount, setPayrollAmount] = useState('');
@@ -130,18 +130,42 @@ export default function AccountModal({
             />
           </div>
 
-          <div>
-            <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
-              Saldo Inicial ($)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={balance}
-              onChange={(e) => setBalance(e.target.value)}
-              placeholder="0.00"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 tabular-nums transition-colors"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                Saldo Inicial
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={balance}
+                onChange={(e) => setBalance(e.target.value)}
+                placeholder="0.00"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 tabular-nums transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                Moneda
+              </label>
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 cursor-pointer transition-colors"
+              >
+                <option value="USD">🇺🇸 USD ($ Dólar)</option>
+                <option value="EUR">🇪🇺 EUR (€ Euro)</option>
+                <option value="DOP">🇩🇴 DOP (RD$ Peso Dom.)</option>
+                <option value="MXN">🇲🇽 MXN ($ Peso Mex.)</option>
+                <option value="COP">🇨🇴 COP ($ Peso Col.)</option>
+                <option value="ARS">🇦🇷 ARS ($ Peso Arg.)</option>
+                <option value="CLP">🇨🇱 CLP ($ Peso Ch.)</option>
+                <option value="PEN">🇵🇪 PEN (S/ Sol)</option>
+                <option value="GBP">🇬🇧 GBP (£ Libra)</option>
+                <option value="BRL">🇧🇷 BRL (R$ Real)</option>
+                <option value="USDT">🪙 USDT (Tether)</option>
+              </select>
+            </div>
           </div>
 
           {/* Configuración específica de Cuenta de Nómina */}

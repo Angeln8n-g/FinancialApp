@@ -52,4 +52,15 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
     this.logger.log(`Emitted household_data_changed to room ${roomName}`);
   }
+
+  emitHouseholdDataChanged(householdId: string, payload: any) {
+    const roomName = `household:${householdId}`;
+    if (this.server) {
+      this.server.to(roomName).emit('household_data_changed', {
+        ...payload,
+        timestamp: new Date().toISOString(),
+      });
+      this.logger.log(`Emitted emitHouseholdDataChanged to room ${roomName}`);
+    }
+  }
 }

@@ -1,0 +1,6 @@
+{"_e":"root:init","_t":1794196015505,"format":"v0-jsonl","version":"57.0.9"}
+{"_e":"env:mode","_t":1794196016768,"nodeEnv":"production","babelEnv":"production","mode":"production"}
+{"_e":"env:load","_t":1794196016780,"mode":"production","files":["../..\\..\\.env"],"env":{"DATABASE_URL":"postgresql://hogariq_user:hogariq_dev_password@localhost:5432/hogariq_dev_db?schema=public","JWT_SECRET":"hogariq_dev_super_secret_key_123456789","PORT":"3000","REDIS_URL":"redis://localhost:6379"}}
+{"_e":"devserver:start","_t":1794196016831,"mode":"production","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":true}
+{"_e":"metro:config","_t":1794196020799,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":true,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1794196022103,"atlas":false,"workers":6,"host":null,"port":null}

@@ -56,4 +56,17 @@ export class HouseholdController {
   async removeMember(@CurrentUser() user: UserPayload, @Param('id') memberId: string) {
     return this.householdService.removeMember(user.userId, user.householdId, memberId);
   }
+
+  @Get('split-summary')
+  async getSplitSummary(@CurrentUser() user: UserPayload) {
+    return this.householdService.getSplitSummary(user.householdId);
+  }
+
+  @Post('split-settle')
+  async settleSplit(
+    @CurrentUser() user: UserPayload,
+    @Body() body?: { note?: string },
+  ) {
+    return this.householdService.settleSplit(user.householdId, user.userId, body?.note);
+  }
 }

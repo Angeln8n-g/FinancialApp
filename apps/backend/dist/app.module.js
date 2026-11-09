@@ -29,6 +29,9 @@ const subscriptions_module_1 = require("./subscriptions/subscriptions.module");
 const patrimony_module_1 = require("./patrimony/patrimony.module");
 const notifications_module_1 = require("./notifications/notifications.module");
 const allowances_module_1 = require("./allowances/allowances.module");
+const currency_module_1 = require("./currency/currency.module");
+const quick_entry_module_1 = require("./quick-entry/quick-entry.module");
+const ocr_module_1 = require("./ocr/ocr.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -61,6 +64,9 @@ exports.AppModule = AppModule = __decorate([
             patrimony_module_1.PatrimonyModule,
             notifications_module_1.NotificationsModule,
             allowances_module_1.AllowancesModule,
+            currency_module_1.CurrencyModule,
+            quick_entry_module_1.QuickEntryModule,
+            ocr_module_1.OcrModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

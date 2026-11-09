@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './transactions.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -15,8 +15,11 @@ export class TransactionsController {
   }
 
   @Get('summary')
-  async getSummary(@CurrentUser() user: UserPayload) {
-    return this.transactionsService.getSummary(user.householdId);
+  async getSummary(
+    @CurrentUser() user: UserPayload,
+    @Query('currency') currency?: string,
+  ) {
+    return this.transactionsService.getSummary(user.householdId, currency);
   }
 
   @Post()
@@ -43,7 +46,22 @@ export class TransactionsController {
   }
 
   @Post('import')
-  async importBankStatement(@CurrentUser() user: UserPayload, @Body() body: { rawContent: string }) {
-    return this.transactionsService.importBankStatement(user.householdId, body.rawContent);
+  async importBankStatement(
+    @CurrentUser() user: UserPayload,
+    @Body()
+    body: {
+      accountId?: string;
+      rawContent?: string;
+      transactions?: Array<{
+        date?: string;
+        description: string;
+        amount: number;
+        type: any;
+        categoryId?: string;
+        accountId?: string;
+      }>;
+    },
+  ) {
+    return this.transactionsService.importBankStatement(user.householdId, body, user.userId);
   }
 }

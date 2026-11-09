@@ -166,4 +166,25 @@ export declare class AllowancesController {
         allowanceId: string;
     }>;
     remove(user: UserPayload, id: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    getMissions(user: UserPayload): Promise<import("./allowances.service").FamilyMission[]>;
+    createMission(user: UserPayload, body: {
+        memberId: string;
+        title: string;
+        rewardAmount: number;
+        description?: string;
+    }): Promise<import("./allowances.service").FamilyMission>;
+    completeMission(user: UserPayload, id: string): Promise<import("./allowances.service").FamilyMission>;
+    approveMission(user: UserPayload, id: string, body: {
+        accountId: string;
+    }): Promise<{
+        mission: import("./allowances.service").FamilyMission;
+        message: string;
+    }>;
+    deleteMission(user: UserPayload, id: string): Promise<boolean>;
+    getSavingsMatching(user: UserPayload): Promise<import("./allowances.service").SavingsMatchingRule>;
+    updateSavingsMatching(user: UserPayload, body: {
+        matchPercentage: number;
+        maxMonthlyBonus: number;
+        active: boolean;
+    }): Promise<import("./allowances.service").SavingsMatchingRule>;
 }

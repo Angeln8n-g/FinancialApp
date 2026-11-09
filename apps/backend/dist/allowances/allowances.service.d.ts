@@ -1,7 +1,29 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { RecurrencePeriod } from '@prisma/client';
+export interface FamilyMission {
+    id: string;
+    householdId: string;
+    memberId: string;
+    memberName: string;
+    title: string;
+    description?: string;
+    rewardAmount: number;
+    status: 'PENDING' | 'COMPLETED' | 'APPROVED_AND_PAID';
+    createdAt: string;
+    completedAt?: string;
+    approvedAt?: string;
+}
+export interface SavingsMatchingRule {
+    householdId: string;
+    matchPercentage: number;
+    maxMonthlyBonus: number;
+    active: boolean;
+    totalMatchedThisMonth: number;
+}
 export declare class AllowancesService {
     private prisma;
+    private static missionsMap;
+    private static matchingRulesMap;
     constructor(prisma: PrismaService);
     findAll(householdId: string): Promise<{
         limitAmount: number;
@@ -157,4 +179,25 @@ export declare class AllowancesService {
         allowanceId: string;
     }>;
     remove(id: string, householdId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    getMissions(householdId: string): Promise<FamilyMission[]>;
+    createMission(householdId: string, data: {
+        memberId: string;
+        title: string;
+        rewardAmount: number;
+        description?: string;
+    }): Promise<FamilyMission>;
+    completeMission(householdId: string, missionId: string, memberId?: string): Promise<FamilyMission>;
+    approveAndPayMission(householdId: string, missionId: string, data: {
+        accountId: string;
+    }, parentUserId?: string): Promise<{
+        mission: FamilyMission;
+        message: string;
+    }>;
+    deleteMission(householdId: string, missionId: string): Promise<boolean>;
+    getSavingsMatching(householdId: string): SavingsMatchingRule;
+    updateSavingsMatching(householdId: string, data: {
+        matchPercentage: number;
+        maxMonthlyBonus: number;
+        active: boolean;
+    }): SavingsMatchingRule;
 }

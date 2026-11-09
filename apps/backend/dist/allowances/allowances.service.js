@@ -8,13 +8,18 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var AllowancesService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AllowancesService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const client_1 = require("@prisma/client");
+const crypto_1 = require("crypto");
 let AllowancesService = class AllowancesService {
+    static { AllowancesService_1 = this; }
     prisma;
+    static missionsMap = new Map();
+    static matchingRulesMap = new Map();
     constructor(prisma) {
         this.prisma = prisma;
     }
@@ -175,9 +180,171 @@ let AllowancesService = class AllowancesService {
             where: { id, householdId },
         });
     }
+    async getMissions(householdId) {
+        if (!AllowancesService_1.missionsMap.has(householdId)) {
+            const members = await this.prisma.householdMember.findMany({
+                where: { householdId },
+                include: { user: true },
+            });
+            const sampleMember = members.find((m) => m.role === 'DEPENDENT') || members[0];
+            const memberName = sampleMember ? (sampleMember.user.fullName || sampleMember.user.email) : 'Hijo / Familiar';
+            const memberId = sampleMember ? sampleMember.id : 'default';
+            const initialMissions = [
+                {
+                    id: (0, crypto_1.randomUUID)(),
+                    householdId,
+                    memberId,
+                    memberName,
+                    title: 'Ordenar habitación y tender la cama toda la semana',
+                    description: 'Mantener el orden diario antes de salir a la escuela',
+                    rewardAmount: 5.0,
+                    status: 'PENDING',
+                    createdAt: new Date().toISOString(),
+                },
+                {
+                    id: (0, crypto_1.randomUUID)(),
+                    householdId,
+                    memberId,
+                    memberName,
+                    title: 'Lavar el auto familiar',
+                    description: 'Limpiar exterior y aspirar asientos',
+                    rewardAmount: 8.0,
+                    status: 'COMPLETED',
+                    createdAt: new Date().toISOString(),
+                    completedAt: new Date().toISOString(),
+                },
+                {
+                    id: (0, crypto_1.randomUUID)(),
+                    householdId,
+                    memberId,
+                    memberName,
+                    title: 'Obtener calificación A en examen escolar',
+                    description: 'Recompensa por esfuerzo académico',
+                    rewardAmount: 15.0,
+                    status: 'APPROVED_AND_PAID',
+                    createdAt: new Date().toISOString(),
+                    completedAt: new Date().toISOString(),
+                    approvedAt: new Date().toISOString(),
+                },
+            ];
+            AllowancesService_1.missionsMap.set(householdId, initialMissions);
+        }
+        return AllowancesService_1.missionsMap.get(householdId) || [];
+    }
+    async createMission(householdId, data) {
+        if (!data.title || data.rewardAmount <= 0) {
+            throw new common_1.BadRequestException('Título y monto de recompensa positivo son requeridos');
+        }
+        const member = await this.prisma.householdMember.findFirst({
+            where: { id: data.memberId, householdId },
+            include: { user: true },
+        });
+        const memberName = member ? (member.user.fullName || member.user.email) : 'Hijo / Familiar';
+        const newMission = {
+            id: (0, crypto_1.randomUUID)(),
+            householdId,
+            memberId: data.memberId,
+            memberName,
+            title: data.title.trim(),
+            description: data.description?.trim(),
+            rewardAmount: Number(data.rewardAmount.toFixed(2)),
+            status: 'PENDING',
+            createdAt: new Date().toISOString(),
+        };
+        const current = await this.getMissions(householdId);
+        current.unshift(newMission);
+        AllowancesService_1.missionsMap.set(householdId, current);
+        return newMission;
+    }
+    async completeMission(householdId, missionId, memberId) {
+        const missions = await this.getMissions(householdId);
+        const mission = missions.find((m) => m.id === missionId);
+        if (!mission)
+            throw new common_1.NotFoundException('Misión no encontrada');
+        mission.status = 'COMPLETED';
+        mission.completedAt = new Date().toISOString();
+        const admins = await this.prisma.householdMember.findMany({
+            where: { householdId, role: 'ADMIN' },
+        });
+        for (const admin of admins) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: admin.userId,
+                    householdId,
+                    title: '🏆 Misión Familiar Completada',
+                    body: `${mission.memberName} completó: "${mission.title}". Toca para aprobar y desembolsar $${mission.rewardAmount.toFixed(2)}.`,
+                    type: 'SYSTEM',
+                },
+            });
+        }
+        return mission;
+    }
+    async approveAndPayMission(householdId, missionId, data, parentUserId) {
+        const missions = await this.getMissions(householdId);
+        const mission = missions.find((m) => m.id === missionId);
+        if (!mission)
+            throw new common_1.NotFoundException('Misión no encontrada');
+        const account = await this.prisma.account.findFirst({
+            where: { id: data.accountId, householdId },
+        });
+        if (!account)
+            throw new common_1.NotFoundException('Cuenta de desembolso no encontrada');
+        await this.prisma.$transaction(async (tx) => {
+            await tx.transaction.create({
+                data: {
+                    householdId,
+                    accountId: account.id,
+                    type: client_1.TransactionType.EXPENSE,
+                    amount: mission.rewardAmount,
+                    description: `🏆 Recompensa Misión: ${mission.title} (${mission.memberName})`,
+                    date: new Date(),
+                    createdById: parentUserId || null,
+                },
+            });
+            await tx.account.update({
+                where: { id: account.id },
+                data: { balance: { decrement: mission.rewardAmount } },
+            });
+        });
+        mission.status = 'APPROVED_AND_PAID';
+        mission.approvedAt = new Date().toISOString();
+        return {
+            mission,
+            message: `¡Recompensa de $${mission.rewardAmount.toFixed(2)} transferida con éxito desde ${account.name}!`,
+        };
+    }
+    async deleteMission(householdId, missionId) {
+        const missions = await this.getMissions(householdId);
+        const filtered = missions.filter((m) => m.id !== missionId);
+        AllowancesService_1.missionsMap.set(householdId, filtered);
+        return true;
+    }
+    getSavingsMatching(householdId) {
+        if (!AllowancesService_1.matchingRulesMap.has(householdId)) {
+            AllowancesService_1.matchingRulesMap.set(householdId, {
+                householdId,
+                matchPercentage: 50,
+                maxMonthlyBonus: 50,
+                active: true,
+                totalMatchedThisMonth: 15.0,
+            });
+        }
+        return AllowancesService_1.matchingRulesMap.get(householdId);
+    }
+    updateSavingsMatching(householdId, data) {
+        const current = this.getSavingsMatching(householdId);
+        const updated = {
+            ...current,
+            matchPercentage: Math.max(0, Math.min(200, data.matchPercentage)),
+            maxMonthlyBonus: Math.max(0, data.maxMonthlyBonus),
+            active: data.active,
+        };
+        AllowancesService_1.matchingRulesMap.set(householdId, updated);
+        return updated;
+    }
 };
 exports.AllowancesService = AllowancesService;
-exports.AllowancesService = AllowancesService = __decorate([
+exports.AllowancesService = AllowancesService = AllowancesService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], AllowancesService);

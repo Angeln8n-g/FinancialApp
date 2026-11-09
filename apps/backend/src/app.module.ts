@@ -20,6 +20,9 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PatrimonyModule } from './patrimony/patrimony.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AllowancesModule } from './allowances/allowances.module';
+import { CurrencyModule } from './currency/currency.module';
+import { QuickEntryModule } from './quick-entry/quick-entry.module';
+import { OcrModule } from './ocr/ocr.module';
 
 @Module({
   imports: [
@@ -49,6 +52,9 @@ import { AllowancesModule } from './allowances/allowances.module';
     PatrimonyModule,
     NotificationsModule,
     AllowancesModule,
+    CurrencyModule,
+    QuickEntryModule,
+    OcrModule,
   ],
   controllers: [AppController],
   providers: [
