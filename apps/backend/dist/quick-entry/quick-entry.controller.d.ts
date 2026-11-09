@@ -83,7 +83,17 @@ export declare class QuickEntryController {
         botUsername: string;
         token: string;
         deepLink: string;
+        webhookUrl: string;
         instructions: string;
+    }>;
+    setupTelegramBot(botToken: string): Promise<{
+        success: boolean;
+        message: string;
+        botUsername?: undefined;
+    } | {
+        success: boolean;
+        botUsername: any;
+        message: string;
     }>;
     telegramWebhook(body: any): Promise<{
         ok: boolean;

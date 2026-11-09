@@ -33,6 +33,7 @@ import {
   Sparkles,
   CloudOff,
   RefreshCw,
+  Bot,
 } from 'lucide-react-native';
 import {
   API_URL,
@@ -49,6 +50,7 @@ import Logo from '@/components/Logo';
 import HouseholdSelectorModal from '@/components/HouseholdSelectorModal';
 import TransactionModal from '@/components/modals/TransactionModal';
 import AccountModal from '@/components/modals/AccountModal';
+import TelegramBotModal from '@/components/modals/TelegramBotModal';
 import { useHouseholdSocket } from '@/hooks/useHouseholdSocket';
 
 export default function MobileDashboardScreen() {
@@ -73,6 +75,7 @@ export default function MobileDashboardScreen() {
   const [showTxModal, setShowTxModal] = useState(false);
   const [txInitialType, setTxInitialType] = useState<'EXPENSE' | 'INCOME' | 'TRANSFER'>('EXPENSE');
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showTelegramModal, setShowTelegramModal] = useState(false);
 
   // Modales Secundarios
   const [showNotifModal, setShowNotifModal] = useState(false);
@@ -554,6 +557,40 @@ export default function MobileDashboardScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* 🤖 Botón & Guía de Conexión con Telegram */}
+      <TouchableOpacity
+        onPress={() => setShowTelegramModal(true)}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          backgroundColor: 'rgba(56, 189, 248, 0.08)',
+          borderWidth: 1,
+          borderColor: 'rgba(56, 189, 248, 0.25)',
+          borderRadius: 14,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          marginTop: 8,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+          <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: 'rgba(56, 189, 248, 0.18)', alignItems: 'center', justifyContent: 'center' }}>
+            <Bot size={17} color="#38BDF8" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: FamilyMint.foreground }}>
+              Conectar Bot de Telegram 🤖
+            </Text>
+            <Text style={{ fontSize: 11, color: FamilyMint.foregroundMuted }} numberOfLines={1}>
+              Guía paso a paso para registrar gastos por chat
+            </Text>
+          </View>
+        </View>
+        <View style={{ backgroundColor: 'rgba(56, 189, 248, 0.15)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#38BDF8' }}>Ver Guía</Text>
+        </View>
+      </TouchableOpacity>
+
       {/* Botones de Registro Rápido (Conectados al TransactionModal oficial) */}
       <View style={{ flexDirection: 'row', gap: 10, marginVertical: 12 }}>
         <TouchableOpacity
@@ -854,6 +891,11 @@ export default function MobileDashboardScreen() {
         visible={showAccountModal}
         onClose={() => setShowAccountModal(false)}
         onSuccess={() => loadData()}
+      />
+
+      <TelegramBotModal
+        visible={showTelegramModal}
+        onClose={() => setShowTelegramModal(false)}
       />
 
       {/* Modal Notificaciones */}

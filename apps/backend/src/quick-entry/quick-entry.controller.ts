@@ -43,6 +43,10 @@ export class QuickEntryController {
     const token = Buffer.from(rawToken, 'utf8').toString('base64');
 
     const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'HogarIQBot';
+    const webhookUrl = process.env.PUBLIC_API_URL
+      ? `${process.env.PUBLIC_API_URL}/api/quick-entry/telegram-webhook`
+      : 'https://api-hogariq.kasino21.com/api/quick-entry/telegram-webhook';
+
     const deepLink = `https://t.me/${botUsername}?start=${token}`;
 
     return {
@@ -50,8 +54,52 @@ export class QuickEntryController {
       botUsername,
       token,
       deepLink,
+      webhookUrl,
       instructions: `Envía /start ${token} a @${botUsername} o haz clic en el enlace para vincularte en 1 segundo.`,
     };
+  }
+
+  /**
+   * Configuración asistida del Webhook de Telegram usando el Bot Token de @BotFather
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('setup-telegram-bot')
+  async setupTelegramBot(@Body('botToken') botToken: string) {
+    if (!botToken || typeof botToken !== 'string') {
+      return { success: false, message: 'Token de bot requerido' };
+    }
+
+    const cleanToken = botToken.trim();
+    const webhookUrl = process.env.PUBLIC_API_URL
+      ? `${process.env.PUBLIC_API_URL}/api/quick-entry/telegram-webhook`
+      : 'https://api-hogariq.kasino21.com/api/quick-entry/telegram-webhook';
+
+    try {
+      // 1. Verificar info del bot en Telegram
+      const meRes = await fetch(`https://api.telegram.org/bot${cleanToken}/getMe`);
+      const meData = await meRes.json();
+      if (!meData.ok) {
+        return { success: false, message: `Token inválido de Telegram: ${meData.description || 'Error desconocido'}` };
+      }
+
+      // 2. Establecer webhook en Telegram
+      const hookRes = await fetch(`https://api.telegram.org/bot${cleanToken}/setWebhook?url=${encodeURIComponent(webhookUrl)}`);
+      const hookData = await hookRes.json();
+      if (!hookData.ok) {
+        return { success: false, message: `Error configurando webhook: ${hookData.description}` };
+      }
+
+      const botUsername = meData.result?.username;
+      process.env.TELEGRAM_BOT_USERNAME = botUsername;
+
+      return {
+        success: true,
+        botUsername,
+        message: `Webhook configurado exitosamente para @${botUsername}`,
+      };
+    } catch (err: any) {
+      return { success: false, message: `Error conectando con la API de Telegram: ${err.message}` };
+    }
   }
 
   /**

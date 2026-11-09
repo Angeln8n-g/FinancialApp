@@ -1,6 +1,11 @@
 import { Buffer } from 'buffer';
-if (typeof global.Buffer === 'undefined') {
-  global.Buffer = Buffer;
+if (typeof globalThis !== 'undefined') {
+  if (typeof (globalThis as any).Buffer === 'undefined') {
+    (globalThis as any).Buffer = Buffer;
+  }
+  if (typeof (globalThis as any).global === 'undefined') {
+    (globalThis as any).global = globalThis;
+  }
 }
 
 import { useFonts } from 'expo-font';
@@ -16,7 +21,7 @@ export {
   ErrorBoundary,
 } from 'expo-router';
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -24,16 +29,19 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (error) throw error;
+    if (error) {
+      console.warn('Font loading error:', error);
+      SplashScreen.hideAsync().catch(() => {});
+    }
   }, [error]);
 
   useEffect(() => {
     if (loaded) {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => {});
     }
   }, [loaded]);
 
-  if (!loaded) {
+  if (!loaded && !error) {
     return null;
   }
 
@@ -78,7 +86,6 @@ function RootLayoutNav() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
   );
