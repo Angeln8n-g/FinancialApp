@@ -12,7 +12,7 @@ import {
   RefreshControl,
   Switch,
 } from 'react-native';
-import { fetchWithAuth } from '@/constants/Api';
+import { fetchWithAuth, getHousehold } from '@/constants/Api';
 import { FamilyMint } from '@/constants/Colors';
 import {
   Edit3,
@@ -100,6 +100,22 @@ interface AccountItem {
 }
 
 export default function MobileCommitmentsScreen() {
+  const household = getHousehold();
+  const currencySymbols: Record<string, string> = {
+    USD: '$',
+    EUR: '€',
+    DOP: 'RD$',
+    MXN: '$',
+    COP: '$',
+    ARS: '$',
+    CLP: '$',
+    PEN: 'S/',
+    GBP: '£',
+    BRL: 'R$',
+    CAD: '$',
+    USDT: '₮',
+  };
+  const sym = currencySymbols[household?.currency || 'USD'] || '$';
   const [debts, setDebts] = useState<DebtItem[]>([]);
   const [subscriptions, setSubscriptions] = useState<SubscriptionItem[]>([]);
   const [accounts, setAccounts] = useState<AccountItem[]>([]);
@@ -404,7 +420,7 @@ export default function MobileCommitmentsScreen() {
     if (amountNum > selectedDebtForPay.remainingAmount) {
       Alert.alert(
         'Monto Excede el Saldo',
-        `El saldo restante es de RD$${selectedDebtForPay.remainingAmount.toLocaleString()}. ¿Deseas abonar el saldo total exacto?`,
+        `El saldo restante es de {sym}${selectedDebtForPay.remainingAmount.toLocaleString()}. ¿Deseas abonar el saldo total exacto?`,
         [
           { text: 'Cancelar', style: 'cancel' },
           {
@@ -420,7 +436,7 @@ export default function MobileCommitmentsScreen() {
     if (selectedAcc && selectedAcc.balance < amountNum) {
       Alert.alert(
         'Saldo Insuficiente',
-        `La cuenta "${selectedAcc.name}" solo dispone de RD$${selectedAcc.balance.toLocaleString()}. Selecciona otra cuenta o ajusta el monto.`
+        `La cuenta "${selectedAcc.name}" solo dispone de {sym}${selectedAcc.balance.toLocaleString()}. Selecciona otra cuenta o ajusta el monto.`
       );
       return;
     }
@@ -443,7 +459,7 @@ export default function MobileCommitmentsScreen() {
       }
 
       setShowPayDebtModal(false);
-      Alert.alert('¡Abono Registrado!', `Se abonaron RD$${amountNum.toLocaleString()} a "${selectedDebtForPay.contactName}".`);
+      Alert.alert('¡Abono Registrado!', `Se abonaron {sym}${amountNum.toLocaleString()} a "${selectedDebtForPay.contactName}".`);
       loadData();
     } catch (e: any) {
       Alert.alert('Error', e.message || 'No se pudo procesar el pago.');
@@ -560,7 +576,7 @@ export default function MobileCommitmentsScreen() {
   const handleTriggerManualDeduct = async (sub: SubscriptionItem) => {
     Alert.alert(
       'Deducción Manual',
-      `¿Deseas procesar el pago de RD$${sub.cost.toFixed(2)} para "${sub.name}" desde la cuenta configurada?`,
+      `¿Deseas procesar el pago de {sym}${sub.cost.toFixed(2)} para "${sub.name}" desde la cuenta configurada?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -577,7 +593,7 @@ export default function MobileCommitmentsScreen() {
                 throw new Error(data.message || 'No se pudo deducir la suscripción.');
               }
 
-              Alert.alert('¡Pago Realizado!', data.message || `Cobro de RD$${sub.cost.toFixed(2)} procesado exitosamente.`);
+              Alert.alert('¡Pago Realizado!', data.message || `Cobro de {sym}${sub.cost.toFixed(2)} procesado exitosamente.`);
               loadData();
             } catch (e: any) {
               Alert.alert('Error en Deducción', e.message || 'Fondos insuficientes o error del servidor.');
@@ -688,19 +704,19 @@ export default function MobileCommitmentsScreen() {
           <View style={styles.healthStatCol}>
             <Text style={styles.healthStatLabel}>Total Adeudado</Text>
             <Text style={[styles.healthStatValue, { color: '#fb7185' }]}>
-              RD${totalDebtRemaining.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+              {sym}{totalDebtRemaining.toLocaleString('en-US', { minimumFractionDigits: 0 })}
             </Text>
           </View>
           <View style={styles.healthStatCol}>
             <Text style={styles.healthStatLabel}>Total Amortizado</Text>
             <Text style={[styles.healthStatValue, { color: '#34d399' }]}>
-              RD${totalDebtAmortized.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+              {sym}{totalDebtAmortized.toLocaleString('en-US', { minimumFractionDigits: 0 })}
             </Text>
           </View>
           <View style={styles.healthStatCol}>
             <Text style={styles.healthStatLabel}>Monto Inicial</Text>
             <Text style={styles.healthStatValue}>
-              RD${totalDebtOriginal.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+              {sym}{totalDebtOriginal.toLocaleString('en-US', { minimumFractionDigits: 0 })}
             </Text>
           </View>
         </View>
@@ -792,13 +808,13 @@ export default function MobileCommitmentsScreen() {
                 <View>
                   <Text style={styles.debtLabel}>Saldo Pendiente</Text>
                   <Text style={[styles.debtAmount, isDone && { color: '#34d399' }]}>
-                    RD${d.remainingAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {sym}{d.remainingAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={styles.debtLabel}>Monto Inicial</Text>
                   <Text style={styles.debtInitialAmount}>
-                    RD${d.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {sym}{d.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </Text>
                 </View>
               </View>
@@ -815,7 +831,7 @@ export default function MobileCommitmentsScreen() {
                 </View>
                 <View style={styles.debtProgressCaptionRow}>
                   <Text style={styles.debtProgressCaption}>
-                    Amortizado: RD${paid.toLocaleString('en-US', { minimumFractionDigits: 0 })} ({pct}%)
+                    Amortizado: {sym}{paid.toLocaleString('en-US', { minimumFractionDigits: 0 })} ({pct}%)
                   </Text>
                   {isDone && <Text style={styles.debtDoneBadge}>✅ Liquidada</Text>}
                 </View>
@@ -856,7 +872,7 @@ export default function MobileCommitmentsScreen() {
                         <Text style={styles.operationalCardLabel}>Pago Mínimo:</Text>
                       </View>
                       <Text style={styles.minimumPaymentValue}>
-                        RD${Number(d.minimumPayment).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        {sym}{Number(d.minimumPayment).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </Text>
                     </View>
                   )}
@@ -876,7 +892,7 @@ export default function MobileCommitmentsScreen() {
                   )}
                   {d.monthlyTargetPayment && !isDone && (
                     <Text style={styles.targetBoxSub}>
-                      Aporte objetivo mensual: RD${d.monthlyTargetPayment.toLocaleString()}
+                      Aporte objetivo mensual: {sym}{d.monthlyTargetPayment.toLocaleString()}
                     </Text>
                   )}
                 </View>
@@ -913,7 +929,7 @@ export default function MobileCommitmentsScreen() {
         <View>
           <Text style={styles.sectionHeader}>Suscripciones & Débito ({subscriptions.length})</Text>
           <Text style={styles.subTotalText}>
-            Consumo mensual: RD${totalMonthlyConsumption.toLocaleString('en-US', { minimumFractionDigits: 2 })}/mes
+            Consumo mensual: {sym}{totalMonthlyConsumption.toLocaleString('en-US', { minimumFractionDigits: 2 })}/mes
           </Text>
         </View>
         <TouchableOpacity style={styles.addSmallBtn} onPress={() => setShowSubModal(true)}>
@@ -978,7 +994,7 @@ export default function MobileCommitmentsScreen() {
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={styles.subCost}>
-                      RD${s.cost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      {sym}{s.cost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </Text>
                     <Text style={styles.subCycleText}>/{s.period === 'YEARLY' ? 'año' : 'mes'}</Text>
                   </View>
@@ -988,7 +1004,7 @@ export default function MobileCommitmentsScreen() {
                 {isInsufficient && (
                   <View style={styles.insufficientAlert}>
                     <Text style={styles.insufficientAlertText}>
-                      ⚠️ Saldo insuficiente en cuenta (RD$
+                      ⚠️ Saldo insuficiente en cuenta ({sym}
                       {s.account?.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })} disp.)
                     </Text>
                   </View>
@@ -1052,7 +1068,7 @@ export default function MobileCommitmentsScreen() {
                 onChangeText={setDName}
               />
 
-              <Text style={styles.inputLabel}>Monto Inicial (RD$)</Text>
+              <Text style={styles.inputLabel}>Monto Inicial ({sym})</Text>
               <TextInput
                 style={styles.modalInput}
                 placeholder="0.00"
@@ -1104,7 +1120,7 @@ export default function MobileCommitmentsScreen() {
                 onChangeText={setDTargetDate}
               />
 
-              <Text style={styles.inputLabel}>Aporte Mensual Proyectado (RD$)</Text>
+              <Text style={styles.inputLabel}>Aporte Mensual Proyectado ({sym})</Text>
               <TextInput
                 style={styles.modalInput}
                 placeholder="ej. 5000"
@@ -1149,7 +1165,7 @@ export default function MobileCommitmentsScreen() {
                   </View>
                 </View>
 
-                <Text style={styles.inputLabel}>Cuota Mínima Obligatoria (RD$)</Text>
+                <Text style={styles.inputLabel}>Cuota Mínima Obligatoria ({sym})</Text>
                 <TextInput
                   style={styles.modalInput}
                   placeholder="Ej. 1500.00"
@@ -1229,13 +1245,13 @@ export default function MobileCommitmentsScreen() {
               <View style={styles.debtSummaryBox}>
                 <Text style={styles.debtSummaryTitle}>{selectedDebtForPay.contactName}</Text>
                 <Text style={styles.debtSummaryBalance}>
-                  Saldo Restante: RD$
+                  Saldo Restante: {sym}
                   {selectedDebtForPay.remainingAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </Text>
               </View>
             )}
 
-            <Text style={styles.inputLabel}>Monto a Abonar (RD$)</Text>
+            <Text style={styles.inputLabel}>Monto a Abonar ({sym})</Text>
             <TextInput
               style={styles.modalInput}
               placeholder="0.00"
@@ -1252,13 +1268,13 @@ export default function MobileCommitmentsScreen() {
                   style={styles.quickAmountPill}
                   onPress={() => setPayAmount('1000')}
                 >
-                  <Text style={styles.quickAmountText}>RD$1k</Text>
+                  <Text style={styles.quickAmountText}>{sym}1k</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.quickAmountPill}
                   onPress={() => setPayAmount('5000')}
                 >
-                  <Text style={styles.quickAmountText}>RD$5k</Text>
+                  <Text style={styles.quickAmountText}>{sym}5k</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.quickAmountPill}
@@ -1284,7 +1300,7 @@ export default function MobileCommitmentsScreen() {
                         {acc.name}
                       </Text>
                       <Text style={[styles.accountChipBalance, isSelected && styles.accountChipTextActive]}>
-                        RD${acc.balance.toLocaleString()}
+                        {sym}{acc.balance.toLocaleString()}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -1333,7 +1349,7 @@ export default function MobileCommitmentsScreen() {
                 onChangeText={setSName}
               />
 
-              <Text style={styles.inputLabel}>Costo Mensual (RD$)</Text>
+              <Text style={styles.inputLabel}>Costo Mensual ({sym})</Text>
               <TextInput
                 style={styles.modalInput}
                 placeholder="0.00"
@@ -1417,7 +1433,7 @@ export default function MobileCommitmentsScreen() {
                               {acc.name}
                             </Text>
                             <Text style={[styles.accountChipBalance, isSelected && styles.accountChipTextActive]}>
-                              RD${acc.balance.toLocaleString()}
+                              {sym}{acc.balance.toLocaleString()}
                             </Text>
                           </TouchableOpacity>
                         );
@@ -1476,7 +1492,7 @@ export default function MobileCommitmentsScreen() {
                 placeholderTextColor="#94a3b8"
               />
 
-              <Text style={styles.inputLabel}>Costo (RD$)</Text>
+              <Text style={styles.inputLabel}>Costo ({sym})</Text>
               <TextInput
                 style={styles.modalInput}
                 value={editSubCost}
@@ -1557,7 +1573,7 @@ export default function MobileCommitmentsScreen() {
                               {acc.name}
                             </Text>
                             <Text style={[styles.accountChipBalance, isSelected && styles.accountChipTextActive]}>
-                              RD${acc.balance.toLocaleString()}
+                              {sym}{acc.balance.toLocaleString()}
                             </Text>
                           </TouchableOpacity>
                         );
@@ -1594,7 +1610,7 @@ export default function MobileCommitmentsScreen() {
               placeholderTextColor="#94a3b8"
             />
 
-            <Text style={styles.inputLabel}>Monto (RD$)</Text>
+            <Text style={styles.inputLabel}>Monto ({sym})</Text>
             <TextInput
               style={styles.modalInput}
               value={remAmount}

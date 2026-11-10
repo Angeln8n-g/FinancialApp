@@ -114,44 +114,58 @@ export default function TransactionModal({
     }
   };
 
-  const handleAutofillReceipt = () => {
-    Alert.alert(
-      'Autocompletar con Recibo (OCR)',
-      'Selecciona una muestra para autocompletar este comprobante:',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Supermercado ($47.32)',
-          onPress: () => {
-            setType('EXPENSE');
-            setAmount('47.32');
-            setDescription('Supermercado Nacional [🧾 OCR]');
-            const groc = categories.find((c) => /super|alimento|comida/i.test(c.name));
-            if (groc) setCategoryId(groc.id);
-          },
-        },
-        {
-          text: 'Restaurante ($56.40)',
-          onPress: () => {
-            setType('EXPENSE');
-            setAmount('56.40');
-            setDescription('Ristorante Trattoria Bella [🧾 OCR]');
-            const food = categories.find((c) => /restaurante|comida/i.test(c.name));
-            if (food) setCategoryId(food.id);
-          },
-        },
-        {
-          text: 'Farmacia ($22.40)',
-          onPress: () => {
-            setType('EXPENSE');
-            setAmount('22.40');
-            setDescription('Farmacia Central Salud [🧾 OCR]');
-            const health = categories.find((c) => /salud|farmacia/i.test(c.name));
-            if (health) setCategoryId(health.id);
-          },
-        },
-      ]
-    );
+  const handleAutofillReceipt = async () => {
+    try {
+      const { fetchWithAuth } = await import('@/constants/Api');
+      const res = await fetchWithAuth('/api/ocr/samples');
+      let sampleList = [
+        { merchant: 'Supermercado Nacional', amount: 47.32, rawText: 'SUPERMERCADO NACIONAL\nFECHA: 24/10/2026\nTOTAL: $47.32' },
+        { merchant: 'Restaurante Bella', amount: 56.40, rawText: 'RESTAURANTE BELLA\nFECHA: 25/10/2026\nTOTAL: $56.40' },
+        { merchant: 'Farmacia Carol', amount: 18.90, rawText: 'FARMACIA CAROL\nFECHA: 26/10/2026\nTOTAL: $18.90' },
+      ];
+      if (res.ok) {
+        const data = await res.json();
+        if (data.samples && data.samples.length > 0) sampleList = data.samples;
+      }
+
+      Alert.alert(
+        'Escanear Recibo con IA (OCR)',
+        'Selecciona un comprobante para analizar y autocompletar:',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          ...sampleList.slice(0, 3).map((s: any) => ({
+            text: `${s.merchant} ($${Number(s.amount).toFixed(2)})`,
+            onPress: async () => {
+              try {
+                const parseRes = await fetchWithAuth('/api/ocr/parse', {
+                  method: 'POST',
+                  body: JSON.stringify({ rawText: s.rawText }),
+                });
+                if (parseRes.ok) {
+                  const pData = await parseRes.json();
+                  const c = pData.candidate || {};
+                  setType('EXPENSE');
+                  if (c.totalAmount) setAmount(String(c.totalAmount));
+                  setDescription(c.merchantName ? `${c.merchantName} [🧾 OCR]` : `${s.merchant} [🧾 OCR]`);
+                  if (c.categoryId) setCategoryId(c.categoryId);
+                  if (c.date) setDate(c.date);
+                } else {
+                  setType('EXPENSE');
+                  setAmount(String(s.amount));
+                  setDescription(`${s.merchant} [🧾 OCR]`);
+                }
+              } catch (e) {
+                setType('EXPENSE');
+                setAmount(String(s.amount));
+                setDescription(`${s.merchant} [🧾 OCR]`);
+              }
+            },
+          })),
+        ]
+      );
+    } catch (e) {
+      Alert.alert('OCR', 'No se pudieron cargar los comprobantes.');
+    }
   };
 
   return (

@@ -17,9 +17,12 @@ import {
   LogOut,
   Home,
   ChevronDown,
+  ChevronUp,
   Plus,
   ArrowDownRight,
   ArrowUpRight,
+  ArrowRightLeft,
+  Camera,
   Check,
   Circle,
   Edit3,
@@ -50,6 +53,8 @@ import Logo from '@/components/Logo';
 import HouseholdSelectorModal from '@/components/HouseholdSelectorModal';
 import TransactionModal from '@/components/modals/TransactionModal';
 import AccountModal from '@/components/modals/AccountModal';
+import EditAccountModal from '@/components/modals/EditAccountModal';
+import ReceiptScanModal from '@/components/modals/ReceiptScanModal';
 import TelegramBotModal from '@/components/modals/TelegramBotModal';
 import { useHouseholdSocket } from '@/hooks/useHouseholdSocket';
 
@@ -60,6 +65,8 @@ export default function MobileDashboardScreen() {
   const [user, setUserState] = useState<any>(null);
   const [household, setHouseholdState] = useState<any>(null);
 
+  const [selectedCurrency, setSelectedCurrency] = useState('USD');
+  const [showStsBreakdown, setShowStsBreakdown] = useState(false);
   const [summary, setSummary] = useState({ totalBalance: 0, monthlyIncome: 0, monthlyExpense: 0 });
   const [reminders, setReminders] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -75,6 +82,9 @@ export default function MobileDashboardScreen() {
   const [showTxModal, setShowTxModal] = useState(false);
   const [txInitialType, setTxInitialType] = useState<'EXPENSE' | 'INCOME' | 'TRANSFER'>('EXPENSE');
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showEditAccountModal, setShowEditAccountModal] = useState(false);
+  const [selectedAccountForEdit, setSelectedAccountForEdit] = useState<any>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showTelegramModal, setShowTelegramModal] = useState(false);
 
   // Modales Secundarios
@@ -206,7 +216,7 @@ export default function MobileDashboardScreen() {
     }
   };
 
-  const loadData = async () => {
+  const loadData = async (curr = selectedCurrency) => {
     try {
       const u = getUser();
       const h = getHousehold();
@@ -214,7 +224,7 @@ export default function MobileDashboardScreen() {
       setHouseholdState(h);
 
       const [resSum, resTx, resRem, resMem, resAllow, resAcc, resNotif, resCat] = await Promise.all([
-        fetchWithAuth('/api/transactions/summary'),
+        fetchWithAuth(`/api/transactions/summary?currency=${curr}`),
         fetchWithAuth('/api/transactions?limit=10'),
         fetchWithAuth('/api/reminders'),
         fetchWithAuth('/api/household/members'),
@@ -392,9 +402,14 @@ export default function MobileDashboardScreen() {
     ]);
   };
 
-  const openNewTx = (type: 'EXPENSE' | 'INCOME') => {
+  const openNewTx = (type: 'EXPENSE' | 'INCOME' | 'TRANSFER') => {
     setTxInitialType(type);
     setShowTxModal(true);
+  };
+
+  const handleCurrencyChange = (curr: string) => {
+    setSelectedCurrency(curr);
+    loadData(curr);
   };
 
   const handleQuickEntrySubmit = async () => {
@@ -428,7 +443,7 @@ export default function MobileDashboardScreen() {
   const pendingCount = reminders.filter((r) => !r.isPaid).length;
   const unreadNotifsCount = notifications.filter((n) => !n.isRead).length;
 
-  const baseCurr = (summary as any)?.baseCurrency || 'USD';
+  const baseCurr = selectedCurrency || (summary as any)?.baseCurrency || 'USD';
   const currencySymbols: Record<string, string> = {
     USD: '$',
     EUR: '€',
@@ -440,6 +455,7 @@ export default function MobileDashboardScreen() {
     PEN: 'S/',
     GBP: '£',
     BRL: 'R$',
+    CAD: '$',
     USDT: '₮',
   };
   const sym = currencySymbols[baseCurr] || '$';
@@ -591,23 +607,66 @@ export default function MobileDashboardScreen() {
         </View>
       </TouchableOpacity>
 
-      {/* Botones de Registro Rápido (Conectados al TransactionModal oficial) */}
-      <View style={{ flexDirection: 'row', gap: 10, marginVertical: 12 }}>
+      {/* Botones de Registro Rápido e Inteligente (Paridad Web al 100%) */}
+      <View style={{ flexDirection: 'row', gap: 8, marginVertical: 12 }}>
         <TouchableOpacity
           onPress={() => openNewTx('EXPENSE')}
           style={[styles.quickAddBtn, { backgroundColor: FamilyMint.expenseBg, borderColor: 'rgba(244, 63, 94, 0.3)' }]}
         >
-          <ArrowDownRight size={18} color={FamilyMint.expense} />
-          <Text style={[styles.quickAddText, { color: FamilyMint.expense }]}>Gasto (-)</Text>
+          <ArrowDownRight size={16} color={FamilyMint.expense} />
+          <Text style={[styles.quickAddText, { color: FamilyMint.expense }]}>Gasto</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => openNewTx('INCOME')}
           style={[styles.quickAddBtn, { backgroundColor: FamilyMint.incomeBg, borderColor: 'rgba(16, 185, 129, 0.3)' }]}
         >
-          <ArrowUpRight size={18} color={FamilyMint.income} />
-          <Text style={[styles.quickAddText, { color: FamilyMint.income }]}>Ingreso (+)</Text>
+          <ArrowUpRight size={16} color={FamilyMint.income} />
+          <Text style={[styles.quickAddText, { color: FamilyMint.income }]}>Ingreso</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => openNewTx('TRANSFER')}
+          style={[styles.quickAddBtn, { backgroundColor: FamilyMint.infoBg, borderColor: 'rgba(56, 189, 248, 0.3)' }]}
+        >
+          <ArrowRightLeft size={16} color={FamilyMint.info} />
+          <Text style={[styles.quickAddText, { color: FamilyMint.info }]}>Transf.</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setShowReceiptModal(true)}
+          style={[styles.quickAddBtn, { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)' }]}
+        >
+          <Camera size={16} color={FamilyMint.primary} />
+          <Text style={[styles.quickAddText, { color: FamilyMint.primary }]}>OCR 🧾</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Selector de Divisas de Consolidación (Tiempo Real) */}
+      <View style={styles.currencySelectorContainer}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 2 }}>
+          <Text style={styles.currencySelectorLabel}>Moneda de Consolidación:</Text>
+          <View style={styles.currencyActiveBadge}>
+            <Text style={styles.currencyActiveBadgeText}>{selectedCurrency} ({sym})</Text>
+          </View>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.currencyPillsScroll}>
+          {['USD', 'EUR', 'DOP', 'MXN', 'COP', 'ARS', 'CLP', 'PEN', 'GBP', 'BRL', 'CAD', 'USDT'].map((curr) => {
+            const isCurrActive = selectedCurrency === curr;
+            const cSym = currencySymbols[curr] || '$';
+            return (
+              <TouchableOpacity
+                key={curr}
+                onPress={() => handleCurrencyChange(curr)}
+                style={[styles.currencyPill, isCurrActive && styles.currencyPillActive]}
+              >
+                <Text style={[styles.currencyPillText, isCurrActive && styles.currencyPillTextActive]}>
+                  {curr} <Text style={{ fontSize: 10, opacity: 0.8 }}>({cSym})</Text>
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* KPI Cards: Safe to Spend + Balance + Ingresos/Gastos */}
@@ -648,10 +707,63 @@ export default function MobileDashboardScreen() {
             <Text style={{ fontSize: 11, color: FamilyMint.foregroundMuted }}>
               Mes libre ({baseCurr}): <Text style={{ color: FamilyMint.foreground, fontWeight: '600' }}>{sym}{((summary as any)?.safeToSpend?.safeToSpendMonth || 0).toLocaleString('en-US', { minimumFractionDigits: 0 })}</Text>
             </Text>
-            <Text style={{ fontSize: 11, color: FamilyMint.foregroundSubtle }}>
-              Quedan {((summary as any)?.safeToSpend?.daysRemaining || 1)} días
-            </Text>
+            <TouchableOpacity
+              onPress={() => setShowStsBreakdown(!showStsBreakdown)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}
+            >
+              <Text style={{ fontSize: 11, color: FamilyMint.primary, fontWeight: '600' }}>
+                {showStsBreakdown ? 'Ocultar' : 'Ver desglose'}
+              </Text>
+              {showStsBreakdown ? (
+                <ChevronUp size={13} color={FamilyMint.primary} />
+              ) : (
+                <ChevronDown size={13} color={FamilyMint.primary} />
+              )}
+            </TouchableOpacity>
           </View>
+
+          {/* Cajón Desplegable con Desglose Exacto Safe-to-Spend */}
+          {showStsBreakdown && (
+            <View style={styles.stsBreakdownBox}>
+              <View style={styles.stsBreakdownRow}>
+                <Text style={styles.stsBreakdownLabel}>Saldo Líquido Total:</Text>
+                <Text style={styles.stsBreakdownValue}>
+                  {sym}{Number((summary as any)?.safeToSpend?.liquidBalance || summary.totalBalance).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </Text>
+              </View>
+              <View style={styles.stsBreakdownRow}>
+                <Text style={[styles.stsBreakdownLabel, { color: FamilyMint.expense }]}>(-) Recordatorios pendientes:</Text>
+                <Text style={[styles.stsBreakdownValue, { color: FamilyMint.expense }]}>
+                  -{sym}{Number((summary as any)?.safeToSpend?.breakdown?.pendingRemindersTotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </Text>
+              </View>
+              <View style={styles.stsBreakdownRow}>
+                <Text style={[styles.stsBreakdownLabel, { color: FamilyMint.expense }]}>(-) Suscripciones mes:</Text>
+                <Text style={[styles.stsBreakdownValue, { color: FamilyMint.expense }]}>
+                  -{sym}{Number((summary as any)?.safeToSpend?.breakdown?.pendingSubscriptionsTotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </Text>
+              </View>
+              <View style={styles.stsBreakdownRow}>
+                <Text style={[styles.stsBreakdownLabel, { color: FamilyMint.expense }]}>(-) Deudas próximas:</Text>
+                <Text style={[styles.stsBreakdownValue, { color: FamilyMint.expense }]}>
+                  -{sym}{Number((summary as any)?.safeToSpend?.breakdown?.upcomingDebtsTotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </Text>
+              </View>
+
+              <View style={[styles.stsBreakdownRow, { borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.08)', paddingTop: 6, marginTop: 4 }]}>
+                <Text style={[styles.stsBreakdownLabel, { fontWeight: '700', color: FamilyMint.foreground }]}>
+                  Disponible Neto Mes:
+                </Text>
+                <Text style={[styles.stsBreakdownValue, { fontWeight: '700', color: FamilyMint.primary }]}>
+                  {sym}{Number((summary as any)?.safeToSpend?.safeToSpendMonth || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </Text>
+              </View>
+
+              <Text style={styles.stsFormulaText}>
+                Fórmula: (Saldo Líquido - Compromisos) / {((summary as any)?.safeToSpend?.daysRemaining || 1)} días restantes
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.kpiCardMain}>
@@ -708,14 +820,25 @@ export default function MobileDashboardScreen() {
                   )}
                   <Text style={styles.accountCardName} numberOfLines={1}>{acc.name}</Text>
                 </View>
-                <View style={[styles.accountTypeBadge, isPayroll && styles.payrollBadge]}>
-                  <Text style={[styles.accountTypeBadgeText, isPayroll && styles.payrollBadgeText]}>
-                    {isPayroll ? 'Nómina' : getAccountTypeName(acc.type)}
-                  </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={[styles.accountTypeBadge, isPayroll && styles.payrollBadge]}>
+                    <Text style={[styles.accountTypeBadgeText, isPayroll && styles.payrollBadgeText]}>
+                      {isPayroll ? 'Nómina' : getAccountTypeName(acc.type)}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedAccountForEdit(acc);
+                      setShowEditAccountModal(true);
+                    }}
+                    style={styles.editAccountPencilBtn}
+                  >
+                    <Edit3 size={12} color={FamilyMint.foregroundMuted} />
+                  </TouchableOpacity>
                 </View>
               </View>
 
-              <Text style={styles.accountBalanceLabel}>Saldo Disponible</Text>
+              <Text style={styles.accountBalanceLabel}>Saldo Disponible ({acc.currency || 'USD'})</Text>
               <Text style={styles.accountBalanceValue}>
                 ${Number(acc.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </Text>
@@ -890,6 +1013,24 @@ export default function MobileDashboardScreen() {
       <AccountModal
         visible={showAccountModal}
         onClose={() => setShowAccountModal(false)}
+        onSuccess={() => loadData()}
+      />
+
+      <EditAccountModal
+        visible={showEditAccountModal}
+        onClose={() => {
+          setShowEditAccountModal(false);
+          setSelectedAccountForEdit(null);
+        }}
+        account={selectedAccountForEdit}
+        onSuccess={() => loadData()}
+      />
+
+      <ReceiptScanModal
+        visible={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        accounts={accounts}
+        categories={categories}
         onSuccess={() => loadData()}
       />
 
@@ -1283,4 +1424,90 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   offlineSyncBtnText: { color: '#0A1128', fontWeight: '800', fontSize: 12 },
+  editAccountPencilBtn: {
+    padding: 4,
+    borderRadius: 6,
+    backgroundColor: FamilyMint.surfaceElevated,
+    borderWidth: 1,
+    borderColor: FamilyMint.border,
+  },
+  currencySelectorContainer: {
+    backgroundColor: FamilyMint.surface,
+    borderWidth: 1,
+    borderColor: FamilyMint.border,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
+  },
+  currencySelectorLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: FamilyMint.foregroundMuted,
+  },
+  currencyActiveBadge: {
+    backgroundColor: FamilyMint.primaryMuted,
+    borderWidth: 1,
+    borderColor: FamilyMint.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  currencyActiveBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: FamilyMint.primary,
+  },
+  currencyPillsScroll: {
+    marginTop: 2,
+  },
+  currencyPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: FamilyMint.surfaceElevated,
+    borderWidth: 1,
+    borderColor: FamilyMint.border,
+    marginRight: 6,
+  },
+  currencyPillActive: {
+    backgroundColor: FamilyMint.primary,
+    borderColor: FamilyMint.primary,
+  },
+  currencyPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: FamilyMint.foregroundMuted,
+  },
+  currencyPillTextActive: {
+    color: '#0A1128',
+    fontWeight: '800',
+  },
+  stsBreakdownBox: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(30, 43, 77, 0.7)',
+    gap: 5,
+  },
+  stsBreakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  stsBreakdownLabel: {
+    fontSize: 11,
+    color: FamilyMint.foregroundMuted,
+  },
+  stsBreakdownValue: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: FamilyMint.foreground,
+  },
+  stsFormulaText: {
+    fontSize: 10,
+    color: FamilyMint.foregroundSubtle,
+    fontStyle: 'italic',
+    marginTop: 4,
+    textAlign: 'center',
+  },
 });

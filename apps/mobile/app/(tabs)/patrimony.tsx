@@ -11,12 +11,28 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { fetchWithAuth } from '@/constants/Api';
+import { fetchWithAuth, getHousehold } from '@/constants/Api';
 import { FamilyMint } from '@/constants/Colors';
 import { Edit3, Trash2 } from 'lucide-react-native';
 import EditAssetModal from '@/components/modals/EditAssetModal';
 
 export default function MobilePatrimonyScreen() {
+  const household = getHousehold();
+  const currencySymbols: Record<string, string> = {
+    USD: '$',
+    EUR: '€',
+    DOP: 'RD$',
+    MXN: '$',
+    COP: '$',
+    ARS: '$',
+    CLP: '$',
+    PEN: 'S/',
+    GBP: '£',
+    BRL: 'R$',
+    CAD: '$',
+    USDT: '₮',
+  };
+  const sym = currencySymbols[household?.currency || 'USD'] || '$';
   const [patrimony, setPatrimony] = useState<any>({
     totalAssets: 0,
     liquidAssets: 0,
@@ -309,7 +325,7 @@ export default function MobilePatrimonyScreen() {
       {/* 🏆 TARJETA NET WORTH CONSOLIDADO */}
       <View style={styles.netWorthCard}>
         <Text style={styles.netWorthLabel}>PATRIMONIO NETO CONSOLIDADO</Text>
-        <Text style={styles.netWorthValue}>RD${fmt(patrimony.netWorth)}</Text>
+        <Text style={styles.netWorthValue}>{sym}{fmt(patrimony.netWorth)}</Text>
 
         {/* Badges de Salud Financiera */}
         <View style={styles.badgesRow}>
@@ -348,14 +364,14 @@ export default function MobilePatrimonyScreen() {
         <View style={styles.netWorthRow}>
           <View style={styles.netWorthSubItem}>
             <Text style={styles.assetLabel}>TOTAL ACTIVOS</Text>
-            <Text style={styles.assetValueText}>+RD${fmt(patrimony.totalAssets)}</Text>
+            <Text style={styles.assetValueText}>+{sym}{fmt(patrimony.totalAssets)}</Text>
             <Text style={styles.miniMeta}>
-              Líq: RD${fmt(patrimony.liquidAssets)} • Fijo: RD${fmt(patrimony.fixedAssets)}
+              Líq: {sym}{fmt(patrimony.liquidAssets)} • Fijo: {sym}{fmt(patrimony.fixedAssets)}
             </Text>
           </View>
           <View style={styles.netWorthSubItem}>
             <Text style={styles.liabLabel}>TOTAL PASIVOS</Text>
-            <Text style={styles.liabValueText}>-RD${fmt(patrimony.totalLiabilities)}</Text>
+            <Text style={styles.liabValueText}>-{sym}{fmt(patrimony.totalLiabilities)}</Text>
             <Text style={styles.miniMeta}>
               {patrimony.liabilitiesList?.length || 0} deudas activas
             </Text>
@@ -372,7 +388,7 @@ export default function MobilePatrimonyScreen() {
                 patrimony.totalAppreciation >= 0 ? styles.gainText : styles.lossText,
               ]}
             >
-              {patrimony.totalAppreciation >= 0 ? '+' : ''}RD${fmt(patrimony.totalAppreciation)}
+              {patrimony.totalAppreciation >= 0 ? '+' : ''}{sym}{fmt(patrimony.totalAppreciation)}
             </Text>
           </View>
         )}
@@ -455,14 +471,14 @@ export default function MobilePatrimonyScreen() {
                     <Text style={styles.assetType}>{getCategoryLabel(a.type)}</Text>
                   </View>
                 </View>
-                <Text style={styles.assetAmount}>+RD${fmt(a.value)}</Text>
+                <Text style={styles.assetAmount}>+{sym}{fmt(a.value)}</Text>
               </View>
 
               {/* Detalle de Costo y Plusvalía */}
               {hasAppreciation && (
                 <View style={styles.equityRow}>
                   <Text style={styles.equityLabel}>
-                    Costo: RD${fmt(a.purchasePrice)}
+                    Costo: {sym}{fmt(a.purchasePrice)}
                   </Text>
                   <Text
                     style={[
@@ -470,7 +486,7 @@ export default function MobilePatrimonyScreen() {
                       isGain ? styles.gainBadge : styles.lossBadge,
                     ]}
                   >
-                    {isGain ? '+' : ''}RD${fmt(a.appreciationAmount)} ({isGain ? '+' : ''}
+                    {isGain ? '+' : ''}{sym}{fmt(a.appreciationAmount)} ({isGain ? '+' : ''}
                     {a.appreciationPercentage}%)
                   </Text>
                 </View>
@@ -480,10 +496,10 @@ export default function MobilePatrimonyScreen() {
               {hasDebt ? (
                 <View style={styles.linkedDebtBox}>
                   <Text style={styles.linkedDebtText}>
-                    Deuda ({a.linkedDebt.contactName}): -RD${fmt(a.linkedDebt.remainingAmount)}
+                    Deuda ({a.linkedDebt.contactName}): -{sym}{fmt(a.linkedDebt.remainingAmount)}
                   </Text>
                   <Text style={styles.netEquityText}>
-                    Equity Neto Real: RD${fmt(a.netEquity)}
+                    Equity Neto Real: {sym}{fmt(a.netEquity)}
                   </Text>
                 </View>
               ) : (
@@ -515,7 +531,7 @@ export default function MobilePatrimonyScreen() {
       {(patrimony.accountsList || []).map((acc: any) => (
         <View key={acc.id} style={styles.accountCard}>
           <Text style={styles.accountName}>{acc.name} ({acc.type})</Text>
-          <Text style={styles.accountBalance}>+RD${fmt(acc.balance)}</Text>
+          <Text style={styles.accountBalance}>+{sym}{fmt(acc.balance)}</Text>
         </View>
       ))}
 
@@ -532,7 +548,7 @@ export default function MobilePatrimonyScreen() {
                 {l.hasLinkedAsset ? 'Garantía vinculada' : 'Préstamo personal'}
               </Text>
             </View>
-            <Text style={styles.liabAmount}>-RD${fmt(l.value)}</Text>
+            <Text style={styles.liabAmount}>-{sym}{fmt(l.value)}</Text>
           </View>
         ))
       )}
@@ -582,7 +598,7 @@ export default function MobilePatrimonyScreen() {
 
             <TextInput
               style={styles.modalInput}
-              placeholder="Valor Estimado Actual (RD$)"
+              placeholder={`Valor Estimado Actual (${sym})`}
               placeholderTextColor="#94a3b8"
               keyboardType="numeric"
               value={assetValue}
@@ -591,7 +607,7 @@ export default function MobilePatrimonyScreen() {
 
             <TextInput
               style={styles.modalInput}
-              placeholder="Costo de Compra Original (RD$) - Opcional"
+              placeholder={`Costo de Compra Original (${sym}) - Opcional`}
               placeholderTextColor="#94a3b8"
               keyboardType="numeric"
               value={assetPurchasePrice}
@@ -624,7 +640,7 @@ export default function MobilePatrimonyScreen() {
                       onPress={() => setAssetDebtId(d.id)}
                     >
                       <Text style={styles.debtChipText}>
-                        {d.contactName || d.name} (RD${fmt(d.remainingAmount || d.value)})
+                        {d.contactName || d.name} ({sym}{fmt(d.remainingAmount || d.value)})
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -666,13 +682,13 @@ export default function MobilePatrimonyScreen() {
             <Text style={styles.modalTitle}>Actualizar Tasación</Text>
             {selectedAssetForValuation && (
               <Text style={styles.modalSub}>
-                {selectedAssetForValuation.name} • Valor actual: RD${fmt(selectedAssetForValuation.value)}
+                {selectedAssetForValuation.name} • Valor actual: {sym}{fmt(selectedAssetForValuation.value)}
               </Text>
             )}
 
             <TextInput
               style={styles.modalInput}
-              placeholder="Nuevo Valor Tasado (RD$)"
+              placeholder={`Nuevo Valor Tasado (${sym})`}
               placeholderTextColor="#94a3b8"
               keyboardType="numeric"
               value={newValuationValue}

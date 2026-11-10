@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { fetchWithAuth } from '@/constants/Api';
+import { fetchWithAuth, getHousehold } from '@/constants/Api';
 import { FamilyMint } from '@/constants/Colors';
 import { Edit3, Trash2 } from 'lucide-react-native';
 import EditBudgetModal from '@/components/modals/EditBudgetModal';
@@ -60,6 +60,22 @@ interface AccountItem {
 }
 
 export default function MobileBudgetsScreen() {
+  const household = getHousehold();
+  const currencySymbols: Record<string, string> = {
+    USD: '$',
+    EUR: '€',
+    DOP: 'RD$',
+    MXN: '$',
+    COP: '$',
+    ARS: '$',
+    CLP: '$',
+    PEN: 'S/',
+    GBP: '£',
+    BRL: 'R$',
+    CAD: '$',
+    USDT: '₮',
+  };
+  const sym = currencySymbols[household?.currency || 'USD'] || '$';
   const [budgets, setBudgets] = useState<BudgetItem[]>([]);
   const [goals, setGoals] = useState<GoalItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
@@ -207,7 +223,7 @@ export default function MobileBudgetsScreen() {
   // Crear Presupuesto
   const handleCreateBudget = async () => {
     if (!selectedCatId || !limitInput || parseFloat(limitInput) <= 0) {
-      Alert.alert('Datos requeridos', 'Selecciona una categoría y define un límite mayor a RD$0.');
+      Alert.alert('Datos requeridos', 'Selecciona una categoría y define un límite mayor a {sym}0.');
       return;
     }
 
@@ -336,7 +352,7 @@ export default function MobileBudgetsScreen() {
     if (!selectedGoal) return;
     const amountNum = parseFloat(contribAmount);
     if (!amountNum || amountNum <= 0) {
-      Alert.alert('Monto Inválido', 'Ingresa una cantidad mayor a RD$0 para aportar.');
+      Alert.alert('Monto Inválido', 'Ingresa una cantidad mayor a {sym}0 para aportar.');
       return;
     }
 
@@ -344,7 +360,7 @@ export default function MobileBudgetsScreen() {
     if (selectedAcc && selectedAcc.balance < amountNum) {
       Alert.alert(
         'Saldo Insuficiente',
-        `La cuenta "${selectedAcc.name}" tiene RD$${selectedAcc.balance.toLocaleString()}. No cuenta con saldo suficiente para aportar RD$${amountNum.toLocaleString()}.`
+        `La cuenta "${selectedAcc.name}" tiene {sym}${selectedAcc.balance.toLocaleString()}. No cuenta con saldo suficiente para aportar {sym}${amountNum.toLocaleString()}.`
       );
       return;
     }
@@ -367,7 +383,7 @@ export default function MobileBudgetsScreen() {
       }
 
       setShowContributeModal(false);
-      Alert.alert('¡Aporte Exitoso!', `Se aportaron RD$${amountNum.toLocaleString()} a "${selectedGoal.name}".`);
+      Alert.alert('¡Aporte Exitoso!', `Se aportaron {sym}${amountNum.toLocaleString()} a "${selectedGoal.name}".`);
       loadData();
     } catch (e: any) {
       Alert.alert('Error', e.message || 'No se pudo registrar el aporte.');
@@ -443,7 +459,7 @@ export default function MobileBudgetsScreen() {
                   <View style={{ flex: 1, marginRight: 8 }}>
                     <Text style={styles.cardTitle}>{b.categoryName}</Text>
                     <Text style={styles.cardSub}>
-                      Consumido: RD${fmt(b.spentAmount)} de RD${fmt(b.limitAmount)}
+                      Consumido: {sym}{fmt(b.spentAmount)} de {sym}{fmt(b.limitAmount)}
                     </Text>
                   </View>
                 </View>
@@ -468,15 +484,15 @@ export default function MobileBudgetsScreen() {
               <View style={styles.budgetFooterRow}>
                 {isOver ? (
                   <Text style={styles.overbudgetWarningText}>
-                    🚨 Excedido por RD${fmt(Math.abs(b.remainingAmount))}
+                    🚨 Excedido por {sym}{fmt(Math.abs(b.remainingAmount))}
                   </Text>
                 ) : (
                   <Text style={styles.budgetAvailableText}>
-                    Disponible: RD${fmt(b.remainingAmount)} ({b.daysRemaining} días restantes)
+                    Disponible: {sym}{fmt(b.remainingAmount)} ({b.daysRemaining} días restantes)
                   </Text>
                 )}
                 {!isOver && b.dailyRemaining > 0 && (
-                  <Text style={styles.dailyRemainingText}>~RD${fmt(b.dailyRemaining)}/día</Text>
+                  <Text style={styles.dailyRemainingText}>~{sym}{fmt(b.dailyRemaining)}/día</Text>
                 )}
               </View>
 
@@ -484,7 +500,7 @@ export default function MobileBudgetsScreen() {
               {Number(b.committedRecurringAmount || 0) > 0 && (
                 <View style={styles.recurringBox}>
                   <Text style={styles.recurringBoxText}>
-                    🔄 Compromiso fijo: RD${fmt(b.committedRecurringAmount)}/mes ({b.recurringSubscriptionsCount || 0} serv.)
+                    🔄 Compromiso fijo: {sym}{fmt(b.committedRecurringAmount)}/mes ({b.recurringSubscriptionsCount || 0} serv.)
                   </Text>
                 </View>
               )}
@@ -532,8 +548,8 @@ export default function MobileBudgetsScreen() {
               </View>
 
               <Text style={styles.goalCurrent}>
-                RD${fmt(g.currentAmount)}{' '}
-                <Text style={styles.goalTarget}>/ RD${fmt(g.targetAmount)}</Text>
+                {sym}{fmt(g.currentAmount)}{' '}
+                <Text style={styles.goalTarget}>/ {sym}{fmt(g.targetAmount)}</Text>
               </Text>
 
               {/* Progress Bar */}
@@ -551,9 +567,9 @@ export default function MobileBudgetsScreen() {
 
               <View style={styles.goalFooter}>
                 <Text style={styles.goalFooterText}>
-                  {isDone ? '¡Meta completada con éxito!' : `Faltan RD$${fmt(remaining)}`}
+                  {isDone ? '¡Meta completada con éxito!' : `Faltan {sym}${fmt(remaining)}`}
                 </Text>
-                {!isDone && <Text style={styles.goalSuggested}>Sugerido: RD${fmt(g.suggested)}/mes</Text>}
+                {!isDone && <Text style={styles.goalSuggested}>Sugerido: {sym}{fmt(g.suggested)}/mes</Text>}
               </View>
 
               {/* Botón Aportar Fondos */}
@@ -614,7 +630,7 @@ export default function MobileBudgetsScreen() {
       />
     </ScrollView>
 
-            <Text style={styles.inputLabel}>Límite Mensual (RD$)</Text>
+            <Text style={styles.inputLabel}>Límite Mensual ({sym})</Text>
             <TextInput
               style={styles.modalInput}
               placeholder="0.00"
@@ -665,7 +681,7 @@ export default function MobileBudgetsScreen() {
                 onChangeText={setGoalName}
               />
 
-              <Text style={styles.inputLabel}>Monto Objetivo (RD$)</Text>
+              <Text style={styles.inputLabel}>Monto Objetivo ({sym})</Text>
               <TextInput
                 style={styles.modalInput}
                 placeholder="0.00"
@@ -675,7 +691,7 @@ export default function MobileBudgetsScreen() {
                 onChangeText={setGoalTarget}
               />
 
-              <Text style={styles.inputLabel}>Monto Inicial Ahorrado (RD$ Opcional)</Text>
+              <Text style={styles.inputLabel}>Monto Inicial Ahorrado ({sym} Opcional)</Text>
               <TextInput
                 style={styles.modalInput}
                 placeholder="0.00"
@@ -728,12 +744,12 @@ export default function MobileBudgetsScreen() {
               <View style={styles.goalSummaryBox}>
                 <Text style={styles.goalSummaryName}>{selectedGoal.name}</Text>
                 <Text style={styles.goalSummaryNumbers}>
-                  Acumulado: RD${fmt(selectedGoal.currentAmount)} / RD${fmt(selectedGoal.targetAmount)}
+                  Acumulado: {sym}{fmt(selectedGoal.currentAmount)} / {sym}{fmt(selectedGoal.targetAmount)}
                 </Text>
               </View>
             )}
 
-            <Text style={styles.inputLabel}>Monto a Aportar (RD$)</Text>
+            <Text style={styles.inputLabel}>Monto a Aportar ({sym})</Text>
             <TextInput
               style={styles.modalInput}
               placeholder="0.00"
@@ -746,10 +762,10 @@ export default function MobileBudgetsScreen() {
             {/* Accesos rápidos de monto */}
             <View style={styles.quickAmountRow}>
               <TouchableOpacity style={styles.quickPill} onPress={() => setContribAmount('1000')}>
-                <Text style={styles.quickPillText}>RD$1k</Text>
+                <Text style={styles.quickPillText}>{sym}1k</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickPill} onPress={() => setContribAmount('5000')}>
-                <Text style={styles.quickPillText}>RD$5k</Text>
+                <Text style={styles.quickPillText}>{sym}5k</Text>
               </TouchableOpacity>
               {selectedGoal && selectedGoal.targetAmount > selectedGoal.currentAmount && (
                 <TouchableOpacity
@@ -776,7 +792,7 @@ export default function MobileBudgetsScreen() {
                         {acc.name}
                       </Text>
                       <Text style={[styles.accChipBalance, isSelected && styles.accChipTextActive]}>
-                        RD${acc.balance.toLocaleString()}
+                        {sym}{acc.balance.toLocaleString()}
                       </Text>
                     </TouchableOpacity>
                   );
