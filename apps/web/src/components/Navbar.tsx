@@ -80,7 +80,7 @@ function NotificationBell() {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-xl bg-[#101A36] hover:bg-[#162347] text-slate-300 hover:text-emerald-300 border border-[#1E2B4D] transition-colors cursor-pointer relative"
+        className="p-2 rounded-xl bg-[#101A36] hover:bg-[#162347] text-slate-300 hover:text-[var(--primary)] border border-[#1E2B4D] transition-colors cursor-pointer relative"
         title="Notificaciones"
         aria-label="Notificaciones"
       >
@@ -96,13 +96,13 @@ function NotificationBell() {
         <div className="absolute right-0 mt-2 w-80 sm:w-96 p-4 border border-[#1E2B4D] shadow-2xl z-50 rounded-2xl bg-[#101A36] backdrop-blur-xl">
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#1E2B4D]">
             <span className="text-xs font-semibold text-slate-200 flex items-center gap-2">
-              <Bell className="w-3.5 h-3.5 text-emerald-400" />
+              <Bell className="w-3.5 h-3.5 text-[var(--primary)]" />
               Notificaciones ({notifications.length})
             </span>
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="text-[11px] font-medium text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+                className="text-[11px] font-medium text-[var(--primary-text)] hover:opacity-80 flex items-center gap-1 cursor-pointer"
               >
                 <CheckCheck className="w-3 h-3" />
                 Marcar leídas
@@ -120,7 +120,7 @@ function NotificationBell() {
                   className={`p-3 rounded-xl border text-xs transition-colors ${
                     n.isRead
                       ? 'bg-[#0A1128]/60 border-[#1E2B4D]/60 opacity-60'
-                      : 'bg-[#162347] border-emerald-500/30'
+                      : 'bg-[#162347] border-[var(--primary-border)]'
                   }`}
                 >
                   <p className="font-semibold text-slate-100 text-xs">{n.title}</p>
@@ -189,8 +189,8 @@ function HouseholdSelector({ currentHousehold }: { currentHousehold?: any }) {
 
   if (availableHouseholds.length <= 1) {
     return (
-      <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#162347] border border-[#1E2B4D] text-[11px] text-emerald-300 font-medium">
-        <Home className="w-3 h-3 text-emerald-400" />
+      <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--primary-muted)] border border-[var(--primary-border)] text-[11px] text-[var(--primary-text)] font-medium">
+        <Home className="w-3 h-3 text-[var(--primary)]" />
         {currentHousehold?.name || 'Hogar'}
       </span>
     );
@@ -201,7 +201,7 @@ function HouseholdSelector({ currentHousehold }: { currentHousehold?: any }) {
       <select
         value={currentHousehold?.id || ''}
         onChange={(e) => handleSwitchHousehold(e.target.value)}
-        className="px-2.5 py-1 pr-6 rounded-lg bg-[#162347] border border-emerald-500/30 text-[11px] text-emerald-200 font-medium focus:outline-none focus:border-emerald-400 cursor-pointer appearance-none"
+        className="px-2.5 py-1 pr-6 rounded-lg bg-[#162347] border border-[var(--primary-border)] text-[11px] text-[var(--primary-text)] font-medium focus:outline-none focus:border-[var(--primary)] cursor-pointer appearance-none"
       >
         {availableHouseholds.map((h) => (
           <option key={h.id} value={h.id} className="bg-[#101A36] text-slate-100">
@@ -209,7 +209,7 @@ function HouseholdSelector({ currentHousehold }: { currentHousehold?: any }) {
           </option>
         ))}
       </select>
-      <ChevronDown className="w-3 h-3 text-emerald-400 absolute right-1.5 top-2 pointer-events-none" />
+      <ChevronDown className="w-3 h-3 text-[var(--primary)] absolute right-1.5 top-2 pointer-events-none" />
     </div>
   );
 }
@@ -264,11 +264,11 @@ export default function Navbar({
                     href={link.href}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 flex items-center space-x-1.5 ${
                       isActive
-                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                        ? 'nav-link-active'
                         : 'text-slate-400 hover:text-slate-100 hover:bg-[#162347]'
                     }`}
                   >
-                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'nav-icon-active' : 'text-slate-400'}`} />
                     <span>{link.label}</span>
                   </Link>
                 );
@@ -280,11 +280,11 @@ export default function Navbar({
           <div className="flex items-center space-x-2 sm:space-x-3">
             <button
               onClick={() => setShowThemeModal(true)}
-              className="p-2 rounded-xl bg-[#101A36] hover:bg-[#162347] text-slate-300 hover:text-amber-300 border border-[#1E2B4D] transition-colors cursor-pointer"
-              title="Temas y Colores Cálidos"
+              className="p-2 rounded-xl bg-[#101A36] hover:bg-[#162347] border border-[#1E2B4D] transition-all cursor-pointer relative group"
+              title="Temas y Paletas de Colores"
               aria-label="Personalizar Temas"
             >
-              <Palette className="w-4 h-4 text-amber-400" />
+              <Palette className="w-4 h-4 text-[var(--primary)] transition-transform group-hover:scale-110" />
             </button>
 
             <NotificationBell />
@@ -296,14 +296,14 @@ export default function Navbar({
                 className="hidden sm:flex items-center gap-2 text-left border-l border-[#1E2B4D] pl-3 hover:opacity-90 transition-opacity cursor-pointer group"
                 title="Mi Cuenta, Privacidad y Exportación de Datos"
               >
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:border-emerald-500/50 group-hover:bg-emerald-500/20 transition-all">
+                <div className="w-7 h-7 rounded-lg bg-[var(--primary-muted)] border border-[var(--primary-border)] flex items-center justify-center text-[var(--primary)] group-hover:opacity-80 transition-all">
                   <User className="w-3.5 h-3.5" />
                 </div>
                 <div className="flex flex-col">
-                  <p className="text-xs font-semibold text-slate-200 group-hover:text-emerald-300 transition-colors">
+                  <p className="text-xs font-semibold text-slate-200 group-hover:text-[var(--primary-text)] transition-colors">
                     {user.fullName || user.email}
                   </p>
-                  <span className="text-[10px] text-emerald-400 font-medium">
+                  <span className="text-[10px] text-[var(--primary-text)] font-medium">
                     {household?.role || 'Miembro'}
                   </span>
                 </div>
@@ -345,11 +345,11 @@ export default function Navbar({
                     onClick={() => setMobileMenuOpen(false)}
                     className={`p-2.5 rounded-xl text-xs font-medium flex items-center space-x-2 transition-all ${
                       isActive
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                        ? 'nav-drawer-link-active'
                         : 'bg-[#101A36] text-slate-300 border border-[#1E2B4D] hover:bg-[#162347]'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                    <Icon className={`w-4 h-4 ${isActive ? 'nav-icon-active' : 'text-slate-400'}`} />
                     <span className="truncate">{link.label}</span>
                   </Link>
                 );
@@ -364,9 +364,9 @@ export default function Navbar({
                     setMobileMenuOpen(false);
                     setShowProfileModal(true);
                   }}
-                  className="w-full p-2.5 rounded-xl text-xs font-medium flex items-center space-x-2.5 bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/20 transition-all cursor-pointer"
+                  className="w-full p-2.5 rounded-xl text-xs font-medium flex items-center space-x-2.5 bg-[var(--primary-muted)] border border-[var(--primary-border)] text-[var(--primary-text)] hover:opacity-90 transition-all cursor-pointer"
                 >
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <ShieldCheck className="w-4 h-4 text-[var(--primary)]" />
                   <span>Mi Cuenta & Privacidad</span>
                 </button>
               </div>
@@ -385,7 +385,7 @@ export default function Navbar({
               key={link.href}
               href={link.href}
               className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl transition-all ${
-                isActive ? 'text-emerald-400 font-semibold' : 'text-slate-400 hover:text-slate-200'
+                isActive ? 'nav-bottom-link-active' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               <Icon className="w-4 h-4" />

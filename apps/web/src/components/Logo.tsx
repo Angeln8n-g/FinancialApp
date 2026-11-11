@@ -38,9 +38,9 @@ export default function Logo({
     <div className={`inline-flex items-center space-x-2.5 group ${className}`}>
       {/* Icon Mark */}
       <div
-        className={`${iconSizes[size]} relative flex items-center justify-center rounded-xl bg-[#101A36] border border-emerald-500/30 shadow-md shadow-emerald-950/30 transition-transform duration-200 group-hover:scale-105 overflow-hidden`}
+        className={`${iconSizes[size]} relative flex items-center justify-center rounded-xl bg-[#101A36] border border-[var(--primary-border)] shadow-md shadow-[var(--primary)]/10 transition-transform duration-200 group-hover:scale-105 overflow-hidden`}
       >
-        <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/10 via-teal-500/5 to-transparent opacity-80" />
+        <div className="absolute inset-0 bg-gradient-to-tr from-[var(--primary)]/10 via-[var(--primary)]/5 to-transparent opacity-80" />
 
         <svg
           viewBox="0 0 64 64"
@@ -91,10 +91,10 @@ export default function Logo({
         <div className="flex flex-col">
           <div className="flex items-center space-x-1.5">
             <span className={`${textSizes[size]} font-bold text-slate-100 tracking-tight leading-none`}>
-              Hogar<span className="text-emerald-400">IQ</span>
+              Hogar<span className="text-[var(--primary)]">IQ</span>
             </span>
             <span
-              className={`${badgeSizes[size]} font-semibold rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 tracking-wider leading-none`}
+              className={`${badgeSizes[size]} font-semibold rounded-md bg-[var(--primary-muted)] text-[var(--primary-text)] border border-[var(--primary-border)] tracking-wider leading-none`}
             >
               HOGAR
             </span>

@@ -1,10 +1,14 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   THEME DESIGN TOKENS (HogarIQ Multi-Theme System)
+   HOGARIQ MULTI-THEME DESIGN SYSTEM
+   Visual Harmony, AAA/AA Contrast Compliance & Refined Editorial Surfaces
    ========================================================================== */
 
-/* 1. Family Mint (Tema Original) */
+/* --------------------------------------------------------------------------
+   1. FAMILY MINT (Original / Firma HogarIQ)
+   Azul Noche Profundo & Menta Esmeralda Inteligente
+   -------------------------------------------------------------------------- */
 :root,
 [data-theme="mint"] {
   --background: #0A1128;
@@ -16,87 +20,139 @@
   --foreground-subtle: #64748B;
   --primary: #10B981;
   --primary-hover: #059669;
+  --primary-muted: rgba(16, 185, 129, 0.15);
+  --primary-border: rgba(16, 185, 129, 0.35);
+  --primary-text: #6EE7B7;
+  --primary-foreground: #0A1128;
   --accent-saving: #F59E0B;
   --success: #10B981;
   --danger: #F43F5E;
   --border: #1E2B4D;
   --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-hover: #2D3E6B;
+  --card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.40);
+  --modal-backdrop: rgba(10, 17, 40, 0.88);
+  --input-bg: #0A1128;
 }
 
-/* 2. Ámbar & Café Ejecutivo (Warm Espresso & Gold) */
+/* --------------------------------------------------------------------------
+   2. ÁMBAR & CAFÉ EJECUTIVO (Warm Espresso & Gold)
+   Descanso visual profundo, madera oscura y oro ambarino
+   -------------------------------------------------------------------------- */
 [data-theme="warm-espresso"] {
-  --background: #14110E;
-  --surface: #1D1814;
-  --surface-hover: #28221D;
-  --surface-active: #342D26;
+  --background: #120F0D;
+  --surface: #1A1613;
+  --surface-hover: #251F1B;
+  --surface-active: #322B25;
   --foreground: #FDFBF7;
-  --foreground-muted: #BAABA0;
-  --foreground-subtle: #82746A;
+  --foreground-muted: #C4B5A8;
+  --foreground-subtle: #948578;
   --primary: #F59E0B;
   --primary-hover: #D97706;
+  --primary-muted: rgba(245, 158, 11, 0.15);
+  --primary-border: rgba(245, 158, 11, 0.35);
+  --primary-text: #FCD34D;
+  --primary-foreground: #120F0D;
   --accent-saving: #FBBF24;
   --success: #10B981;
   --danger: #F43F5E;
-  --border: #3C3229;
+  --border: #362C24;
   --border-subtle: rgba(245, 158, 11, 0.12);
+  --border-hover: #4E3F34;
+  --card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.48);
+  --modal-backdrop: rgba(18, 15, 13, 0.90);
+  --input-bg: #120F0D;
 }
 
-/* 3. Cobre & Nogal Real (Warm Copper & Terracotta) */
+/* --------------------------------------------------------------------------
+   3. COBRE & NOGAL REAL (Warm Copper & Terracotta)
+   Lujo artesanal, terracota toscana y cobre ahumado
+   -------------------------------------------------------------------------- */
 [data-theme="warm-copper"] {
-  --background: #161312;
-  --surface: #221C1A;
-  --surface-hover: #2E2623;
-  --surface-active: #3A302C;
+  --background: #14100F;
+  --surface: #1E1816;
+  --surface-hover: #2B2220;
+  --surface-active: #382D2A;
   --foreground: #FAF5F0;
-  --foreground-muted: #B8AAA6;
-  --foreground-subtle: #827571;
+  --foreground-muted: #C8B6B0;
+  --foreground-subtle: #93817C;
   --primary: #EA580C;
   --primary-hover: #C2410C;
+  --primary-muted: rgba(234, 88, 12, 0.15);
+  --primary-border: rgba(234, 88, 12, 0.35);
+  --primary-text: #FDBA74;
+  --primary-foreground: #FAF5F0;
   --accent-saving: #F59E0B;
   --success: #10B981;
   --danger: #F43F5E;
-  --border: #463833;
+  --border: #42322E;
   --border-subtle: rgba(234, 88, 12, 0.12);
+  --border-hover: #5A443E;
+  --card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.48);
+  --modal-backdrop: rgba(20, 16, 15, 0.90);
+  --input-bg: #14100F;
 }
 
-/* 4. Champagne & Bosque Cálido (Warm Forest & Champagne) */
+/* --------------------------------------------------------------------------
+   4. CHAMPAGNE & BOSQUE CÁLIDO (Warm Forest & Champagne)
+   Banca patrimonial suiza, bosque alpino y champagne metálico
+   -------------------------------------------------------------------------- */
 [data-theme="warm-olive"] {
-  --background: #121412;
-  --surface: #1A1E1A;
-  --surface-hover: #252B25;
-  --surface-active: #303830;
+  --background: #0F120F;
+  --surface: #171B17;
+  --surface-hover: #222822;
+  --surface-active: #2E362E;
   --foreground: #F6F8F5;
-  --foreground-muted: #A5ACA4;
-  --foreground-subtle: #6E776D;
+  --foreground-muted: #B7BFB5;
+  --foreground-subtle: #828C80;
   --primary: #EAB308;
   --primary-hover: #CA8A04;
+  --primary-muted: rgba(234, 179, 8, 0.15);
+  --primary-border: rgba(234, 179, 8, 0.35);
+  --primary-text: #FDE047;
+  --primary-foreground: #0F120F;
   --accent-saving: #22C55E;
   --success: #10B981;
   --danger: #F43F5E;
-  --border: #3B443B;
+  --border: #353F35;
   --border-subtle: rgba(234, 179, 8, 0.12);
+  --border-hover: #485748;
+  --card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.48);
+  --modal-backdrop: rgba(15, 18, 15, 0.90);
+  --input-bg: #0F120F;
 }
 
-/* 5. Marfil & Cuero Pergamino (Executive Warm Ivory - Modo Claro) */
+/* --------------------------------------------------------------------------
+   5. MARFIL & CUERO PERGAMINO (Executive Warm Ivory - Modo Claro)
+   Papel satinado, lino marfil y cuero ámbar. Cero reflejos agresivos.
+   -------------------------------------------------------------------------- */
 [data-theme="warm-ivory"] {
-  --background: #F7F4EE;
+  --background: #F6F3EC;
   --surface: #FFFFFF;
-  --surface-hover: #EFEBE2;
-  --surface-active: #E6E0D4;
+  --surface-hover: #EDE7DC;
+  --surface-active: #E3DBD0;
   --foreground: #1C1917;
-  --foreground-muted: #57534E;
-  --foreground-subtle: #78716C;
+  --foreground-muted: #544E48;
+  --foreground-subtle: #787068;
   --primary: #B45309;
   --primary-hover: #92400E;
+  --primary-muted: rgba(180, 83, 9, 0.12);
+  --primary-border: rgba(180, 83, 9, 0.30);
+  --primary-text: #92400E;
+  --primary-foreground: #FFFFFF;
   --accent-saving: #059669;
   --success: #059669;
   --danger: #DC2626;
-  --border: #DDD6C8;
-  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border: #DCD3C3;
+  --border-subtle: rgba(180, 83, 9, 0.10);
+  --border-hover: #C5BAA8;
+  --card-shadow: 0 2px 14px -2px rgba(60, 45, 30, 0.08), 0 1px 3px 0 rgba(60, 45, 30, 0.04);
+  --modal-backdrop: rgba(28, 25, 23, 0.50);
+  --input-bg: #FFFFFF;
 }
 
 /* ==========================================================================
-   ESTILOS GLOBALES BASE
+   ESTILOS Y SUPERFICIES BASE DEL NAVEGADOR
    ========================================================================== */
 
 body {
@@ -109,40 +165,23 @@ body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  caret-color: var(--primary);
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
 
-/* Selección de texto */
+/* Selección de texto personalizada por tema */
 ::selection {
-  background: var(--primary);
-  color: var(--background);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
 }
 
-/* Tarjetas y superficies */
-.mint-card,
-.glass-card {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
-  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+/* Anillo de enfoque accesible y armónico */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
-.mint-card-hover:hover {
-  background-color: var(--surface-hover);
-}
-
-.glow-button {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-  box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.25);
-  transition: all 0.2s ease-in-out;
-}
-
-.glow-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px 0 rgba(0, 0, 0, 0.35);
-}
-
+/* Barras de desplazamiento estilizadas */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -154,212 +193,459 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 4px;
+  border-radius: 9999px;
+  transition: background-color 0.15s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--surface-active);
+  background: var(--border-hover);
 }
 
+/* Contabilidad y números financieros tabulares */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
+/* Tarjetas y superficies maestras */
+.mint-card,
+.glass-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: var(--card-shadow);
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mint-card-hover:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--border-hover);
+}
+
+/* Botón con brillo de acento primario */
+.glow-button {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: var(--primary-foreground);
+  box-shadow: 0 4px 14px 0 var(--primary-muted);
+  transition: all 0.2s ease-in-out;
+}
+
+.glow-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px 0 var(--primary-border);
+}
+
+/* Clases de utilidad para navegación activa armonizada con el tema */
+.nav-link-active {
+  background-color: var(--primary-muted) !important;
+  color: var(--primary-text) !important;
+  border: 1px solid var(--primary-border) !important;
+}
+
+.nav-link-active svg {
+  color: var(--primary) !important;
+}
+
+.nav-drawer-link-active {
+  background-color: var(--primary-muted) !important;
+  color: var(--primary-text) !important;
+  border: 1px solid var(--primary-border) !important;
+}
+
+.nav-drawer-link-active svg {
+  color: var(--primary) !important;
+}
+
+.nav-bottom-link-active {
+  color: var(--primary) !important;
+  font-weight: 600;
+}
+
+.nav-bottom-link-active svg {
+  color: var(--primary) !important;
+}
+
 /* ==========================================================================
-   REGLAS DE OVERRIDE PARA COMPONENTES (TRANSFORMACIÓN TOTAL DE COLORES)
+   TRANSFORMACIÓN DINÁMICA DE CLASES HARDCODEADAS
+   (Sincronización Total de Superficies, Gráficos y Modales)
    ========================================================================== */
 
-/* --- 1. Ámbar & Café Ejecutivo --- */
+/* --------------------------------------------------------------------------
+   OVERRIDE: 2. ÁMBAR & CAFÉ EJECUTIVO (Warm Espresso)
+   -------------------------------------------------------------------------- */
 [data-theme="warm-espresso"] body,
 [data-theme="warm-espresso"] .bg-\[\#0A1128\],
+[data-theme="warm-espresso"] .bg-\[\#0A1128\]\/50,
 [data-theme="warm-espresso"] .bg-\[\#0A1128\]\/60,
+[data-theme="warm-espresso"] .bg-\[\#0A1128\]\/80,
 [data-theme="warm-espresso"] .bg-\[\#0A1128\]\/85,
 [data-theme="warm-espresso"] .bg-\[\#0A1128\]\/90,
 [data-theme="warm-espresso"] .bg-\[\#0A1128\]\/95 {
-  background-color: #14110E !important;
+  background-color: #120F0D !important;
 }
 
 [data-theme="warm-espresso"] .bg-\[\#101A36\],
+[data-theme="warm-espresso"] .bg-\[\#101A36\]\/70,
+[data-theme="warm-espresso"] .bg-\[\#101A36\]\/80,
+[data-theme="warm-espresso"] .bg-\[\#101A36\]\/90,
 [data-theme="warm-espresso"] .mint-card,
 [data-theme="warm-espresso"] .glass-card {
-  background-color: #1D1814 !important;
+  background-color: #1A1613 !important;
 }
 
 [data-theme="warm-espresso"] .bg-\[\#162347\],
+[data-theme="warm-espresso"] .bg-\[\#162347\]\/60,
+[data-theme="warm-espresso"] .bg-\[\#162347\]\/80,
+[data-theme="warm-espresso"] .bg-\[\#162347\]\/90,
 [data-theme="warm-espresso"] .hover\:bg-\[\#162347\]:hover {
-  background-color: #28221D !important;
+  background-color: #251F1B !important;
 }
 
 [data-theme="warm-espresso"] .bg-\[\#1D2D5A\],
 [data-theme="warm-espresso"] .hover\:bg-\[\#1D2D5A\]:hover {
-  background-color: #342D26 !important;
+  background-color: #322B25 !important;
 }
 
 [data-theme="warm-espresso"] .border-\[\#1E2B4D\],
 [data-theme="warm-espresso"] .border-\[\#1E2B4D\]\/60,
 [data-theme="warm-espresso"] .mint-card,
 [data-theme="warm-espresso"] .glass-card {
-  border-color: #3C3229 !important;
+  border-color: #362C24 !important;
 }
 
+[data-theme="warm-espresso"] .border-\[\#2D3E6B\],
 [data-theme="warm-espresso"] .hover\:border-\[\#2D3E6B\]:hover {
-  border-color: #4E4034 !important;
+  border-color: #4E3F34 !important;
 }
 
-[data-theme="warm-espresso"] ::selection {
-  background: #F59E0B !important;
-  color: #14110E !important;
+/* Gradients armonizados para warm-espresso */
+[data-theme="warm-espresso"] .from-\[\#101A36\] {
+  --tw-gradient-from: #1A1613 !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #251F1B, var(--tw-gradient-to, #1A1613) !important;
+}
+[data-theme="warm-espresso"] .via-\[\#121E40\] {
+  --tw-gradient-via: #251F1B !important;
+}
+[data-theme="warm-espresso"] .to-\[\#101A36\] {
+  --tw-gradient-to: #1A1613 !important;
+}
+[data-theme="warm-espresso"] .to-\[\#0D152F\] {
+  --tw-gradient-to: #120F0D !important;
 }
 
-/* --- 2. Cobre & Nogal Real --- */
+/* Textos cálidos con tinte café para evitar gris frío */
+[data-theme="warm-espresso"] .text-slate-100 { color: #FDFBF7 !important; }
+[data-theme="warm-espresso"] .text-slate-200 { color: #F4EFEA !important; }
+[data-theme="warm-espresso"] .text-slate-300 { color: #D5C7BC !important; }
+[data-theme="warm-espresso"] .text-slate-400 { color: #A89A8E !important; }
+[data-theme="warm-espresso"] .text-slate-500 { color: #84776D !important; }
+
+/* --------------------------------------------------------------------------
+   OVERRIDE: 3. COBRE & NOGAL REAL (Warm Copper)
+   -------------------------------------------------------------------------- */
 [data-theme="warm-copper"] body,
 [data-theme="warm-copper"] .bg-\[\#0A1128\],
+[data-theme="warm-copper"] .bg-\[\#0A1128\]\/50,
 [data-theme="warm-copper"] .bg-\[\#0A1128\]\/60,
+[data-theme="warm-copper"] .bg-\[\#0A1128\]\/80,
 [data-theme="warm-copper"] .bg-\[\#0A1128\]\/85,
 [data-theme="warm-copper"] .bg-\[\#0A1128\]\/90,
 [data-theme="warm-copper"] .bg-\[\#0A1128\]\/95 {
-  background-color: #161312 !important;
+  background-color: #14100F !important;
 }
 
 [data-theme="warm-copper"] .bg-\[\#101A36\],
+[data-theme="warm-copper"] .bg-\[\#101A36\]\/70,
+[data-theme="warm-copper"] .bg-\[\#101A36\]\/80,
+[data-theme="warm-copper"] .bg-\[\#101A36\]\/90,
 [data-theme="warm-copper"] .mint-card,
 [data-theme="warm-copper"] .glass-card {
-  background-color: #221C1A !important;
+  background-color: #1E1816 !important;
 }
 
 [data-theme="warm-copper"] .bg-\[\#162347\],
+[data-theme="warm-copper"] .bg-\[\#162347\]\/60,
+[data-theme="warm-copper"] .bg-\[\#162347\]\/80,
+[data-theme="warm-copper"] .bg-\[\#162347\]\/90,
 [data-theme="warm-copper"] .hover\:bg-\[\#162347\]:hover {
-  background-color: #2E2623 !important;
+  background-color: #2B2220 !important;
 }
 
 [data-theme="warm-copper"] .bg-\[\#1D2D5A\],
 [data-theme="warm-copper"] .hover\:bg-\[\#1D2D5A\]:hover {
-  background-color: #3A302C !important;
+  background-color: #382D2A !important;
 }
 
 [data-theme="warm-copper"] .border-\[\#1E2B4D\],
 [data-theme="warm-copper"] .border-\[\#1E2B4D\]\/60,
 [data-theme="warm-copper"] .mint-card,
 [data-theme="warm-copper"] .glass-card {
-  border-color: #463833 !important;
+  border-color: #42322E !important;
 }
 
+[data-theme="warm-copper"] .border-\[\#2D3E6B\],
 [data-theme="warm-copper"] .hover\:border-\[\#2D3E6B\]:hover {
-  border-color: #5A4842 !important;
+  border-color: #5A443E !important;
 }
 
-[data-theme="warm-copper"] ::selection {
-  background: #EA580C !important;
-  color: #161312 !important;
+/* Gradients armonizados para warm-copper */
+[data-theme="warm-copper"] .from-\[\#101A36\] {
+  --tw-gradient-from: #1E1816 !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #2B2220, var(--tw-gradient-to, #1E1816) !important;
+}
+[data-theme="warm-copper"] .via-\[\#121E40\] {
+  --tw-gradient-via: #2B2220 !important;
+}
+[data-theme="warm-copper"] .to-\[\#101A36\] {
+  --tw-gradient-to: #1E1816 !important;
+}
+[data-theme="warm-copper"] .to-\[\#0D152F\] {
+  --tw-gradient-to: #14100F !important;
 }
 
-/* --- 3. Champagne & Bosque Cálido --- */
+/* Textos cálidos con tinte arcilla / lino */
+[data-theme="warm-copper"] .text-slate-100 { color: #FAF5F0 !important; }
+[data-theme="warm-copper"] .text-slate-200 { color: #F2E9E3 !important; }
+[data-theme="warm-copper"] .text-slate-300 { color: #D7C6C0 !important; }
+[data-theme="warm-copper"] .text-slate-400 { color: #AA9892 !important; }
+[data-theme="warm-copper"] .text-slate-500 { color: #877671 !important; }
+
+/* --------------------------------------------------------------------------
+   OVERRIDE: 4. CHAMPAGNE & BOSQUE CÁLIDO (Warm Olive)
+   -------------------------------------------------------------------------- */
 [data-theme="warm-olive"] body,
 [data-theme="warm-olive"] .bg-\[\#0A1128\],
+[data-theme="warm-olive"] .bg-\[\#0A1128\]\/50,
 [data-theme="warm-olive"] .bg-\[\#0A1128\]\/60,
+[data-theme="warm-olive"] .bg-\[\#0A1128\]\/80,
 [data-theme="warm-olive"] .bg-\[\#0A1128\]\/85,
 [data-theme="warm-olive"] .bg-\[\#0A1128\]\/90,
 [data-theme="warm-olive"] .bg-\[\#0A1128\]\/95 {
-  background-color: #121412 !important;
+  background-color: #0F120F !important;
 }
 
 [data-theme="warm-olive"] .bg-\[\#101A36\],
+[data-theme="warm-olive"] .bg-\[\#101A36\]\/70,
+[data-theme="warm-olive"] .bg-\[\#101A36\]\/80,
+[data-theme="warm-olive"] .bg-\[\#101A36\]\/90,
 [data-theme="warm-olive"] .mint-card,
 [data-theme="warm-olive"] .glass-card {
-  background-color: #1A1E1A !important;
+  background-color: #171B17 !important;
 }
 
 [data-theme="warm-olive"] .bg-\[\#162347\],
+[data-theme="warm-olive"] .bg-\[\#162347\]\/60,
+[data-theme="warm-olive"] .bg-\[\#162347\]\/80,
+[data-theme="warm-olive"] .bg-\[\#162347\]\/90,
 [data-theme="warm-olive"] .hover\:bg-\[\#162347\]:hover {
-  background-color: #252B25 !important;
+  background-color: #222822 !important;
 }
 
 [data-theme="warm-olive"] .bg-\[\#1D2D5A\],
 [data-theme="warm-olive"] .hover\:bg-\[\#1D2D5A\]:hover {
-  background-color: #303830 !important;
+  background-color: #2E362E !important;
 }
 
 [data-theme="warm-olive"] .border-\[\#1E2B4D\],
 [data-theme="warm-olive"] .border-\[\#1E2B4D\]\/60,
 [data-theme="warm-olive"] .mint-card,
 [data-theme="warm-olive"] .glass-card {
-  border-color: #3B443B !important;
+  border-color: #353F35 !important;
 }
 
+[data-theme="warm-olive"] .border-\[\#2D3E6B\],
 [data-theme="warm-olive"] .hover\:border-\[\#2D3E6B\]:hover {
-  border-color: #4D584D !important;
+  border-color: #485748 !important;
 }
 
-[data-theme="warm-olive"] ::selection {
-  background: #EAB308 !important;
-  color: #121412 !important;
+/* Gradients armonizados para warm-olive */
+[data-theme="warm-olive"] .from-\[\#101A36\] {
+  --tw-gradient-from: #171B17 !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #222822, var(--tw-gradient-to, #171B17) !important;
+}
+[data-theme="warm-olive"] .via-\[\#121E40\] {
+  --tw-gradient-via: #222822 !important;
+}
+[data-theme="warm-olive"] .to-\[\#101A36\] {
+  --tw-gradient-to: #171B17 !important;
+}
+[data-theme="warm-olive"] .to-\[\#0D152F\] {
+  --tw-gradient-to: #0F120F !important;
 }
 
-/* --- 4. Marfil & Cuero Pergamino (Modo Claro) --- */
+/* Textos cálidos con tinte salvia / bosque */
+[data-theme="warm-olive"] .text-slate-100 { color: #F6F8F5 !important; }
+[data-theme="warm-olive"] .text-slate-200 { color: #E8ECE6 !important; }
+[data-theme="warm-olive"] .text-slate-300 { color: #C5CEC3 !important; }
+[data-theme="warm-olive"] .text-slate-400 { color: #9AA598 !important; }
+[data-theme="warm-olive"] .text-slate-500 { color: #768374 !important; }
+
+/* --------------------------------------------------------------------------
+   OVERRIDE: 5. MARFIL & CUERO PERGAMINO (Executive Warm Ivory - Modo Claro)
+   Calibración completa de contraste, legibilidad de etiquetas e inputs
+   -------------------------------------------------------------------------- */
 [data-theme="warm-ivory"] body,
 [data-theme="warm-ivory"] .bg-\[\#0A1128\],
-[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/60,
-[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/85,
-[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/90,
-[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/95 {
-  background-color: #F7F4EE !important;
+[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/50,
+[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/60 {
+  background-color: #F6F3EC !important;
   color: #1C1917 !important;
 }
 
+/* Backdrops de modales en modo claro */
+[data-theme="warm-ivory"] .fixed.inset-0.bg-\[\#0A1128\]\/85,
+[data-theme="warm-ivory"] .fixed.inset-0.bg-\[\#0A1128\]\/80,
+[data-theme="warm-ivory"] .fixed.inset-0.bg-\[\#0A1128\]\/90,
+[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/85,
+[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/90,
+[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/95 {
+  background-color: rgba(28, 25, 23, 0.45) !important;
+}
+
 [data-theme="warm-ivory"] .bg-\[\#101A36\],
+[data-theme="warm-ivory"] .bg-\[\#101A36\]\/70,
+[data-theme="warm-ivory"] .bg-\[\#101A36\]\/80,
+[data-theme="warm-ivory"] .bg-\[\#101A36\]\/90,
 [data-theme="warm-ivory"] .mint-card,
 [data-theme="warm-ivory"] .glass-card {
   background-color: #FFFFFF !important;
-  box-shadow: 0 4px 18px -2px rgba(60, 45, 30, 0.08) !important;
+  box-shadow: 0 2px 14px -2px rgba(60, 45, 30, 0.08), 0 1px 3px 0 rgba(60, 45, 30, 0.04) !important;
 }
 
 [data-theme="warm-ivory"] .bg-\[\#162347\],
+[data-theme="warm-ivory"] .bg-\[\#162347\]\/60,
+[data-theme="warm-ivory"] .bg-\[\#162347\]\/80,
+[data-theme="warm-ivory"] .bg-\[\#162347\]\/90,
 [data-theme="warm-ivory"] .hover\:bg-\[\#162347\]:hover {
-  background-color: #EFEBE2 !important;
+  background-color: #EDE7DC !important;
 }
 
 [data-theme="warm-ivory"] .bg-\[\#1D2D5A\],
 [data-theme="warm-ivory"] .hover\:bg-\[\#1D2D5A\]:hover {
-  background-color: #E6E0D4 !important;
+  background-color: #E3DBD0 !important;
 }
 
 [data-theme="warm-ivory"] .border-\[\#1E2B4D\],
 [data-theme="warm-ivory"] .border-\[\#1E2B4D\]\/60,
 [data-theme="warm-ivory"] .mint-card,
 [data-theme="warm-ivory"] .glass-card {
-  border-color: #DDD6C8 !important;
+  border-color: #DCD3C3 !important;
 }
 
+[data-theme="warm-ivory"] .border-\[\#2D3E6B\],
 [data-theme="warm-ivory"] .hover\:border-\[\#2D3E6B\]:hover {
-  border-color: #C9C0AF !important;
+  border-color: #C5BAA8 !important;
 }
 
+/* Gradients en modo claro: transición suave de marfil a blanco */
+[data-theme="warm-ivory"] .from-\[\#101A36\] {
+  --tw-gradient-from: #FFFFFF !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #F7F4EE, var(--tw-gradient-to, #FFFFFF) !important;
+}
+[data-theme="warm-ivory"] .via-\[\#121E40\] {
+  --tw-gradient-via: #F7F4EE !important;
+}
+[data-theme="warm-ivory"] .to-\[\#101A36\] {
+  --tw-gradient-to: #FFFFFF !important;
+}
+[data-theme="warm-ivory"] .to-\[\#0D152F\] {
+  --tw-gradient-to: #F2ECE0 !important;
+}
+
+/* Tipografía de Alto Contraste en Fondo Claro (WCAG AAA) */
 [data-theme="warm-ivory"] .text-slate-100,
 [data-theme="warm-ivory"] .text-slate-200 {
   color: #1C1917 !important;
 }
 
 [data-theme="warm-ivory"] .text-slate-300 {
-  color: #332E2A !important;
+  color: #443E38 !important;
 }
 
 [data-theme="warm-ivory"] .text-slate-400 {
-  color: #615951 !important;
+  color: #5F574F !important;
 }
 
 [data-theme="warm-ivory"] .text-slate-500 {
-  color: #7D736A !important;
+  color: #7A7167 !important;
 }
 
-[data-theme="warm-ivory"] input,
+/* Legibilidad crítica de etiquetas de color en fondos claros */
+[data-theme="warm-ivory"] .text-emerald-300,
+[data-theme="warm-ivory"] .text-emerald-400 {
+  color: #065F46 !important;
+}
+
+[data-theme="warm-ivory"] .text-rose-300,
+[data-theme="warm-ivory"] .text-rose-400 {
+  color: #9F1239 !important;
+}
+
+[data-theme="warm-ivory"] .text-amber-300,
+[data-theme="warm-ivory"] .text-amber-400 {
+  color: #92400E !important;
+}
+
+[data-theme="warm-ivory"] .text-sky-300,
+[data-theme="warm-ivory"] .text-sky-400,
+[data-theme="warm-ivory"] .text-blue-300,
+[data-theme="warm-ivory"] .text-blue-400 {
+  color: #1E40AF !important;
+}
+
+[data-theme="warm-ivory"] .text-purple-300,
+[data-theme="warm-ivory"] .text-purple-400 {
+  color: #6B21A8 !important;
+}
+
+/* Preservar texto blanco en botones con fondo sólido oscuro */
+[data-theme="warm-ivory"] .bg-emerald-600 .text-white,
+[data-theme="warm-ivory"] .bg-emerald-600.text-white,
+[data-theme="warm-ivory"] .bg-amber-600 .text-white,
+[data-theme="warm-ivory"] .bg-amber-600.text-white,
+[data-theme="warm-ivory"] .bg-rose-600 .text-white,
+[data-theme="warm-ivory"] .bg-rose-600.text-white,
+[data-theme="warm-ivory"] .bg-blue-600 .text-white,
+[data-theme="warm-ivory"] .bg-blue-600.text-white,
+[data-theme="warm-ivory"] button.text-white {
+  color: #FFFFFF !important;
+}
+
+/* Teclas de acceso rápido kbd en modo claro */
+[data-theme="warm-ivory"] kbd.bg-rose-950\/60 {
+  background-color: #FFE4E6 !important;
+  color: #9F1239 !important;
+  border: 1px solid #FECDD3 !important;
+}
+
+[data-theme="warm-ivory"] kbd.bg-emerald-800 {
+  background-color: #D1FAE5 !important;
+  color: #065F46 !important;
+  border: 1px solid #A7F3D0 !important;
+}
+
+[data-theme="warm-ivory"] kbd.bg-blue-950\/60 {
+  background-color: #DBEAFE !important;
+  color: #1E40AF !important;
+  border: 1px solid #BFDBFE !important;
+}
+
+/* Inputs y controles de formulario en modo claro */
+[data-theme="warm-ivory"] input:not([type="checkbox"]):not([type="radio"]),
 [data-theme="warm-ivory"] select,
 [data-theme="warm-ivory"] textarea {
   background-color: #FFFFFF !important;
   color: #1C1917 !important;
-  border-color: #DDD6C8 !important;
+  border-color: #DCD3C3 !important;
 }
 
-[data-theme="warm-ivory"] ::selection {
-  background: #B45309 !important;
-  color: #FFFFFF !important;
+[data-theme="warm-ivory"] input::placeholder,
+[data-theme="warm-ivory"] textarea::placeholder {
+  color: #8C8277 !important;
+}
+
+[data-theme="warm-ivory"] input:focus,
+[data-theme="warm-ivory"] select:focus,
+[data-theme="warm-ivory"] textarea:focus {
+  border-color: #B45309 !important;
+  box-shadow: 0 0 0 2px rgba(180, 83, 9, 0.20) !important;
 }
