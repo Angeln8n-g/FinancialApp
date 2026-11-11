@@ -165,6 +165,11 @@ export class DebtsService {
   async findAll(householdId: string) {
     const debts = await (this.prisma as any).debt.findMany({
       where: { householdId },
+      include: {
+        account: {
+          select: { id: true, name: true, type: true, currency: true },
+        },
+      },
       orderBy: [{ isPaidOff: 'asc' }, { remainingAmount: 'desc' }],
     });
 
@@ -219,6 +224,8 @@ export class DebtsService {
         minimumPayment: d.minimumPayment ? Number(d.minimumPayment) : null,
         alertDaysBefore: d.alertDaysBefore ?? 3,
         autoAlert: d.autoAlert !== false,
+        accountId: d.accountId || null,
+        account: d.account || null,
         ...operational,
       };
     });
@@ -241,6 +248,7 @@ export class DebtsService {
       minimumPayment?: number;
       alertDaysBefore?: number;
       autoAlert?: boolean;
+      accountId?: string;
     },
   ) {
     if (data.totalAmount <= 0) {
@@ -252,6 +260,7 @@ export class DebtsService {
     const created = await (this.prisma as any).debt.create({
       data: {
         householdId,
+        accountId: data.accountId || null,
         contactName: data.contactName.trim(),
         type: 'OWED_BY_ME',
         totalAmount: data.totalAmount,
@@ -414,7 +423,22 @@ export class DebtsService {
         },
       });
 
-      // 4. Si se liquidó la deuda, marcar recordatorios vinculados como pagados
+      // 4. Si la deuda está vinculada a una tarjeta de crédito, sincronizar el balance de la tarjeta
+      if (debt.accountId) {
+        const cardAccount = await tx.account.findFirst({
+          where: { id: debt.accountId, householdId },
+        });
+        if (cardAccount && cardAccount.type === 'CREDIT_CARD') {
+          // El saldo de la tarjeta refleja el saldo deudor (0 o negativo según el abono)
+          const newCardBalance = newRemaining > 0 ? -Math.abs(newRemaining) : 0;
+          await tx.account.update({
+            where: { id: debt.accountId },
+            data: { balance: newCardBalance },
+          });
+        }
+      }
+
+      // 5. Si se liquidó la deuda, marcar recordatorios vinculados como pagados
       if (isNowPaidOff) {
         await tx.reminder.updateMany({
           where: { debtId, isPaid: false },

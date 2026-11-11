@@ -9,9 +9,9 @@ export declare class BudgetsService {
     }): Promise<{
         id: string;
         householdId: string;
-        categoryId: string;
-        period: import(".prisma/client").$Enums.RecurrencePeriod;
         limitAmount: import("@prisma/client/runtime/library").Decimal;
+        period: import(".prisma/client").$Enums.RecurrencePeriod;
+        categoryId: string;
         startDate: Date;
         endDate: Date | null;
     }>;

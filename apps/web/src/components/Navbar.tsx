@@ -18,8 +18,13 @@ import {
   X,
   Home,
   ChevronDown,
-  CheckCheck
+  CheckCheck,
+  Palette,
+  User,
+  ShieldCheck
 } from 'lucide-react';
+import ThemeModal from './modals/ThemeModal';
+import UserProfileModal from './modals/UserProfileModal';
 
 interface NavbarProps {
   user?: any;
@@ -217,6 +222,8 @@ export default function Navbar({
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -271,16 +278,36 @@ export default function Navbar({
 
           {/* Right Action Icons & Controls */}
           <div className="flex items-center space-x-2 sm:space-x-3">
+            <button
+              onClick={() => setShowThemeModal(true)}
+              className="p-2 rounded-xl bg-[#101A36] hover:bg-[#162347] text-slate-300 hover:text-amber-300 border border-[#1E2B4D] transition-colors cursor-pointer"
+              title="Temas y Colores Cálidos"
+              aria-label="Personalizar Temas"
+            >
+              <Palette className="w-4 h-4 text-amber-400" />
+            </button>
+
             <NotificationBell />
 
             {/* User Info (Desktop) */}
             {user && (
-              <div className="hidden sm:flex flex-col text-right border-l border-[#1E2B4D] pl-3">
-                <p className="text-xs font-semibold text-slate-200">{user.fullName || user.email}</p>
-                <span className="text-[10px] text-emerald-400 font-medium">
-                  {household?.role || 'Miembro'}
-                </span>
-              </div>
+              <button
+                onClick={() => setShowProfileModal(true)}
+                className="hidden sm:flex items-center gap-2 text-left border-l border-[#1E2B4D] pl-3 hover:opacity-90 transition-opacity cursor-pointer group"
+                title="Mi Cuenta, Privacidad y Exportación de Datos"
+              >
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:border-emerald-500/50 group-hover:bg-emerald-500/20 transition-all">
+                  <User className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex flex-col">
+                  <p className="text-xs font-semibold text-slate-200 group-hover:text-emerald-300 transition-colors">
+                    {user.fullName || user.email}
+                  </p>
+                  <span className="text-[10px] text-emerald-400 font-medium">
+                    {household?.role || 'Miembro'}
+                  </span>
+                </div>
+              </button>
             )}
 
             {/* Logout Button */}
@@ -328,6 +355,22 @@ export default function Navbar({
                 );
               })}
             </div>
+
+            {/* Mobile User Profile & Privacy Option */}
+            {user && (
+              <div className="pt-2 border-t border-[#1E2B4D]">
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setShowProfileModal(true);
+                  }}
+                  className="w-full p-2.5 rounded-xl text-xs font-medium flex items-center space-x-2.5 bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/20 transition-all cursor-pointer"
+                >
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Mi Cuenta & Privacidad</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </header>
@@ -353,6 +396,14 @@ export default function Navbar({
           );
         })}
       </div>
+
+      <ThemeModal isOpen={showThemeModal} onClose={() => setShowThemeModal(false)} />
+      <UserProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        user={user}
+        household={household}
+      />
     </>
   );
 }

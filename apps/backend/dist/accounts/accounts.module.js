@@ -11,11 +11,13 @@ const common_1 = require("@nestjs/common");
 const accounts_service_1 = require("./accounts.service");
 const accounts_controller_1 = require("./accounts.controller");
 const payroll_scheduler_service_1 = require("./payroll-scheduler.service");
+const debts_module_1 = require("../debts/debts.module");
 let AccountsModule = class AccountsModule {
 };
 exports.AccountsModule = AccountsModule;
 exports.AccountsModule = AccountsModule = __decorate([
     (0, common_1.Module)({
+        imports: [debts_module_1.DebtsModule],
         controllers: [accounts_controller_1.AccountsController],
         providers: [accounts_service_1.AccountsService, payroll_scheduler_service_1.PayrollSchedulerService],
         exports: [accounts_service_1.AccountsService],

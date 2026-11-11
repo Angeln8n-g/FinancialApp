@@ -20,6 +20,7 @@ export declare class DebtsController {
         minimumPayment?: number;
         alertDaysBefore?: number;
         autoAlert?: boolean;
+        accountId?: string;
     }): Promise<any>;
     update(user: UserPayload, id: string, body: {
         contactName?: string;
@@ -37,6 +38,7 @@ export declare class DebtsController {
         minimumPayment?: number;
         alertDaysBefore?: number;
         autoAlert?: boolean;
+        accountId?: string;
     }): Promise<any>;
     payDebt(user: UserPayload, id: string, body: {
         amount: number;

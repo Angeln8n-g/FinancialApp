@@ -1,11 +1,13 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAccountDto, UpdateAccountDto } from './accounts.dto';
 import { EventsGateway } from '../events/events.gateway';
+import { DebtsService } from '../debts/debts.service';
 export declare class AccountsService {
     private prisma;
     private eventsGateway;
+    private debtsService;
     private readonly logger;
-    constructor(prisma: PrismaService, eventsGateway: EventsGateway);
+    constructor(prisma: PrismaService, eventsGateway: EventsGateway, debtsService: DebtsService);
     isPayrollDue(account: any, now?: Date): boolean;
     executePayrollDeposit(account: any, currentUserId?: string, now?: Date): Promise<{
         transaction: {
@@ -14,8 +16,10 @@ export declare class AccountsService {
             updatedAt: Date;
             householdId: string;
             type: import(".prisma/client").$Enums.TransactionType;
-            description: string | null;
+            categoryId: string | null;
+            accountId: string;
             amount: import("@prisma/client/runtime/library").Decimal;
+            description: string | null;
             date: Date;
             isCleared: boolean;
             isEdited: boolean;
@@ -24,9 +28,7 @@ export declare class AccountsService {
             isVoided: boolean;
             voidReason: string | null;
             voidedAt: Date | null;
-            accountId: string;
             destinationAccountId: string | null;
-            categoryId: string | null;
             createdById: string | null;
         };
         updatedAccount: {
@@ -55,8 +57,10 @@ export declare class AccountsService {
             updatedAt: Date;
             householdId: string;
             type: import(".prisma/client").$Enums.TransactionType;
-            description: string | null;
+            categoryId: string | null;
+            accountId: string;
             amount: import("@prisma/client/runtime/library").Decimal;
+            description: string | null;
             date: Date;
             isCleared: boolean;
             isEdited: boolean;
@@ -65,9 +69,7 @@ export declare class AccountsService {
             isVoided: boolean;
             voidReason: string | null;
             voidedAt: Date | null;
-            accountId: string;
             destinationAccountId: string | null;
-            categoryId: string | null;
             createdById: string | null;
         };
         account: {
@@ -87,7 +89,31 @@ export declare class AccountsService {
             lastPayrollDeposit: Date | null;
         };
     }>;
-    findAllByHousehold(householdId: string): Promise<{
+    findAllByHousehold(householdId: string): Promise<({
+        debts: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            householdId: string;
+            type: import(".prisma/client").$Enums.DebtType;
+            contactName: string;
+            totalAmount: import("@prisma/client/runtime/library").Decimal;
+            remainingAmount: import("@prisma/client/runtime/library").Decimal;
+            dueDate: Date | null;
+            interestRate: import("@prisma/client/runtime/library").Decimal;
+            targetPayoffDate: Date | null;
+            monthlyTargetPayment: import("@prisma/client/runtime/library").Decimal | null;
+            mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy | null;
+            isPaidOff: boolean;
+            notes: string | null;
+            cutoffDay: number | null;
+            paymentDueDay: number | null;
+            minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
+            alertDaysBefore: number | null;
+            autoAlert: boolean;
+            accountId: string | null;
+        }[];
+    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -102,8 +128,32 @@ export declare class AccountsService {
         payrollDay2: number | null;
         payrollAutoDeposit: boolean;
         lastPayrollDeposit: Date | null;
-    }[]>;
+    })[]>;
     findOne(householdId: string, accountId: string): Promise<{
+        debts: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            householdId: string;
+            type: import(".prisma/client").$Enums.DebtType;
+            contactName: string;
+            totalAmount: import("@prisma/client/runtime/library").Decimal;
+            remainingAmount: import("@prisma/client/runtime/library").Decimal;
+            dueDate: Date | null;
+            interestRate: import("@prisma/client/runtime/library").Decimal;
+            targetPayoffDate: Date | null;
+            monthlyTargetPayment: import("@prisma/client/runtime/library").Decimal | null;
+            mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy | null;
+            isPaidOff: boolean;
+            notes: string | null;
+            cutoffDay: number | null;
+            paymentDueDay: number | null;
+            minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
+            alertDaysBefore: number | null;
+            autoAlert: boolean;
+            accountId: string | null;
+        }[];
+    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -120,6 +170,30 @@ export declare class AccountsService {
         lastPayrollDeposit: Date | null;
     }>;
     create(householdId: string, dto: CreateAccountDto): Promise<{
+        debts: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            householdId: string;
+            type: import(".prisma/client").$Enums.DebtType;
+            contactName: string;
+            totalAmount: import("@prisma/client/runtime/library").Decimal;
+            remainingAmount: import("@prisma/client/runtime/library").Decimal;
+            dueDate: Date | null;
+            interestRate: import("@prisma/client/runtime/library").Decimal;
+            targetPayoffDate: Date | null;
+            monthlyTargetPayment: import("@prisma/client/runtime/library").Decimal | null;
+            mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy | null;
+            isPaidOff: boolean;
+            notes: string | null;
+            cutoffDay: number | null;
+            paymentDueDay: number | null;
+            minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
+            alertDaysBefore: number | null;
+            autoAlert: boolean;
+            accountId: string | null;
+        }[];
+    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -136,6 +210,30 @@ export declare class AccountsService {
         lastPayrollDeposit: Date | null;
     }>;
     update(householdId: string, accountId: string, dto: UpdateAccountDto): Promise<{
+        debts: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            householdId: string;
+            type: import(".prisma/client").$Enums.DebtType;
+            contactName: string;
+            totalAmount: import("@prisma/client/runtime/library").Decimal;
+            remainingAmount: import("@prisma/client/runtime/library").Decimal;
+            dueDate: Date | null;
+            interestRate: import("@prisma/client/runtime/library").Decimal;
+            targetPayoffDate: Date | null;
+            monthlyTargetPayment: import("@prisma/client/runtime/library").Decimal | null;
+            mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy | null;
+            isPaidOff: boolean;
+            notes: string | null;
+            cutoffDay: number | null;
+            paymentDueDay: number | null;
+            minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
+            alertDaysBefore: number | null;
+            autoAlert: boolean;
+            accountId: string | null;
+        }[];
+    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;

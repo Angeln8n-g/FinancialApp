@@ -36,6 +36,12 @@ let AuthController = class AuthController {
     async switchHousehold(user, body) {
         return this.authService.switchHousehold(user.userId, body.householdId);
     }
+    async exportData(user) {
+        return this.authService.exportData(user.userId);
+    }
+    async deleteAccount(user, body) {
+        return this.authService.deleteAccount(user.userId, body?.passwordConfirm);
+    }
 };
 exports.AuthController = AuthController;
 __decorate([
@@ -71,6 +77,23 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "switchHousehold", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('export-data'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "exportData", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Delete)('account'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "deleteAccount", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('api/auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])

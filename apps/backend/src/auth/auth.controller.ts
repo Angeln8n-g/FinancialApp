@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Delete, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto } from './auth.dto';
@@ -31,5 +31,20 @@ export class AuthController {
   @Post('switch-household')
   async switchHousehold(@CurrentUser() user: UserPayload, @Body() body: { householdId: string }) {
     return this.authService.switchHousehold(user.userId, body.householdId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('export-data')
+  async exportData(@CurrentUser() user: UserPayload) {
+    return this.authService.exportData(user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('account')
+  async deleteAccount(
+    @CurrentUser() user: UserPayload,
+    @Body() body: { passwordConfirm?: string },
+  ) {
+    return this.authService.deleteAccount(user.userId, body?.passwordConfirm);
   }
 }

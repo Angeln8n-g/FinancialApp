@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Pencil, X, Sparkles, Target, Calendar, TrendingDown, AlertTriangle, Bell, Clock, ShieldAlert } from 'lucide-react';
+import { Pencil, X, Sparkles, Target, Calendar, TrendingDown, AlertTriangle, Bell, Clock, ShieldAlert, CreditCard } from 'lucide-react';
 
 interface EditDebtModalProps {
   isOpen: boolean;
@@ -22,6 +22,8 @@ interface EditDebtModalProps {
     minimumPayment?: number | null;
     alertDaysBefore?: number | null;
     autoAlert?: boolean | null;
+    accountId?: string | null;
+    account?: any | null;
   } | null;
   onConfirm: (
     debtId: string,
@@ -201,6 +203,18 @@ export default function EditDebtModal({
           <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center gap-2 text-rose-300 text-xs">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {(debt.account || debt.accountId) && (
+          <div className="mb-4 p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-200 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-sky-400" />
+              <span>Vinculada a cuenta de tarjeta: <strong>{debt.account?.name || 'Tarjeta de Crédito'}</strong></span>
+            </div>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300">
+              Sincronizada
+            </span>
           </div>
         )}
 

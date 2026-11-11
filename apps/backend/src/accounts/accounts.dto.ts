@@ -1,4 +1,4 @@
-import { AccountType, PayrollFrequency } from '@prisma/client';
+import { AccountType, MitigationStrategy, PayrollFrequency } from '@prisma/client';
 import { IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, Max, Min } from 'class-validator';
 
 export class CreateAccountDto {
@@ -42,6 +42,59 @@ export class CreateAccountDto {
   @IsOptional()
   @IsBoolean()
   payrollAutoDeposit?: boolean;
+
+  // Configuración de Tarjeta de Crédito y Deuda Vinculada
+  @IsOptional()
+  @IsNumber({}, { message: 'El límite de crédito debe ser un número válido' })
+  debtTotalAmount?: number;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'El saldo adeudado debe ser un número válido' })
+  debtRemainingAmount?: number;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'La tasa de interés debe ser un número válido' })
+  debtInterestRate?: number;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'El día de corte debe estar entre 1 y 31' })
+  @Min(1)
+  @Max(31)
+  debtCutoffDay?: number;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'El día límite de pago debe estar entre 1 y 31' })
+  @Min(1)
+  @Max(31)
+  debtPaymentDueDay?: number;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'El pago mínimo debe ser un número válido' })
+  debtMinimumPayment?: number;
+
+  @IsOptional()
+  @IsEnum(MitigationStrategy)
+  debtMitigationStrategy?: MitigationStrategy;
+
+  @IsOptional()
+  @IsString()
+  debtTargetPayoffDate?: string;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'La cuota meta mensual debe ser un número válido' })
+  debtMonthlyTargetPayment?: number;
+
+  @IsOptional()
+  @IsNumber()
+  debtAlertDaysBefore?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  debtAutoAlert?: boolean;
+
+  @IsOptional()
+  @IsString()
+  debtNotes?: string;
 }
 
 export class UpdateAccountDto {
@@ -86,4 +139,57 @@ export class UpdateAccountDto {
   @IsOptional()
   @IsBoolean()
   payrollAutoDeposit?: boolean;
+
+  // Configuración de Tarjeta de Crédito y Deuda Vinculada
+  @IsOptional()
+  @IsNumber()
+  debtTotalAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  debtRemainingAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  debtInterestRate?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(31)
+  debtCutoffDay?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(31)
+  debtPaymentDueDay?: number;
+
+  @IsOptional()
+  @IsNumber()
+  debtMinimumPayment?: number;
+
+  @IsOptional()
+  @IsEnum(MitigationStrategy)
+  debtMitigationStrategy?: MitigationStrategy;
+
+  @IsOptional()
+  @IsString()
+  debtTargetPayoffDate?: string;
+
+  @IsOptional()
+  @IsNumber()
+  debtMonthlyTargetPayment?: number;
+
+  @IsOptional()
+  @IsNumber()
+  debtAlertDaysBefore?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  debtAutoAlert?: boolean;
+
+  @IsOptional()
+  @IsString()
+  debtNotes?: string;
 }

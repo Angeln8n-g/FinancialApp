@@ -33,6 +33,7 @@ export class DebtsController {
       minimumPayment?: number;
       alertDaysBefore?: number;
       autoAlert?: boolean;
+      accountId?: string;
     },
   ) {
     return this.debtsService.create(user.householdId, body);
@@ -59,6 +60,7 @@ export class DebtsController {
       minimumPayment?: number;
       alertDaysBefore?: number;
       autoAlert?: boolean;
+      accountId?: string;
     },
   ) {
     return this.debtsService.update(user.householdId, id, body);

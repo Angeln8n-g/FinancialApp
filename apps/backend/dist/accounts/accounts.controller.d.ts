@@ -4,7 +4,31 @@ import { UserPayload } from '../auth/get-user.decorator';
 export declare class AccountsController {
     private readonly accountsService;
     constructor(accountsService: AccountsService);
-    findAll(user: UserPayload): Promise<{
+    findAll(user: UserPayload): Promise<({
+        debts: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            householdId: string;
+            type: import(".prisma/client").$Enums.DebtType;
+            contactName: string;
+            totalAmount: import("@prisma/client/runtime/library").Decimal;
+            remainingAmount: import("@prisma/client/runtime/library").Decimal;
+            dueDate: Date | null;
+            interestRate: import("@prisma/client/runtime/library").Decimal;
+            targetPayoffDate: Date | null;
+            monthlyTargetPayment: import("@prisma/client/runtime/library").Decimal | null;
+            mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy | null;
+            isPaidOff: boolean;
+            notes: string | null;
+            cutoffDay: number | null;
+            paymentDueDay: number | null;
+            minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
+            alertDaysBefore: number | null;
+            autoAlert: boolean;
+            accountId: string | null;
+        }[];
+    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -19,8 +43,32 @@ export declare class AccountsController {
         payrollDay2: number | null;
         payrollAutoDeposit: boolean;
         lastPayrollDeposit: Date | null;
-    }[]>;
+    })[]>;
     findOne(user: UserPayload, id: string): Promise<{
+        debts: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            householdId: string;
+            type: import(".prisma/client").$Enums.DebtType;
+            contactName: string;
+            totalAmount: import("@prisma/client/runtime/library").Decimal;
+            remainingAmount: import("@prisma/client/runtime/library").Decimal;
+            dueDate: Date | null;
+            interestRate: import("@prisma/client/runtime/library").Decimal;
+            targetPayoffDate: Date | null;
+            monthlyTargetPayment: import("@prisma/client/runtime/library").Decimal | null;
+            mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy | null;
+            isPaidOff: boolean;
+            notes: string | null;
+            cutoffDay: number | null;
+            paymentDueDay: number | null;
+            minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
+            alertDaysBefore: number | null;
+            autoAlert: boolean;
+            accountId: string | null;
+        }[];
+    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -37,6 +85,30 @@ export declare class AccountsController {
         lastPayrollDeposit: Date | null;
     }>;
     create(user: UserPayload, dto: CreateAccountDto): Promise<{
+        debts: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            householdId: string;
+            type: import(".prisma/client").$Enums.DebtType;
+            contactName: string;
+            totalAmount: import("@prisma/client/runtime/library").Decimal;
+            remainingAmount: import("@prisma/client/runtime/library").Decimal;
+            dueDate: Date | null;
+            interestRate: import("@prisma/client/runtime/library").Decimal;
+            targetPayoffDate: Date | null;
+            monthlyTargetPayment: import("@prisma/client/runtime/library").Decimal | null;
+            mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy | null;
+            isPaidOff: boolean;
+            notes: string | null;
+            cutoffDay: number | null;
+            paymentDueDay: number | null;
+            minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
+            alertDaysBefore: number | null;
+            autoAlert: boolean;
+            accountId: string | null;
+        }[];
+    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -53,6 +125,30 @@ export declare class AccountsController {
         lastPayrollDeposit: Date | null;
     }>;
     update(user: UserPayload, id: string, dto: UpdateAccountDto): Promise<{
+        debts: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            householdId: string;
+            type: import(".prisma/client").$Enums.DebtType;
+            contactName: string;
+            totalAmount: import("@prisma/client/runtime/library").Decimal;
+            remainingAmount: import("@prisma/client/runtime/library").Decimal;
+            dueDate: Date | null;
+            interestRate: import("@prisma/client/runtime/library").Decimal;
+            targetPayoffDate: Date | null;
+            monthlyTargetPayment: import("@prisma/client/runtime/library").Decimal | null;
+            mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy | null;
+            isPaidOff: boolean;
+            notes: string | null;
+            cutoffDay: number | null;
+            paymentDueDay: number | null;
+            minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
+            alertDaysBefore: number | null;
+            autoAlert: boolean;
+            accountId: string | null;
+        }[];
+    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -76,8 +172,10 @@ export declare class AccountsController {
             updatedAt: Date;
             householdId: string;
             type: import(".prisma/client").$Enums.TransactionType;
-            description: string | null;
+            categoryId: string | null;
+            accountId: string;
             amount: import("@prisma/client/runtime/library").Decimal;
+            description: string | null;
             date: Date;
             isCleared: boolean;
             isEdited: boolean;
@@ -86,9 +184,7 @@ export declare class AccountsController {
             isVoided: boolean;
             voidReason: string | null;
             voidedAt: Date | null;
-            accountId: string;
             destinationAccountId: string | null;
-            categoryId: string | null;
             createdById: string | null;
         };
         account: {

@@ -71,8 +71,8 @@ export declare class PatrimonyService {
         name: string;
         householdId: string;
         type: string;
-        debtId: string | null;
         notes: string | null;
+        debtId: string | null;
         value: import("@prisma/client/runtime/library").Decimal;
         purchasePrice: import("@prisma/client/runtime/library").Decimal | null;
         acquisitionDate: Date | null;
@@ -84,8 +84,8 @@ export declare class PatrimonyService {
         name: string;
         householdId: string;
         type: string;
-        debtId: string | null;
         notes: string | null;
+        debtId: string | null;
         value: import("@prisma/client/runtime/library").Decimal;
         purchasePrice: import("@prisma/client/runtime/library").Decimal | null;
         acquisitionDate: Date | null;
@@ -98,8 +98,8 @@ export declare class PatrimonyService {
             name: string;
             householdId: string;
             type: string;
-            debtId: string | null;
             notes: string | null;
+            debtId: string | null;
             value: import("@prisma/client/runtime/library").Decimal;
             purchasePrice: import("@prisma/client/runtime/library").Decimal | null;
             acquisitionDate: Date | null;
@@ -120,8 +120,8 @@ export declare class PatrimonyService {
         name: string;
         householdId: string;
         type: string;
-        debtId: string | null;
         notes: string | null;
+        debtId: string | null;
         value: import("@prisma/client/runtime/library").Decimal;
         purchasePrice: import("@prisma/client/runtime/library").Decimal | null;
         acquisitionDate: Date | null;

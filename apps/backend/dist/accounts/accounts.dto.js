@@ -22,6 +22,18 @@ class CreateAccountDto {
     payrollDay1;
     payrollDay2;
     payrollAutoDeposit;
+    debtTotalAmount;
+    debtRemainingAmount;
+    debtInterestRate;
+    debtCutoffDay;
+    debtPaymentDueDay;
+    debtMinimumPayment;
+    debtMitigationStrategy;
+    debtTargetPayoffDate;
+    debtMonthlyTargetPayment;
+    debtAlertDaysBefore;
+    debtAutoAlert;
+    debtNotes;
 }
 exports.CreateAccountDto = CreateAccountDto;
 __decorate([
@@ -73,6 +85,70 @@ __decorate([
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], CreateAccountDto.prototype, "payrollAutoDeposit", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)({}, { message: 'El límite de crédito debe ser un número válido' }),
+    __metadata("design:type", Number)
+], CreateAccountDto.prototype, "debtTotalAmount", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)({}, { message: 'El saldo adeudado debe ser un número válido' }),
+    __metadata("design:type", Number)
+], CreateAccountDto.prototype, "debtRemainingAmount", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)({}, { message: 'La tasa de interés debe ser un número válido' }),
+    __metadata("design:type", Number)
+], CreateAccountDto.prototype, "debtInterestRate", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)({}, { message: 'El día de corte debe estar entre 1 y 31' }),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(31),
+    __metadata("design:type", Number)
+], CreateAccountDto.prototype, "debtCutoffDay", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)({}, { message: 'El día límite de pago debe estar entre 1 y 31' }),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(31),
+    __metadata("design:type", Number)
+], CreateAccountDto.prototype, "debtPaymentDueDay", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)({}, { message: 'El pago mínimo debe ser un número válido' }),
+    __metadata("design:type", Number)
+], CreateAccountDto.prototype, "debtMinimumPayment", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(client_1.MitigationStrategy),
+    __metadata("design:type", String)
+], CreateAccountDto.prototype, "debtMitigationStrategy", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateAccountDto.prototype, "debtTargetPayoffDate", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)({}, { message: 'La cuota meta mensual debe ser un número válido' }),
+    __metadata("design:type", Number)
+], CreateAccountDto.prototype, "debtMonthlyTargetPayment", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateAccountDto.prototype, "debtAlertDaysBefore", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], CreateAccountDto.prototype, "debtAutoAlert", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateAccountDto.prototype, "debtNotes", void 0);
 class UpdateAccountDto {
     name;
     type;
@@ -83,6 +159,18 @@ class UpdateAccountDto {
     payrollDay1;
     payrollDay2;
     payrollAutoDeposit;
+    debtTotalAmount;
+    debtRemainingAmount;
+    debtInterestRate;
+    debtCutoffDay;
+    debtPaymentDueDay;
+    debtMinimumPayment;
+    debtMitigationStrategy;
+    debtTargetPayoffDate;
+    debtMonthlyTargetPayment;
+    debtAlertDaysBefore;
+    debtAutoAlert;
+    debtNotes;
 }
 exports.UpdateAccountDto = UpdateAccountDto;
 __decorate([
@@ -135,4 +223,68 @@ __decorate([
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], UpdateAccountDto.prototype, "payrollAutoDeposit", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateAccountDto.prototype, "debtTotalAmount", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateAccountDto.prototype, "debtRemainingAmount", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateAccountDto.prototype, "debtInterestRate", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(31),
+    __metadata("design:type", Number)
+], UpdateAccountDto.prototype, "debtCutoffDay", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(31),
+    __metadata("design:type", Number)
+], UpdateAccountDto.prototype, "debtPaymentDueDay", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateAccountDto.prototype, "debtMinimumPayment", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(client_1.MitigationStrategy),
+    __metadata("design:type", String)
+], UpdateAccountDto.prototype, "debtMitigationStrategy", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateAccountDto.prototype, "debtTargetPayoffDate", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateAccountDto.prototype, "debtMonthlyTargetPayment", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateAccountDto.prototype, "debtAlertDaysBefore", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], UpdateAccountDto.prototype, "debtAutoAlert", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateAccountDto.prototype, "debtNotes", void 0);
 //# sourceMappingURL=accounts.dto.js.map

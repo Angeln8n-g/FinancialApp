@@ -178,6 +178,7 @@ model Account {
   transactions  Transaction[]
   transfersTo   Transaction[] @relation("TransferToRelation")
   subscriptions Subscription[]
+  debts         Debt[]
 
   @@index([householdId])
 }
@@ -288,8 +289,11 @@ model Debt {
   household             Household           @relation(fields: [householdId], references: [id], onDelete: Cascade)
   reminders             Reminder[]
   assets                Asset[]
+  accountId             String?
+  account               Account?            @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@index([householdId])
+  @@index([accountId])
 }
 
 model Subscription {

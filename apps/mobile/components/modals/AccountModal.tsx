@@ -22,6 +22,7 @@ interface AccountModalProps {
 
 const ACCOUNT_TYPES = [
   { id: 'BANK_ACCOUNT', label: 'Cuenta Bancaria' },
+  { id: 'CREDIT_CARD', label: 'Tarjeta de Crédito' },
   { id: 'CASH', label: 'Efectivo / Caja' },
   { id: 'PAYROLL', label: 'Cuenta Nómina' },
   { id: 'SAVINGS', label: 'Ahorros' },
@@ -40,6 +41,13 @@ export default function AccountModal({ visible, onClose, onSuccess }: AccountMod
   const [payrollDay1, setPayrollDay1] = useState('15');
   const [payrollDay2, setPayrollDay2] = useState('30');
 
+  // Campos de Tarjeta de Crédito (Deuda Vinculada)
+  const [debtTotalAmount, setDebtTotalAmount] = useState('');
+  const [debtCutoffDay, setDebtCutoffDay] = useState('');
+  const [debtPaymentDueDay, setDebtPaymentDueDay] = useState('');
+  const [debtMinimumPayment, setDebtMinimumPayment] = useState('');
+  const [debtInterestRate, setDebtInterestRate] = useState('0');
+
   const handleSubmit = async () => {
     if (!name.trim()) {
       Alert.alert('Nombre Requerido', 'Por favor ingresa un nombre para la cuenta.');
@@ -48,7 +56,14 @@ export default function AccountModal({ visible, onClose, onSuccess }: AccountMod
 
     const parsedBalance = parseFloat(balance.replace(',', '.'));
     const isPayroll = type === 'PAYROLL';
+    const isCreditCard = type === 'CREDIT_CARD';
     const parsedPayrollAmount = parseFloat(payrollAmount.replace(',', '.'));
+    const parsedDebtTotal = parseFloat(debtTotalAmount.replace(',', '.'));
+
+    if (isCreditCard && (isNaN(parsedDebtTotal) || parsedDebtTotal <= 0)) {
+      Alert.alert('Límite de Crédito Requerido', 'Por favor ingresa el límite total de la tarjeta de crédito.');
+      return;
+    }
 
     const payload: any = {
       name: name.trim(),
@@ -65,6 +80,16 @@ export default function AccountModal({ visible, onClose, onSuccess }: AccountMod
         payload.payrollDay2 = parseInt(payrollDay2, 10) || 30;
       }
       payload.payrollAutoDeposit = true;
+    }
+
+    if (isCreditCard) {
+      payload.debtTotalAmount = parsedDebtTotal;
+      payload.debtRemainingAmount = isNaN(parsedBalance) ? 0 : parsedBalance;
+      payload.debtInterestRate = parseFloat(debtInterestRate.replace(',', '.')) || 0;
+      payload.debtCutoffDay = parseInt(debtCutoffDay, 10) || undefined;
+      payload.debtPaymentDueDay = parseInt(debtPaymentDueDay, 10) || undefined;
+      payload.debtMinimumPayment = parseFloat(debtMinimumPayment.replace(',', '.')) || undefined;
+      payload.debtAutoAlert = true;
     }
 
     setSubmitting(true);
@@ -140,6 +165,73 @@ export default function AccountModal({ visible, onClose, onSuccess }: AccountMod
               value={balance}
               onChangeText={setBalance}
             />
+
+            {/* Configuración especial si es Tarjeta de Crédito */}
+            {type === 'CREDIT_CARD' && (
+              <View style={[styles.payrollBox, { borderColor: '#F59E0B' }]}>
+                <Text style={[styles.payrollTitle, { color: '#F59E0B' }]}>💳 Compromiso y Deuda de Tarjeta</Text>
+                
+                <Text style={styles.label}>Límite Total de Crédito ($) *</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="decimal-pad"
+                  placeholder="Ej: 50000.00"
+                  placeholderTextColor={FamilyMint.foregroundSubtle}
+                  value={debtTotalAmount}
+                  onChangeText={setDebtTotalAmount}
+                />
+
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>Día Corte (1-31)</Text>
+                    <TextInput
+                      style={styles.input}
+                      keyboardType="number-pad"
+                      placeholder="15"
+                      placeholderTextColor={FamilyMint.foregroundSubtle}
+                      value={debtCutoffDay}
+                      onChangeText={setDebtCutoffDay}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>Día Límite Pago (1-31)</Text>
+                    <TextInput
+                      style={styles.input}
+                      keyboardType="number-pad"
+                      placeholder="5"
+                      placeholderTextColor={FamilyMint.foregroundSubtle}
+                      value={debtPaymentDueDay}
+                      onChangeText={setDebtPaymentDueDay}
+                    />
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>Pago Mínimo ($)</Text>
+                    <TextInput
+                      style={styles.input}
+                      keyboardType="decimal-pad"
+                      placeholder="1500.00"
+                      placeholderTextColor={FamilyMint.foregroundSubtle}
+                      value={debtMinimumPayment}
+                      onChangeText={setDebtMinimumPayment}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>Interés Anual (%)</Text>
+                    <TextInput
+                      style={styles.input}
+                      keyboardType="decimal-pad"
+                      placeholder="28"
+                      placeholderTextColor={FamilyMint.foregroundSubtle}
+                      value={debtInterestRate}
+                      onChangeText={setDebtInterestRate}
+                    />
+                  </View>
+                </View>
+              </View>
+            )}
 
             {/* Configuración especial si es Nómina */}
             {type === 'PAYROLL' && (

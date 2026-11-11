@@ -1,11 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import Logo from '@/components/Logo';
+import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDeleted = searchParams.get('deleted') === 'true';
+
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('angellafraga@gmail.con');
   const [password, setPassword] = useState('admin123');
@@ -49,8 +54,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#0A1128] text-slate-100">
-      <div className="w-full max-w-md mint-card p-8 shadow-2xl relative overflow-hidden border border-[#1E2B4D]">
+    <div className="w-full max-w-md">
+      <div className="mint-card p-8 shadow-2xl relative overflow-hidden border border-[#1E2B4D]">
         {/* Subtle ambient light */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -61,6 +66,19 @@ export default function LoginPage() {
             {isRegister ? 'Crea la cuenta para tu hogar' : 'Asistente Financiero Familiar'}
           </p>
         </div>
+
+        {/* Banner de cuenta eliminada exitosamente */}
+        {isDeleted && (
+          <div className="mb-6 p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 text-xs flex items-start gap-3 animate-fade-in">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-emerald-300">Cuenta y datos eliminados con éxito</p>
+              <p className="text-[11px] text-emerald-200/80 mt-1 leading-relaxed">
+                Tu cuenta de usuario, membresía y todos los registros financieros han sido purgados de forma permanente de acuerdo con nuestras políticas de privacidad y soberanía de datos.
+              </p>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="mb-6 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs text-center font-medium">
@@ -146,6 +164,27 @@ export default function LoginPage() {
           )}
         </div>
       </div>
+
+      {/* Footer link to Privacy Policy */}
+      <div className="mt-6 text-center">
+        <Link
+          href="/privacy"
+          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-emerald-300 transition-colors py-1 px-3 rounded-lg hover:bg-[#101A36]/50"
+        >
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Políticas de Privacidad & Soberanía de Datos</span>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#0A1128] text-slate-100">
+      <Suspense fallback={<div className="text-slate-400 text-xs">Cargando...</div>}>
+        <LoginForm />
+      </Suspense>
     </div>
   );
 }

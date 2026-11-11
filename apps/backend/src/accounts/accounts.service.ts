@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAccountDto, UpdateAccountDto } from './accounts.dto';
-import { AccountType, PayrollFrequency, TransactionType } from '@prisma/client';
+import { AccountType, MitigationStrategy, PayrollFrequency, TransactionType } from '@prisma/client';
 import { EventsGateway } from '../events/events.gateway';
+import { DebtsService } from '../debts/debts.service';
 
 @Injectable()
 export class AccountsService {
@@ -11,6 +12,7 @@ export class AccountsService {
   constructor(
     private prisma: PrismaService,
     private eventsGateway: EventsGateway,
+    private debtsService: DebtsService,
   ) {}
 
   /**
@@ -193,6 +195,9 @@ export class AccountsService {
 
     return this.prisma.account.findMany({
       where: { householdId },
+      include: {
+        debts: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -200,6 +205,9 @@ export class AccountsService {
   async findOne(householdId: string, accountId: string) {
     const account = await this.prisma.account.findFirst({
       where: { id: accountId, householdId },
+      include: {
+        debts: true,
+      },
     });
 
     if (!account) {
@@ -210,12 +218,23 @@ export class AccountsService {
   }
 
   async create(householdId: string, dto: CreateAccountDto) {
-    return this.prisma.account.create({
+    const isCreditCard = dto.type === AccountType.CREDIT_CARD;
+
+    // Si es tarjeta de crédito, calcular balance inicial (saldo utilizado = pasivo / negativo)
+    const initialDebtAmount = dto.debtRemainingAmount !== undefined
+      ? Number(dto.debtRemainingAmount)
+      : (dto.debtTotalAmount !== undefined ? Number(dto.debtTotalAmount) : Math.abs(Number(dto.balance || 0)));
+
+    const initialBalance = isCreditCard
+      ? (initialDebtAmount > 0 ? -Math.abs(initialDebtAmount) : 0)
+      : (dto.balance ?? 0.0);
+
+    const account = await this.prisma.account.create({
       data: {
         householdId,
         name: dto.name,
         type: dto.type,
-        balance: dto.balance ?? 0.0,
+        balance: initialBalance,
         currency: dto.currency || 'USD',
         payrollAmount: dto.payrollAmount ?? null,
         payrollFrequency: dto.payrollFrequency ?? null,
@@ -224,12 +243,38 @@ export class AccountsService {
         payrollAutoDeposit: dto.payrollAutoDeposit ?? (dto.type === AccountType.PAYROLL),
       },
     });
+
+    // Si es tarjeta de crédito, crear y vincular automáticamente su deuda y compromiso
+    if (isCreditCard) {
+      const totalAmount = dto.debtTotalAmount ? Number(dto.debtTotalAmount) : Math.max(initialDebtAmount, 100);
+      const remainingAmount = initialDebtAmount;
+
+      await this.debtsService.create(householdId, {
+        accountId: account.id,
+        contactName: dto.name,
+        totalAmount,
+        remainingAmount,
+        interestRate: dto.debtInterestRate ? Number(dto.debtInterestRate) : 0,
+        cutoffDay: dto.debtCutoffDay ? Number(dto.debtCutoffDay) : undefined,
+        paymentDueDay: dto.debtPaymentDueDay ? Number(dto.debtPaymentDueDay) : undefined,
+        minimumPayment: dto.debtMinimumPayment ? Number(dto.debtMinimumPayment) : undefined,
+        mitigationStrategy: dto.debtMitigationStrategy || MitigationStrategy.CUSTOM,
+        targetPayoffDate: dto.debtTargetPayoffDate || undefined,
+        monthlyTargetPayment: dto.debtMonthlyTargetPayment ? Number(dto.debtMonthlyTargetPayment) : undefined,
+        alertDaysBefore: dto.debtAlertDaysBefore ?? 3,
+        autoAlert: dto.debtAutoAlert !== false,
+        notes: dto.debtNotes || `Tarjeta de crédito vinculada a cuenta ${account.name}`,
+      });
+    }
+
+    this.eventsGateway.notifyHouseholdChange(householdId, 'account', 'CREATE');
+    return this.findOne(householdId, account.id);
   }
 
   async update(householdId: string, accountId: string, dto: UpdateAccountDto) {
-    await this.findOne(householdId, accountId);
+    const existing = await this.findOne(householdId, accountId);
 
-    return this.prisma.account.update({
+    const updated = await this.prisma.account.update({
       where: { id: accountId },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
@@ -242,14 +287,43 @@ export class AccountsService {
         ...(dto.payrollDay2 !== undefined && { payrollDay2: dto.payrollDay2 }),
         ...(dto.payrollAutoDeposit !== undefined && { payrollAutoDeposit: dto.payrollAutoDeposit }),
       },
+      include: {
+        debts: true,
+      },
     });
+
+    // Si es tarjeta de crédito y tiene deuda vinculada, sincronizar también
+    if (updated.type === AccountType.CREDIT_CARD && updated.debts && updated.debts.length > 0) {
+      const debtId = updated.debts[0].id;
+      await this.debtsService.update(householdId, debtId, {
+        ...(dto.name !== undefined && { contactName: dto.name }),
+        ...(dto.debtTotalAmount !== undefined && { totalAmount: Number(dto.debtTotalAmount) }),
+        ...(dto.debtRemainingAmount !== undefined && { remainingAmount: Number(dto.debtRemainingAmount) }),
+        ...(dto.debtInterestRate !== undefined && { interestRate: Number(dto.debtInterestRate) }),
+        ...(dto.debtCutoffDay !== undefined && { cutoffDay: Number(dto.debtCutoffDay) }),
+        ...(dto.debtPaymentDueDay !== undefined && { paymentDueDay: Number(dto.debtPaymentDueDay) }),
+        ...(dto.debtMinimumPayment !== undefined && { minimumPayment: Number(dto.debtMinimumPayment) }),
+        ...(dto.debtMitigationStrategy !== undefined && { mitigationStrategy: dto.debtMitigationStrategy }),
+        ...(dto.debtTargetPayoffDate !== undefined && { targetPayoffDate: dto.debtTargetPayoffDate }),
+        ...(dto.debtMonthlyTargetPayment !== undefined && { monthlyTargetPayment: Number(dto.debtMonthlyTargetPayment) }),
+        ...(dto.debtAlertDaysBefore !== undefined && { alertDaysBefore: Number(dto.debtAlertDaysBefore) }),
+        ...(dto.debtAutoAlert !== undefined && { autoAlert: dto.debtAutoAlert }),
+        ...(dto.debtNotes !== undefined && { notes: dto.debtNotes }),
+      });
+    }
+
+    this.eventsGateway.notifyHouseholdChange(householdId, 'account', 'UPDATE');
+    return this.findOne(householdId, accountId);
   }
 
   async delete(householdId: string, accountId: string) {
     await this.findOne(householdId, accountId);
 
-    return this.prisma.account.delete({
+    const deleted = await this.prisma.account.delete({
       where: { id: accountId },
     });
+
+    this.eventsGateway.notifyHouseholdChange(householdId, 'account', 'DELETE');
+    return deleted;
   }
 }

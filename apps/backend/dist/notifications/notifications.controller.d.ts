@@ -8,8 +8,8 @@ export declare class NotificationsController {
         createdAt: Date;
         userId: string;
         householdId: string;
-        type: string;
         title: string;
+        type: string;
         body: string;
         isRead: boolean;
         metadata: string | null;

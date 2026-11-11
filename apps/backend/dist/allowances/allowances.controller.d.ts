@@ -31,9 +31,9 @@ export declare class AllowancesController {
         id: string;
         createdAt: Date;
         householdId: string;
+        memberId: string;
         title: string;
         period: import(".prisma/client").$Enums.RecurrencePeriod;
-        memberId: string;
     }[]>;
     create(user: UserPayload, body: {
         memberId: string;
@@ -44,11 +44,11 @@ export declare class AllowancesController {
         id: string;
         createdAt: Date;
         householdId: string;
-        title: string;
-        period: import(".prisma/client").$Enums.RecurrencePeriod;
-        limitAmount: import("@prisma/client/runtime/library").Decimal;
         memberId: string;
+        title: string;
+        limitAmount: import("@prisma/client/runtime/library").Decimal;
         spentAmount: import("@prisma/client/runtime/library").Decimal;
+        period: import(".prisma/client").$Enums.RecurrencePeriod;
     }>;
     recordExpense(user: UserPayload, id: string, body: {
         amount: number;
@@ -56,11 +56,11 @@ export declare class AllowancesController {
         id: string;
         createdAt: Date;
         householdId: string;
-        title: string;
-        period: import(".prisma/client").$Enums.RecurrencePeriod;
-        limitAmount: import("@prisma/client/runtime/library").Decimal;
         memberId: string;
+        title: string;
+        limitAmount: import("@prisma/client/runtime/library").Decimal;
         spentAmount: import("@prisma/client/runtime/library").Decimal;
+        period: import(".prisma/client").$Enums.RecurrencePeriod;
     }>;
     disburse(user: UserPayload, id: string, body: {
         accountId: string;
@@ -73,22 +73,22 @@ export declare class AllowancesController {
         id: string;
         createdAt: Date;
         householdId: string;
-        title: string;
-        period: import(".prisma/client").$Enums.RecurrencePeriod;
-        limitAmount: import("@prisma/client/runtime/library").Decimal;
         memberId: string;
+        title: string;
+        limitAmount: import("@prisma/client/runtime/library").Decimal;
         spentAmount: import("@prisma/client/runtime/library").Decimal;
+        period: import(".prisma/client").$Enums.RecurrencePeriod;
     }>;
     getRequests(user: UserPayload): Promise<({
         allowance: {
             id: string;
             createdAt: Date;
             householdId: string;
-            title: string;
-            period: import(".prisma/client").$Enums.RecurrencePeriod;
-            limitAmount: import("@prisma/client/runtime/library").Decimal;
             memberId: string;
+            title: string;
+            limitAmount: import("@prisma/client/runtime/library").Decimal;
             spentAmount: import("@prisma/client/runtime/library").Decimal;
+            period: import(".prisma/client").$Enums.RecurrencePeriod;
         };
         member: {
             user: {
@@ -113,10 +113,10 @@ export declare class AllowancesController {
         id: string;
         createdAt: Date;
         householdId: string;
+        memberId: string;
         amount: import("@prisma/client/runtime/library").Decimal;
         status: string;
         reason: string;
-        memberId: string;
         allowanceId: string;
     })[]>;
     createRequest(user: UserPayload, allowanceId: string, body: {
@@ -147,10 +147,10 @@ export declare class AllowancesController {
         id: string;
         createdAt: Date;
         householdId: string;
+        memberId: string;
         amount: import("@prisma/client/runtime/library").Decimal;
         status: string;
         reason: string;
-        memberId: string;
         allowanceId: string;
     }>;
     respondRequest(user: UserPayload, requestId: string, body: {
@@ -159,10 +159,10 @@ export declare class AllowancesController {
         id: string;
         createdAt: Date;
         householdId: string;
+        memberId: string;
         amount: import("@prisma/client/runtime/library").Decimal;
         status: string;
         reason: string;
-        memberId: string;
         allowanceId: string;
     }>;
     remove(user: UserPayload, id: string): Promise<import(".prisma/client").Prisma.BatchPayload>;

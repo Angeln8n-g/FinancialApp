@@ -11,6 +11,7 @@ import AccountModal from '@/components/modals/AccountModal';
 import EditAccountModal from '@/components/modals/EditAccountModal';
 import ReminderModal from '@/components/modals/ReminderModal';
 import PayReminderModal from '@/components/modals/PayReminderModal';
+import PayDebtModal from '@/components/modals/PayDebtModal';
 import EditTransactionModal from '@/components/modals/EditTransactionModal';
 import VoidTransactionModal from '@/components/modals/VoidTransactionModal';
 import ImportModal from '@/components/modals/ImportModal';
@@ -66,6 +67,8 @@ export default function DashboardPage() {
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [showPayReminderModal, setShowPayReminderModal] = useState(false);
   const [selectedReminderForPay, setSelectedReminderForPay] = useState<any>(null);
+  const [showPayDebtModal, setShowPayDebtModal] = useState(false);
+  const [selectedDebtForPay, setSelectedDebtForPay] = useState<any>(null);
 
   // Estados de Modales de Auditoría
   const [showEditTxModal, setShowEditTxModal] = useState(false);
@@ -202,6 +205,14 @@ export default function DashboardPage() {
   const handleDeleteAccount = async (accountId: string) => {
     await apiFetch(`/api/accounts/${accountId}`, {
       method: 'DELETE',
+    });
+    await fetchData();
+  };
+
+  const handleConfirmPayDebt = async (debtId: string, data: { amount: number; accountId?: string; notes?: string }) => {
+    await apiFetch(`/api/debts/${debtId}/pay`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
     await fetchData();
   };
@@ -466,13 +477,19 @@ export default function DashboardPage() {
             ) : (
               accounts.map((acc) => {
                 const isPayroll = acc.type === 'PAYROLL';
+                const isCreditCard = acc.type === 'CREDIT_CARD';
                 const hasPayrollConfig = isPayroll && acc.payrollAmount && Number(acc.payrollAmount) > 0;
+                const linkedDebt = acc.debts && acc.debts.length > 0 ? acc.debts[0] : null;
 
                 return (
                   <div
                     key={acc.id}
                     className={`mint-card p-3.5 space-y-2.5 transition-colors group border ${
-                      isPayroll ? 'border-emerald-500/30 bg-gradient-to-br from-[#101A36] to-emerald-950/15' : 'border-[#1E2B4D] hover:border-[#2D3E6B]'
+                      isPayroll
+                        ? 'border-emerald-500/30 bg-gradient-to-br from-[#101A36] to-emerald-950/15'
+                        : isCreditCard
+                        ? 'border-amber-500/30 bg-gradient-to-br from-[#101A36] to-amber-950/15'
+                        : 'border-[#1E2B4D] hover:border-[#2D3E6B]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -480,21 +497,33 @@ export default function DashboardPage() {
                         <div className={`w-9 h-9 rounded-xl border flex items-center justify-center ${
                           isPayroll
                             ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                            : isCreditCard
+                            ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
                             : 'bg-[#162347] border-[#1E2B4D]'
                         }`}>
                           {getAccountIcon(acc.type)}
                         </div>
                         <div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <p className="text-xs font-semibold text-slate-100">{acc.name}</p>
                             {isPayroll && (
                               <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                                 Nómina
                               </span>
                             )}
+                            {isCreditCard && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                <CreditCard className="w-2.5 h-2.5" />
+                                Tarjeta • Deuda Vinculada
+                              </span>
+                            )}
                           </div>
                           <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">
-                            {isPayroll ? 'Cuenta de Nómina' : acc.type.replace('_', ' ')}
+                            {isPayroll
+                              ? 'Cuenta de Nómina'
+                              : isCreditCard
+                              ? 'Tarjeta de Crédito'
+                              : acc.type.replace('_', ' ')}
                           </p>
                         </div>
                       </div>
@@ -547,6 +576,74 @@ export default function DashboardPage() {
                             + Cobrar Nómina
                           </button>
                         )}
+                      </div>
+                    )}
+
+                    {/* Fila de detalles para tarjeta de crédito con deuda vinculada */}
+                    {isCreditCard && linkedDebt && (
+                      <div className="pt-2 border-t border-[#1E2B4D]/60 space-y-2 text-[11px]">
+                        <div className="flex items-center justify-between text-slate-300">
+                          <span>
+                            Límite: <strong className="text-slate-100 font-semibold tabular-nums">
+                              ${Number(linkedDebt.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </strong>
+                          </span>
+                          <span className="text-rose-400 font-medium tabular-nums">
+                            Deuda: ${Number(linkedDebt.remainingAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+
+                        {/* Barra de utilización de crédito */}
+                        <div className="space-y-0.5">
+                          <div className="flex justify-between text-[10px] text-slate-400">
+                            <span>
+                              Utilización: {Number(linkedDebt.totalAmount) > 0 ? Math.round((Number(linkedDebt.remainingAmount) / Number(linkedDebt.totalAmount)) * 100) : 0}%
+                            </span>
+                            {linkedDebt.minimumPayment && (
+                              <span className="tabular-nums">
+                                Mínimo: ${Number(linkedDebt.minimumPayment).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                              </span>
+                            )}
+                          </div>
+                          <div className="w-full h-1.5 rounded-full bg-[#0A1128] overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-300 ${
+                                Number(linkedDebt.remainingAmount) / (Number(linkedDebt.totalAmount) || 1) > 0.7
+                                  ? 'bg-gradient-to-r from-amber-500 to-rose-500'
+                                  : 'bg-gradient-to-r from-emerald-500 to-amber-400'
+                              }`}
+                              style={{
+                                width: `${Math.min(100, Number(linkedDebt.totalAmount) > 0 ? Math.round((Number(linkedDebt.remainingAmount) / Number(linkedDebt.totalAmount)) * 100) : 0)}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                          <span>
+                            {linkedDebt.cutoffDay ? `Corte: día ${linkedDebt.cutoffDay}` : ''}
+                            {linkedDebt.cutoffDay && linkedDebt.paymentDueDay ? ' • ' : ''}
+                            {linkedDebt.paymentDueDay ? `Límite: día ${linkedDebt.paymentDueDay}` : ''}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              href="/dashboard/commitments"
+                              className="px-2 py-0.5 rounded-lg bg-[#162347] hover:bg-[#1D2D5A] text-slate-300 hover:text-white border border-[#1E2B4D] transition-colors"
+                            >
+                              Detalles
+                            </Link>
+                            <button
+                              onClick={() => {
+                                setSelectedDebtForPay(linkedDebt);
+                                setShowPayDebtModal(true);
+                              }}
+                              className="px-2 py-0.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-semibold transition-all cursor-pointer shadow-xs"
+                              title="Abonar a esta tarjeta de crédito"
+                            >
+                              Abonar Tarjeta
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -716,6 +813,17 @@ export default function DashboardPage() {
         reminder={selectedReminderForPay}
         accounts={accounts}
         onConfirm={handleConfirmPayReminder}
+      />
+
+      <PayDebtModal
+        isOpen={showPayDebtModal}
+        onClose={() => {
+          setShowPayDebtModal(false);
+          setSelectedDebtForPay(null);
+        }}
+        debt={selectedDebtForPay}
+        accounts={accounts}
+        onConfirm={handleConfirmPayDebt}
       />
 
       <EditTransactionModal

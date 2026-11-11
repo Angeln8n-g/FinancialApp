@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as crypto from 'crypto';
@@ -319,6 +319,117 @@ export class AuthService {
         role: m.role,
         memberCount: m.household.members.length,
       })),
+    };
+  }
+
+  /**
+   * Exporta todos los datos financieros y personales del usuario en formato JSON estructurado
+   * conforme al derecho de portabilidad de datos (GDPR / ARCO).
+   */
+  async exportData(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        avatarUrl: true,
+        createdAt: true,
+        memberships: {
+          include: {
+            household: {
+              include: {
+                accounts: true,
+                categories: true,
+                budgets: true,
+                debts: true,
+                subscriptions: true,
+                reminders: true,
+                assets: true,
+                allowances: true,
+              },
+            },
+          },
+        },
+        auditLogs: true,
+        notifications: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    return {
+      exportDate: new Date().toISOString(),
+      format: 'HogarIQ Data Export (JSON)',
+      legalNotice: 'Copia oficial de portabilidad de datos financieros personales generada por HogarIQ.',
+      user,
+    };
+  }
+
+  /**
+   * Permite al usuario darse de baja y purgar definitivamente su cuenta y datos personales
+   * (Derecho al Olvido / Cancelación).
+   */
+  async deleteAccount(userId: string, passwordConfirm?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        memberships: {
+          include: {
+            household: {
+              include: {
+                members: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Validar contraseña si el usuario posee hash configurado
+    if (user.passwordHash) {
+      if (!passwordConfirm) {
+        throw new BadRequestException('Debes ingresar tu contraseña actual para confirmar la baja y eliminación definitiva de tus datos.');
+      }
+      const isValid = this.verifyPassword(passwordConfirm, user.passwordHash);
+      if (!isValid) {
+        throw new UnauthorizedException('La contraseña ingresada es incorrecta.');
+      }
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Procesar hogares a los que pertenece el usuario
+      for (const membership of user.memberships) {
+        const remainingMembersCount = membership.household.members.filter(m => m.userId !== userId).length;
+
+        if (remainingMembersCount === 0) {
+          // El usuario es el único miembro -> Purgar el hogar completo y todos sus datos en cascada
+          await tx.household.delete({
+            where: { id: membership.householdId },
+          });
+        } else {
+          // Hay otros miembros de la familia -> Retirar membresía y asignaciones del usuario
+          await tx.householdMember.delete({
+            where: { id: membership.id },
+          });
+        }
+      }
+
+      // 2. Eliminar registro del usuario definitivamente
+      await tx.user.delete({
+        where: { id: userId },
+      });
+    });
+
+    return {
+      success: true,
+      message: 'Tu cuenta y todos tus datos personales han sido eliminados de forma definitiva.',
     };
   }
 }

@@ -9,8 +9,8 @@ export declare class NotificationsService {
         createdAt: Date;
         userId: string;
         householdId: string;
-        type: string;
         title: string;
+        type: string;
         body: string;
         isRead: boolean;
         metadata: string | null;
@@ -27,8 +27,8 @@ export declare class NotificationsService {
         createdAt: Date;
         userId: string;
         householdId: string;
-        type: string;
         title: string;
+        type: string;
         body: string;
         isRead: boolean;
         metadata: string | null;
@@ -38,8 +38,8 @@ export declare class NotificationsService {
         createdAt: Date;
         userId: string;
         householdId: string;
-        type: string;
         title: string;
+        type: string;
         body: string;
         isRead: boolean;
         metadata: string | null;

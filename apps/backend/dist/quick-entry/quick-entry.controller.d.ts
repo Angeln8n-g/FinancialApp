@@ -61,8 +61,10 @@ export declare class QuickEntryController {
             updatedAt: Date;
             householdId: string;
             type: import(".prisma/client").$Enums.TransactionType;
-            description: string | null;
+            categoryId: string | null;
+            accountId: string;
             amount: import("@prisma/client/runtime/library").Decimal;
+            description: string | null;
             date: Date;
             isCleared: boolean;
             isEdited: boolean;
@@ -71,9 +73,7 @@ export declare class QuickEntryController {
             isVoided: boolean;
             voidReason: string | null;
             voidedAt: Date | null;
-            accountId: string;
             destinationAccountId: string | null;
-            categoryId: string | null;
             createdById: string | null;
         };
         candidate: import("./quick-entry.service").ParsedTransactionCandidate;

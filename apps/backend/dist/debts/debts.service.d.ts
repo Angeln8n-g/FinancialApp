@@ -40,6 +40,7 @@ export declare class DebtsService {
         minimumPayment?: number;
         alertDaysBefore?: number;
         autoAlert?: boolean;
+        accountId?: string;
     }): Promise<any>;
     update(householdId: string, debtId: string, data: {
         contactName?: string;

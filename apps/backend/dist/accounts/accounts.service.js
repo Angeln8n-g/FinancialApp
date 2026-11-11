@@ -15,13 +15,16 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const client_1 = require("@prisma/client");
 const events_gateway_1 = require("../events/events.gateway");
+const debts_service_1 = require("../debts/debts.service");
 let AccountsService = AccountsService_1 = class AccountsService {
     prisma;
     eventsGateway;
+    debtsService;
     logger = new common_1.Logger(AccountsService_1.name);
-    constructor(prisma, eventsGateway) {
+    constructor(prisma, eventsGateway, debtsService) {
         this.prisma = prisma;
         this.eventsGateway = eventsGateway;
+        this.debtsService = debtsService;
     }
     isPayrollDue(account, now = new Date()) {
         if (!account.payrollAutoDeposit)
@@ -154,12 +157,18 @@ let AccountsService = AccountsService_1 = class AccountsService {
         }
         return this.prisma.account.findMany({
             where: { householdId },
+            include: {
+                debts: true,
+            },
             orderBy: { createdAt: 'desc' },
         });
     }
     async findOne(householdId, accountId) {
         const account = await this.prisma.account.findFirst({
             where: { id: accountId, householdId },
+            include: {
+                debts: true,
+            },
         });
         if (!account) {
             throw new common_1.NotFoundException('Cuenta no encontrada');
@@ -167,12 +176,19 @@ let AccountsService = AccountsService_1 = class AccountsService {
         return account;
     }
     async create(householdId, dto) {
-        return this.prisma.account.create({
+        const isCreditCard = dto.type === client_1.AccountType.CREDIT_CARD;
+        const initialDebtAmount = dto.debtRemainingAmount !== undefined
+            ? Number(dto.debtRemainingAmount)
+            : (dto.debtTotalAmount !== undefined ? Number(dto.debtTotalAmount) : Math.abs(Number(dto.balance || 0)));
+        const initialBalance = isCreditCard
+            ? (initialDebtAmount > 0 ? -Math.abs(initialDebtAmount) : 0)
+            : (dto.balance ?? 0.0);
+        const account = await this.prisma.account.create({
             data: {
                 householdId,
                 name: dto.name,
                 type: dto.type,
-                balance: dto.balance ?? 0.0,
+                balance: initialBalance,
                 currency: dto.currency || 'USD',
                 payrollAmount: dto.payrollAmount ?? null,
                 payrollFrequency: dto.payrollFrequency ?? null,
@@ -181,10 +197,32 @@ let AccountsService = AccountsService_1 = class AccountsService {
                 payrollAutoDeposit: dto.payrollAutoDeposit ?? (dto.type === client_1.AccountType.PAYROLL),
             },
         });
+        if (isCreditCard) {
+            const totalAmount = dto.debtTotalAmount ? Number(dto.debtTotalAmount) : Math.max(initialDebtAmount, 100);
+            const remainingAmount = initialDebtAmount;
+            await this.debtsService.create(householdId, {
+                accountId: account.id,
+                contactName: dto.name,
+                totalAmount,
+                remainingAmount,
+                interestRate: dto.debtInterestRate ? Number(dto.debtInterestRate) : 0,
+                cutoffDay: dto.debtCutoffDay ? Number(dto.debtCutoffDay) : undefined,
+                paymentDueDay: dto.debtPaymentDueDay ? Number(dto.debtPaymentDueDay) : undefined,
+                minimumPayment: dto.debtMinimumPayment ? Number(dto.debtMinimumPayment) : undefined,
+                mitigationStrategy: dto.debtMitigationStrategy || client_1.MitigationStrategy.CUSTOM,
+                targetPayoffDate: dto.debtTargetPayoffDate || undefined,
+                monthlyTargetPayment: dto.debtMonthlyTargetPayment ? Number(dto.debtMonthlyTargetPayment) : undefined,
+                alertDaysBefore: dto.debtAlertDaysBefore ?? 3,
+                autoAlert: dto.debtAutoAlert !== false,
+                notes: dto.debtNotes || `Tarjeta de crédito vinculada a cuenta ${account.name}`,
+            });
+        }
+        this.eventsGateway.notifyHouseholdChange(householdId, 'account', 'CREATE');
+        return this.findOne(householdId, account.id);
     }
     async update(householdId, accountId, dto) {
-        await this.findOne(householdId, accountId);
-        return this.prisma.account.update({
+        const existing = await this.findOne(householdId, accountId);
+        const updated = await this.prisma.account.update({
             where: { id: accountId },
             data: {
                 ...(dto.name !== undefined && { name: dto.name }),
@@ -197,19 +235,45 @@ let AccountsService = AccountsService_1 = class AccountsService {
                 ...(dto.payrollDay2 !== undefined && { payrollDay2: dto.payrollDay2 }),
                 ...(dto.payrollAutoDeposit !== undefined && { payrollAutoDeposit: dto.payrollAutoDeposit }),
             },
+            include: {
+                debts: true,
+            },
         });
+        if (updated.type === client_1.AccountType.CREDIT_CARD && updated.debts && updated.debts.length > 0) {
+            const debtId = updated.debts[0].id;
+            await this.debtsService.update(householdId, debtId, {
+                ...(dto.name !== undefined && { contactName: dto.name }),
+                ...(dto.debtTotalAmount !== undefined && { totalAmount: Number(dto.debtTotalAmount) }),
+                ...(dto.debtRemainingAmount !== undefined && { remainingAmount: Number(dto.debtRemainingAmount) }),
+                ...(dto.debtInterestRate !== undefined && { interestRate: Number(dto.debtInterestRate) }),
+                ...(dto.debtCutoffDay !== undefined && { cutoffDay: Number(dto.debtCutoffDay) }),
+                ...(dto.debtPaymentDueDay !== undefined && { paymentDueDay: Number(dto.debtPaymentDueDay) }),
+                ...(dto.debtMinimumPayment !== undefined && { minimumPayment: Number(dto.debtMinimumPayment) }),
+                ...(dto.debtMitigationStrategy !== undefined && { mitigationStrategy: dto.debtMitigationStrategy }),
+                ...(dto.debtTargetPayoffDate !== undefined && { targetPayoffDate: dto.debtTargetPayoffDate }),
+                ...(dto.debtMonthlyTargetPayment !== undefined && { monthlyTargetPayment: Number(dto.debtMonthlyTargetPayment) }),
+                ...(dto.debtAlertDaysBefore !== undefined && { alertDaysBefore: Number(dto.debtAlertDaysBefore) }),
+                ...(dto.debtAutoAlert !== undefined && { autoAlert: dto.debtAutoAlert }),
+                ...(dto.debtNotes !== undefined && { notes: dto.debtNotes }),
+            });
+        }
+        this.eventsGateway.notifyHouseholdChange(householdId, 'account', 'UPDATE');
+        return this.findOne(householdId, accountId);
     }
     async delete(householdId, accountId) {
         await this.findOne(householdId, accountId);
-        return this.prisma.account.delete({
+        const deleted = await this.prisma.account.delete({
             where: { id: accountId },
         });
+        this.eventsGateway.notifyHouseholdChange(householdId, 'account', 'DELETE');
+        return deleted;
     }
 };
 exports.AccountsService = AccountsService;
 exports.AccountsService = AccountsService = AccountsService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        events_gateway_1.EventsGateway])
+        events_gateway_1.EventsGateway,
+        debts_service_1.DebtsService])
 ], AccountsService);
 //# sourceMappingURL=accounts.service.js.map

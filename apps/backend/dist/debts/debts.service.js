@@ -143,6 +143,11 @@ let DebtsService = DebtsService_1 = class DebtsService {
     async findAll(householdId) {
         const debts = await this.prisma.debt.findMany({
             where: { householdId },
+            include: {
+                account: {
+                    select: { id: true, name: true, type: true, currency: true },
+                },
+            },
             orderBy: [{ isPaidOff: 'asc' }, { remainingAmount: 'desc' }],
         });
         const now = new Date();
@@ -187,6 +192,8 @@ let DebtsService = DebtsService_1 = class DebtsService {
                 minimumPayment: d.minimumPayment ? Number(d.minimumPayment) : null,
                 alertDaysBefore: d.alertDaysBefore ?? 3,
                 autoAlert: d.autoAlert !== false,
+                accountId: d.accountId || null,
+                account: d.account || null,
                 ...operational,
             };
         });
@@ -199,6 +206,7 @@ let DebtsService = DebtsService_1 = class DebtsService {
         const created = await this.prisma.debt.create({
             data: {
                 householdId,
+                accountId: data.accountId || null,
                 contactName: data.contactName.trim(),
                 type: 'OWED_BY_ME',
                 totalAmount: data.totalAmount,
@@ -309,6 +317,18 @@ let DebtsService = DebtsService_1 = class DebtsService {
                     isPaidOff: isNowPaidOff,
                 },
             });
+            if (debt.accountId) {
+                const cardAccount = await tx.account.findFirst({
+                    where: { id: debt.accountId, householdId },
+                });
+                if (cardAccount && cardAccount.type === 'CREDIT_CARD') {
+                    const newCardBalance = newRemaining > 0 ? -Math.abs(newRemaining) : 0;
+                    await tx.account.update({
+                        where: { id: debt.accountId },
+                        data: { balance: newCardBalance },
+                    });
+                }
+            }
             if (isNowPaidOff) {
                 await tx.reminder.updateMany({
                     where: { debtId, isPaid: false },

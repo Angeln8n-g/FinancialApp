@@ -70,6 +70,7 @@ export default function CommitmentsPage() {
   const [dMinimumPayment, setDMinimumPayment] = useState('');
   const [dAlertDaysBefore, setDAlertDaysBefore] = useState('3');
   const [dAutoAlert, setDAutoAlert] = useState(true);
+  const [dAccountId, setDAccountId] = useState('');
 
   // Form Suscripción (Nueva)
   const [sName, setSName] = useState('');
@@ -228,11 +229,13 @@ export default function CommitmentsPage() {
           minimumPayment: !isNaN(minPay) && minPay > 0 ? minPay : undefined,
           alertDaysBefore: alertDays,
           autoAlert: dAutoAlert,
+          accountId: dAccountId || undefined,
         }),
       });
 
       setShowDebtModal(false);
       setDName('');
+      setDAccountId('');
       setDTotalAmount('');
       setDRemainingAmount('');
       setDInterestRate('');
@@ -604,6 +607,12 @@ export default function CommitmentsPage() {
                         >
                           {strategyBadge.label}
                         </span>
+                        {(d.accountId || d.account) && (
+                          <span className="text-[10px] font-bold text-sky-300 bg-sky-500/15 border border-sky-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <CreditCard className="w-3 h-3 text-sky-400" />
+                            Tarjeta: {d.account?.name || 'Tarjeta Vinculada'}
+                          </span>
+                        )}
                         {Number(d.interestRate) > 0 && (
                           <span className="text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full tabular-nums">
                             {d.interestRate}% Tasa
@@ -963,6 +972,36 @@ export default function CommitmentsPage() {
             </div>
 
             <form onSubmit={handleCreateDebt} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                  <span>Vincular a Tarjeta de Crédito (Opcional)</span>
+                  <span className="text-[10px] text-sky-400 font-normal">Sincroniza saldo y pagos</span>
+                </label>
+                <select
+                  value={dAccountId}
+                  onChange={(e) => {
+                    const accId = e.target.value;
+                    setDAccountId(accId);
+                    if (accId) {
+                      const selected = accounts.find((a) => a.id === accId);
+                      if (selected && !dName) {
+                        setDName(selected.name);
+                      }
+                    }
+                  }}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 cursor-pointer"
+                >
+                  <option value="">Ninguna (Deuda o préstamo independiente)</option>
+                  {accounts
+                    .filter((a) => a.type === 'CREDIT_CARD')
+                    .map((acc) => (
+                      <option key={acc.id} value={acc.id}>
+                        💳 {acc.name} ({acc.currency})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
               <div>
                 <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
                   Acreedor / Contacto

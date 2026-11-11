@@ -1,7 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Building2, Briefcase, Check, Trash2 } from 'lucide-react';
+import {
+  X,
+  Building2,
+  Briefcase,
+  Check,
+  Trash2,
+  CreditCard,
+  Target,
+  Clock,
+  Calendar,
+  Bell,
+  TrendingDown,
+  ShieldCheck,
+  AlertTriangle,
+} from 'lucide-react';
 
 interface EditAccountModalProps {
   isOpen: boolean;
@@ -29,6 +43,20 @@ export default function EditAccountModal({
   const [payrollDay2, setPayrollDay2] = useState('30');
   const [payrollAutoDeposit, setPayrollAutoDeposit] = useState(true);
 
+  // Configuración de Tarjeta de Crédito y Compromiso Vinculado
+  const [debtTotalAmount, setDebtTotalAmount] = useState('');
+  const [debtRemainingAmount, setDebtRemainingAmount] = useState('');
+  const [debtInterestRate, setDebtInterestRate] = useState('0');
+  const [debtCutoffDay, setDebtCutoffDay] = useState('');
+  const [debtPaymentDueDay, setDebtPaymentDueDay] = useState('');
+  const [debtMinimumPayment, setDebtMinimumPayment] = useState('');
+  const [debtMitigationStrategy, setDebtMitigationStrategy] = useState<'AVALANCHE' | 'SNOWBALL' | 'CUSTOM'>('CUSTOM');
+  const [debtTargetPayoffDate, setDebtTargetPayoffDate] = useState('');
+  const [debtMonthlyTargetPayment, setDebtMonthlyTargetPayment] = useState('');
+  const [debtAlertDaysBefore, setDebtAlertDaysBefore] = useState('3');
+  const [debtAutoAlert, setDebtAutoAlert] = useState(true);
+  const [debtNotes, setDebtNotes] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +70,46 @@ export default function EditAccountModal({
       setPayrollDay1(account.payrollDay1 ? account.payrollDay1.toString() : '15');
       setPayrollDay2(account.payrollDay2 ? account.payrollDay2.toString() : '30');
       setPayrollAutoDeposit(account.payrollAutoDeposit ?? true);
+
+      // Cargar datos de la deuda vinculada si existen
+      const linkedDebt = account.debts && account.debts.length > 0 ? account.debts[0] : null;
+      if (linkedDebt) {
+        setDebtTotalAmount(linkedDebt.totalAmount != null ? linkedDebt.totalAmount.toString() : '');
+        setDebtRemainingAmount(linkedDebt.remainingAmount != null ? linkedDebt.remainingAmount.toString() : '');
+        setDebtInterestRate(linkedDebt.interestRate != null ? linkedDebt.interestRate.toString() : '0');
+        setDebtCutoffDay(linkedDebt.cutoffDay != null ? linkedDebt.cutoffDay.toString() : '');
+        setDebtPaymentDueDay(linkedDebt.paymentDueDay != null ? linkedDebt.paymentDueDay.toString() : '');
+        setDebtMinimumPayment(linkedDebt.minimumPayment != null ? linkedDebt.minimumPayment.toString() : '');
+        setDebtMitigationStrategy(linkedDebt.mitigationStrategy || 'CUSTOM');
+        if (linkedDebt.targetPayoffDate) {
+          const d = new Date(linkedDebt.targetPayoffDate);
+          setDebtTargetPayoffDate(d.toISOString().split('T')[0]);
+        } else {
+          setDebtTargetPayoffDate('');
+        }
+        setDebtMonthlyTargetPayment(
+          linkedDebt.monthlyTargetPayment != null ? linkedDebt.monthlyTargetPayment.toString() : '',
+        );
+        setDebtAlertDaysBefore(
+          linkedDebt.alertDaysBefore != null ? linkedDebt.alertDaysBefore.toString() : '3',
+        );
+        setDebtAutoAlert(linkedDebt.autoAlert !== false);
+        setDebtNotes(linkedDebt.notes || '');
+      } else {
+        setDebtTotalAmount('');
+        setDebtRemainingAmount('');
+        setDebtInterestRate('0');
+        setDebtCutoffDay('');
+        setDebtPaymentDueDay('');
+        setDebtMinimumPayment('');
+        setDebtMitigationStrategy('CUSTOM');
+        setDebtTargetPayoffDate('');
+        setDebtMonthlyTargetPayment('');
+        setDebtAlertDaysBefore('3');
+        setDebtAutoAlert(true);
+        setDebtNotes('');
+      }
+
       setError(null);
     }
   }, [account]);
@@ -55,10 +123,25 @@ export default function EditAccountModal({
       return;
     }
 
+    const isCreditCard = type === 'CREDIT_CARD';
+    const isPayroll = type === 'PAYROLL';
+
+    if (isCreditCard) {
+      const cDay = parseInt(debtCutoffDay, 10);
+      if (debtCutoffDay.trim() && (isNaN(cDay) || cDay < 1 || cDay > 31)) {
+        setError('El día de corte debe ser un número entre 1 y 31.');
+        return;
+      }
+      const pDay = parseInt(debtPaymentDueDay, 10);
+      if (debtPaymentDueDay.trim() && (isNaN(pDay) || pDay < 1 || pDay > 31)) {
+        setError('El día límite de pago debe ser un número entre 1 y 31.');
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const isPayroll = type === 'PAYROLL';
       const parsedAmount = parseFloat(payrollAmount);
 
       const payload: any = {
@@ -76,6 +159,21 @@ export default function EditAccountModal({
       } else {
         payload.payrollAmount = null;
         payload.payrollAutoDeposit = false;
+      }
+
+      if (isCreditCard) {
+        payload.debtTotalAmount = debtTotalAmount ? parseFloat(debtTotalAmount) : undefined;
+        payload.debtRemainingAmount = debtRemainingAmount ? parseFloat(debtRemainingAmount) : undefined;
+        payload.debtInterestRate = debtInterestRate ? parseFloat(debtInterestRate) : 0;
+        payload.debtCutoffDay = debtCutoffDay ? parseInt(debtCutoffDay, 10) : undefined;
+        payload.debtPaymentDueDay = debtPaymentDueDay ? parseInt(debtPaymentDueDay, 10) : undefined;
+        payload.debtMinimumPayment = debtMinimumPayment ? parseFloat(debtMinimumPayment) : undefined;
+        payload.debtMitigationStrategy = debtMitigationStrategy;
+        payload.debtTargetPayoffDate = debtTargetPayoffDate || undefined;
+        payload.debtMonthlyTargetPayment = debtMonthlyTargetPayment ? parseFloat(debtMonthlyTargetPayment) : undefined;
+        payload.debtAlertDaysBefore = parseInt(debtAlertDaysBefore, 10) || 3;
+        payload.debtAutoAlert = debtAutoAlert;
+        payload.debtNotes = debtNotes.trim() || undefined;
       }
 
       await onConfirm(account.id, payload);
@@ -104,10 +202,16 @@ export default function EditAccountModal({
 
   return (
     <div className="fixed inset-0 bg-[#0A1128]/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="mint-card w-full max-w-lg p-6 relative border border-[#1E2B4D] shadow-2xl animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+      <div className="mint-card w-full max-w-xl p-6 relative border border-[#1E2B4D] shadow-2xl animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto custom-scrollbar">
         <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#1E2B4D]">
           <div className="flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-emerald-400" />
+            {type === 'CREDIT_CARD' ? (
+              <CreditCard className="w-5 h-5 text-amber-400" />
+            ) : type === 'PAYROLL' ? (
+              <Briefcase className="w-5 h-5 text-emerald-400" />
+            ) : (
+              <Building2 className="w-5 h-5 text-emerald-400" />
+            )}
             <h3 className="text-base font-bold text-slate-100">Configurar Cuenta</h3>
           </div>
           <button
@@ -119,12 +223,21 @@ export default function EditAccountModal({
           </button>
         </div>
 
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+            <span>{error}</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Tarjeta informativa de saldo actual */}
           <div className="p-3.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] flex items-center justify-between">
             <div>
-              <p className="text-[11px] text-slate-400">Saldo actual registrado</p>
-              <p className="text-lg font-bold text-slate-100 tabular-nums">
+              <p className="text-[11px] text-slate-400">
+                {type === 'CREDIT_CARD' ? 'Saldo contable actual (Pasivo)' : 'Saldo actual registrado'}
+              </p>
+              <p className={`text-lg font-bold tabular-nums ${Number(account.balance) < 0 ? 'text-rose-400' : 'text-slate-100'}`}>
                 ${Number(account.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </p>
             </div>
@@ -163,9 +276,9 @@ export default function EditAccountModal({
                 className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 cursor-pointer transition-colors"
               >
                 <option value="BANK_ACCOUNT" className="bg-[#101A36]">🏦 Bancaria / Débito</option>
+                <option value="CREDIT_CARD" className="bg-[#101A36]">💳 Tarjeta de Crédito (Deuda Vinculada)</option>
                 <option value="PAYROLL" className="bg-[#101A36]">💼 Nómina (Auto)</option>
                 <option value="CASH" className="bg-[#101A36]">💵 Efectivo</option>
-                <option value="CREDIT_CARD" className="bg-[#101A36]">💳 Tarjeta de Crédito</option>
                 <option value="SAVINGS" className="bg-[#101A36]">🐷 Ahorros</option>
                 <option value="INVESTMENT" className="bg-[#101A36]">📈 Inversión / Otros</option>
               </select>
@@ -195,6 +308,128 @@ export default function EditAccountModal({
             </div>
           </div>
 
+          {/* Configuración de Tarjeta de Crédito vinculada */}
+          {type === 'CREDIT_CARD' && (
+            <div className="p-4 rounded-2xl bg-[#0A1128] border border-amber-500/30 space-y-3.5 relative overflow-hidden">
+              <div className="flex items-center justify-between pb-2 border-b border-[#1E2B4D]">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-bold text-slate-100">
+                    Datos del Compromiso y Deuda Vinculada
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  Sincronizado
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 uppercase tracking-wider mb-1">
+                    Límite Total de Crédito ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={debtTotalAmount}
+                    onChange={(e) => setDebtTotalAmount(e.target.value)}
+                    placeholder="Ej. 50000.00"
+                    className="w-full px-3 py-1.5 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 tabular-nums font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 uppercase tracking-wider mb-1">
+                    Tasa de Interés Anual (% APR)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={debtInterestRate}
+                    onChange={(e) => setDebtInterestRate(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full px-3 py-1.5 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 tabular-nums"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-sky-400" />
+                    Día de Corte Mensual (1 - 31)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={debtCutoffDay}
+                    onChange={(e) => setDebtCutoffDay(e.target.value)}
+                    placeholder="15"
+                    className="w-full px-3 py-1.5 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 tabular-nums font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-rose-400" />
+                    Día Límite de Pago (1 - 31)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={debtPaymentDueDay}
+                    onChange={(e) => setDebtPaymentDueDay(e.target.value)}
+                    placeholder="5"
+                    className="w-full px-3 py-1.5 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 tabular-nums font-semibold"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-slate-300 uppercase tracking-wider mb-1">
+                  Pago Mínimo Estimado ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={debtMinimumPayment}
+                  onChange={(e) => setDebtMinimumPayment(e.target.value)}
+                  placeholder="1500.00"
+                  className="w-full px-3 py-1.5 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 tabular-nums"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-[#1E2B4D] flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={debtAutoAlert}
+                    onChange={(e) => setDebtAutoAlert(e.target.checked)}
+                    className="w-4 h-4 rounded text-amber-500 bg-[#101A36] border-[#1E2B4D] focus:ring-0 cursor-pointer"
+                  />
+                  <span className="text-xs text-slate-200 font-medium flex items-center gap-1.5">
+                    <Bell className="w-3.5 h-3.5 text-amber-400" />
+                    Recordatorio automático en calendario
+                  </span>
+                </label>
+                {debtAutoAlert && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-slate-400">Avisar</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="15"
+                      value={debtAlertDaysBefore}
+                      onChange={(e) => setDebtAlertDaysBefore(e.target.value)}
+                      className="w-12 px-2 py-0.5 rounded-lg bg-[#101A36] border border-[#1E2B4D] text-center text-xs text-slate-100 tabular-nums"
+                    />
+                    <span className="text-[11px] text-slate-400">días antes</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Configuración de Nómina si es tipo PAYROLL */}
           {type === 'PAYROLL' && (
             <div className="p-4 rounded-xl bg-[#0A1128] border border-emerald-500/30 space-y-3.5 relative overflow-hidden">
@@ -202,11 +437,11 @@ export default function EditAccountModal({
                 <div className="flex items-center gap-2">
                   <Briefcase className="w-4 h-4 text-emerald-400" />
                   <span className="text-xs font-bold text-slate-100">
-                    Ajustes de Ingreso Fijo de Nómina
+                    Configuración de Ingreso de Nómina
                   </span>
                 </div>
                 <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  {payrollAutoDeposit ? 'Automático Activo' : 'Manual'}
+                  Automático
                 </span>
               </div>
 
@@ -222,7 +457,6 @@ export default function EditAccountModal({
                     type="number"
                     step="0.01"
                     min="0.01"
-                    required
                     value={payrollAmount}
                     onChange={(e) => setPayrollAmount(e.target.value)}
                     placeholder="Ej. 1500.00"
@@ -276,7 +510,6 @@ export default function EditAccountModal({
                       placeholder="15"
                       className="w-full px-3 py-1.5 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-emerald-400 tabular-nums"
                     />
-                    <span className="text-[10px] text-slate-500 mt-0.5 block">Ej. Día 15</span>
                   </div>
                   <div>
                     <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">
@@ -291,7 +524,6 @@ export default function EditAccountModal({
                       placeholder="30"
                       className="w-full px-3 py-1.5 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-emerald-400 tabular-nums"
                     />
-                    <span className="text-[10px] text-slate-500 mt-0.5 block">Ej. Día 30 o fin de mes</span>
                   </div>
                 </div>
               ) : (
@@ -308,9 +540,6 @@ export default function EditAccountModal({
                     placeholder="30"
                     className="w-full px-3 py-1.5 rounded-xl bg-[#101A36] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-emerald-400 tabular-nums"
                   />
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">
-                    Ej. Día 1, 15, 28, o 30 (se ajusta al último día en meses cortos)
-                  </span>
                 </div>
               )}
 
@@ -328,26 +557,20 @@ export default function EditAccountModal({
             </div>
           )}
 
-          {error && (
-            <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl">
-              {error}
-            </p>
-          )}
-
           <div className="flex items-center justify-between pt-3 border-t border-[#1E2B4D]">
-            {onDelete ? (
+            {onDelete && (
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={loading}
-                className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                title="Eliminar cuenta"
+                className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                Eliminar
               </button>
-            ) : <div />}
+            )}
 
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 ml-auto">
               <button
                 type="button"
                 onClick={onClose}
@@ -359,16 +582,9 @@ export default function EditAccountModal({
               <button
                 type="submit"
                 disabled={loading}
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer disabled:opacity-50"
               >
-                {loading ? (
-                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Guardar Cambios</span>
-                  </>
-                )}
+                {loading ? 'Guardando...' : 'Guardar Cambios'}
               </button>
             </div>
           </div>

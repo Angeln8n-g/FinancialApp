@@ -321,6 +321,95 @@ let AuthService = class AuthService {
             })),
         };
     }
+    async exportData(userId) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                email: true,
+                fullName: true,
+                avatarUrl: true,
+                createdAt: true,
+                memberships: {
+                    include: {
+                        household: {
+                            include: {
+                                accounts: true,
+                                categories: true,
+                                budgets: true,
+                                debts: true,
+                                subscriptions: true,
+                                reminders: true,
+                                assets: true,
+                                allowances: true,
+                            },
+                        },
+                    },
+                },
+                auditLogs: true,
+                notifications: true,
+            },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException('Usuario no encontrado');
+        }
+        return {
+            exportDate: new Date().toISOString(),
+            format: 'HogarIQ Data Export (JSON)',
+            legalNotice: 'Copia oficial de portabilidad de datos financieros personales generada por HogarIQ.',
+            user,
+        };
+    }
+    async deleteAccount(userId, passwordConfirm) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                memberships: {
+                    include: {
+                        household: {
+                            include: {
+                                members: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException('Usuario no encontrado');
+        }
+        if (user.passwordHash) {
+            if (!passwordConfirm) {
+                throw new common_1.BadRequestException('Debes ingresar tu contraseña actual para confirmar la baja y eliminación definitiva de tus datos.');
+            }
+            const isValid = this.verifyPassword(passwordConfirm, user.passwordHash);
+            if (!isValid) {
+                throw new common_1.UnauthorizedException('La contraseña ingresada es incorrecta.');
+            }
+        }
+        await this.prisma.$transaction(async (tx) => {
+            for (const membership of user.memberships) {
+                const remainingMembersCount = membership.household.members.filter(m => m.userId !== userId).length;
+                if (remainingMembersCount === 0) {
+                    await tx.household.delete({
+                        where: { id: membership.householdId },
+                    });
+                }
+                else {
+                    await tx.householdMember.delete({
+                        where: { id: membership.id },
+                    });
+                }
+            }
+            await tx.user.delete({
+                where: { id: userId },
+            });
+        });
+        return {
+            success: true,
+            message: 'Tu cuenta y todos tus datos personales han sido eliminados de forma definitiva.',
+        };
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
