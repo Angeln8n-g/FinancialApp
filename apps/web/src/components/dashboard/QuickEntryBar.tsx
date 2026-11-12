@@ -212,11 +212,11 @@ export default function QuickEntryBar({
                 onClick={() => setEntryMode('SMART')}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   entryMode === 'SMART'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-sm'
+                    : 'text-slate-400 hover:text-slate-100'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <Sparkles className="w-3.5 h-3.5" />
                 <span>Express (Lenguaje Natural)</span>
               </button>
               <button
@@ -224,8 +224,8 @@ export default function QuickEntryBar({
                 onClick={() => setEntryMode('MANUAL')}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   entryMode === 'MANUAL'
-                    ? 'bg-slate-800 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[var(--surface-hover)] text-slate-100 shadow-sm border border-[var(--border)]'
+                    : 'text-slate-400 hover:text-slate-100'
                 }`}
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -286,11 +286,11 @@ export default function QuickEntryBar({
 
             {/* Chips de Detección en Tiempo Real */}
             {candidate && (
-              <div className="p-2.5 rounded-xl bg-slate-900/80 border border-emerald-500/30 flex flex-wrap items-center gap-2 text-xs animate-in fade-in duration-200">
-                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+              <div className="mint-card p-2.5 rounded-xl border border-[var(--primary-border)] flex flex-wrap items-center gap-2 text-xs animate-in fade-in duration-200">
+                <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-wider">
                   Detectado:
                 </span>
-                <span className="font-extrabold text-white tabular-nums bg-slate-800 px-2 py-0.5 rounded-md">
+                <span className="font-extrabold text-slate-100 tabular-nums bg-[var(--surface-hover)] border border-[var(--border)] px-2 py-0.5 rounded-md">
                   {candidate.type === 'INCOME' ? '+' : '-'}${candidate.amount.toFixed(2)}
                 </span>
                 <span className="text-slate-300 font-medium">"{candidate.description}"</span>

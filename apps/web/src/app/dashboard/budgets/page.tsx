@@ -251,7 +251,7 @@ export default function BudgetsAndGoalsPage() {
           {/* Tarjetas de métricas consolidadas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* 1. Total Presupuestado */}
-            <div className="p-4 rounded-xl bg-[#0A1128]/70 border border-[#1E2B4D]">
+            <div className="mint-card p-4 rounded-xl border border-[#1E2B4D]">
               <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
                 Total Presupuestado
               </span>
@@ -264,7 +264,7 @@ export default function BudgetsAndGoalsPage() {
             </div>
 
             {/* 2. Total Gastado */}
-            <div className="p-4 rounded-xl bg-[#0A1128]/70 border border-[#1E2B4D]">
+            <div className="mint-card p-4 rounded-xl border border-[#1E2B4D]">
               <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
                 Total Gastado
               </span>
@@ -279,7 +279,7 @@ export default function BudgetsAndGoalsPage() {
             </div>
 
             {/* 3. Disponible Restante */}
-            <div className="p-4 rounded-xl bg-[#0A1128]/70 border border-[#1E2B4D]">
+            <div className="mint-card p-4 rounded-xl border border-[#1E2B4D]">
               <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
                 Disponible Restante
               </span>
@@ -294,7 +294,7 @@ export default function BudgetsAndGoalsPage() {
             </div>
 
             {/* 4. Ritmo Diario Restante */}
-            <div className="p-4 rounded-xl bg-[#0A1128]/70 border border-[#1E2B4D]">
+            <div className="mint-card p-4 rounded-xl border border-[#1E2B4D]">
               <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
                 Ritmo Diario Restante
               </span>

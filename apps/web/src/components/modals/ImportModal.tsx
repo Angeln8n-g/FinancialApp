@@ -16,6 +16,7 @@ import {
   Check,
   ChevronRight
 } from 'lucide-react';
+import { suggestCategory as detectCategory } from '@/lib/categorizer';
 
 interface ImportModalProps {
   isOpen: boolean;
@@ -63,35 +64,10 @@ export default function ImportModal({
 
   if (!isOpen) return null;
 
-  // Sugerir categoría automáticamente por palabras clave
+  // Sugerir categoría automáticamente con el motor avanzado de HogarIQ
   const suggestCategory = (description: string): string | undefined => {
-    const text = description.toLowerCase();
-    for (const cat of categories) {
-      const cName = cat.name.toLowerCase();
-      if (text.includes(cName)) return cat.id;
-    }
-
-    if (/super|mercadona|carrefour|lidl|dia|walmart|alcampo|eroski|costco|jumbo|coto/i.test(text)) {
-      const match = categories.find((c) => /super|alimentaci|comida|mercado/i.test(c.name));
-      if (match) return match.id;
-    }
-    if (/uber|cabify|taxi|gasolina|repsol|cepsa|combustible|peaje|metro|renfe/i.test(text)) {
-      const match = categories.find((c) => /transporte|gasolina|auto|vehiculo/i.test(c.name));
-      if (match) return match.id;
-    }
-    if (/netflix|spotify|prime|hbo|disney|apple|youtube|steam|playstation/i.test(text)) {
-      const match = categories.find((c) => /suscripci|ocio|entretenimiento/i.test(c.name));
-      if (match) return match.id;
-    }
-    if (/restaurante|burger|pizza|mcdonald|starbucks|cafe|bar|tasca/i.test(text)) {
-      const match = categories.find((c) => /restaurante|salidas|comida/i.test(c.name));
-      if (match) return match.id;
-    }
-    if (/farmacia|salud|medico|hospital|dentista/i.test(text)) {
-      const match = categories.find((c) => /salud|farmacia|medicina/i.test(c.name));
-      if (match) return match.id;
-    }
-    return undefined;
+    const match = detectCategory(description, categories);
+    return match ? match.id : undefined;
   };
 
   // Procesar archivo cargado

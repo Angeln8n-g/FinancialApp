@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import KPICards from '@/components/dashboard/KPICards';
 import QuickEntryBar from '@/components/dashboard/QuickEntryBar';
+import CashFlowProjection from '@/components/dashboard/CashFlowProjection';
 import TransactionModal from '@/components/modals/TransactionModal';
 import AccountModal from '@/components/modals/AccountModal';
 import EditAccountModal from '@/components/modals/EditAccountModal';
@@ -18,6 +19,7 @@ import ImportModal from '@/components/modals/ImportModal';
 import ReceiptScanModal from '@/components/modals/ReceiptScanModal';
 import { apiFetch, getUser, getHousehold, getToken } from '@/lib/api';
 import { useHouseholdSocket } from '@/hooks/useHouseholdSocket';
+import { enqueueOfflineTransaction } from '@/lib/offlineSync';
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -179,11 +181,26 @@ export default function DashboardPage() {
   };
 
   const handleCreateTransaction = async (data: any) => {
-    await apiFetch('/api/transactions', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    await fetchData();
+    if (typeof window !== 'undefined' && !navigator.onLine) {
+      enqueueOfflineTransaction(data);
+      alert('⚡ Guardado sin conexión: Tu movimiento se guardó en este dispositivo y se sincronizará cuando vuelvas a tener red.');
+      return;
+    }
+
+    try {
+      await apiFetch('/api/transactions', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      await fetchData();
+    } catch (err: any) {
+      if (typeof window !== 'undefined' && (!navigator.onLine || err?.name === 'TypeError' || err?.message?.includes('Failed to fetch'))) {
+        enqueueOfflineTransaction(data);
+        alert('⚡ Sin conexión con el servidor: Movimiento guardado en cola local. Se sincronizará automáticamente.');
+        return;
+      }
+      throw err;
+    }
   };
 
   const handleCreateAccount = async (data: any) => {
@@ -311,7 +328,7 @@ export default function DashboardPage() {
                   setTxInitialType('EXPENSE');
                   setShowTxModal(true);
                 }}
-                className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
               >
                 <ArrowDownRight className="w-4 h-4 text-rose-400" />
                 <span>Gasto <kbd className="hidden md:inline px-1 py-0.5 rounded bg-rose-950/60 text-[10px] text-rose-300 font-mono">G</kbd></span>
@@ -333,15 +350,15 @@ export default function DashboardPage() {
                   setTxInitialType('TRANSFER');
                   setShowTxModal(true);
                 }}
-                className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/30 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-[#162347] hover:bg-[#1D2D5A] text-slate-300 border border-[#1E2B4D] font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
               >
-                <ArrowLeftRight className="w-4 h-4 text-blue-400" />
-                <span>Transferir <kbd className="hidden md:inline px-1 py-0.5 rounded bg-blue-950/60 text-[10px] text-blue-300 font-mono">T</kbd></span>
+                <ArrowLeftRight className="w-4 h-4 text-sky-400" />
+                <span>Transferir <kbd className="hidden md:inline px-1 py-0.5 rounded bg-[#101A36] text-[10px] text-slate-400 font-mono">T</kbd></span>
               </button>
 
               <button
                 onClick={() => setShowImportModal(true)}
-                className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-[#162347] hover:bg-[#1D2D5A] text-slate-200 border border-[#1E2B4D] font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-[#162347] hover:bg-[#1D2D5A] text-slate-300 border border-[#1E2B4D] font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                 title="Subir extracto bancario CSV / Excel para carga masiva"
               >
                 <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
@@ -350,7 +367,7 @@ export default function DashboardPage() {
 
               <button
                 onClick={() => setShowReceiptModal(true)}
-                className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-[#162347] hover:bg-[#1D2D5A] text-slate-300 border border-[#1E2B4D] font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                 title="Escanear ticket o recibo de compra con OCR inteligente"
               >
                 <Camera className="w-4 h-4 text-purple-400" />
@@ -377,6 +394,16 @@ export default function DashboardPage() {
           summary={summary}
           selectedCurrency={selectedCurrency}
           onCurrencyChange={(curr) => setSelectedCurrency(curr)}
+        />
+
+        {/* 📈 Flujo de Caja Predictivo & Salud Financiera Familiar */}
+        <CashFlowProjection
+          summary={summary}
+          accounts={accounts}
+          reminders={reminders}
+          subscriptions={subscriptions}
+          debts={debts}
+          selectedCurrency={selectedCurrency}
         />
 
         {/* ⏰ Recordatorios de Pago */}

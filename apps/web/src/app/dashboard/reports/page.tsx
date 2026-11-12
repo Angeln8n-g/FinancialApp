@@ -15,6 +15,7 @@ import {
   Calendar,
   Activity,
   Sparkles,
+  Printer,
 } from 'lucide-react';
 
 export default function ReportsPage() {
@@ -25,9 +26,23 @@ export default function ReportsPage() {
   const [projectionDays, setProjectionDays] = useState<number>(30);
   const [cashflowLoading, setCashflowLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'analytics' | 'executive'>('analytics');
+  const [householdName, setHouseholdName] = useState('Hogar Principal');
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('hogariq_token') : null;
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hStr = localStorage.getItem('hogariq_household');
+      if (hStr) {
+        try {
+          const h = JSON.parse(hStr);
+          if (h?.name) setHouseholdName(h.name);
+        } catch (_) {}
+      }
+    }
+  }, []);
 
   const fetchDistribution = async () => {
     const token = getToken();
@@ -89,7 +104,8 @@ export default function ReportsPage() {
       });
 
       if (res.ok) {
-        const blob = await res.blob();
+        const text = await res.text();
+        const blob = new Blob(['\uFEFF' + text], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -138,7 +154,7 @@ export default function ReportsPage() {
       <Navbar />
 
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
           <div>
             <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-emerald-400" />
@@ -160,13 +176,168 @@ export default function ReportsPage() {
               className="px-3.5 py-2 rounded-xl bg-[#162347] hover:bg-[#1D2D5A] border border-[#1E2B4D] text-xs font-medium text-slate-200 cursor-pointer flex items-center space-x-1.5 transition-all"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Exportar CSV</span>
+              <span>Exportar CSV / Excel</span>
             </button>
           </div>
         </div>
 
-        {/* KPI Banner */}
-        <div className="mint-card p-6 border border-[#1E2B4D] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Selector de Modo: Analítica Interactiva vs Extracto Mensual Ejecutivo */}
+        <div className="flex items-center space-x-1 p-1 bg-[#0A1128] rounded-xl border border-[#1E2B4D] w-fit no-print">
+          <button
+            onClick={() => setViewMode('analytics')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              viewMode === 'analytics'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Analítica Interactiva</span>
+          </button>
+          <button
+            onClick={() => setViewMode('executive')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              viewMode === 'executive'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Extracto Mensual Ejecutivo</span>
+          </button>
+        </div>
+
+        {viewMode === 'executive' ? (
+          /* 📋 VISTA INFORME EJECUTIVO IMPRIMIBLE */
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl mint-card border border-[#1E2B4D] no-print">
+              <div>
+                <span className="text-xs font-bold text-slate-200 block">Extracto Financiero de Alta Resolución</span>
+                <span className="text-[11px] text-slate-400">
+                  Formato de banca privada listo para imprimir o exportar como documento PDF oficial.
+                </span>
+              </div>
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md transition-all self-start sm:self-auto"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Imprimir / Guardar en PDF</span>
+              </button>
+            </div>
+
+            {/* Documento Imprimible */}
+            <div className="printable-statement mint-card p-6 sm:p-8 border border-[#1E2B4D] space-y-6 shadow-xl">
+              {/* Header Documento */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[#1E2B4D] gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🏛️</span>
+                    <div>
+                      <h2 className="text-xl font-bold tracking-tight text-slate-100">HogarIQ • Family Office</h2>
+                      <p className="text-xs text-slate-400">Informe Mensual de Rendición de Cuentas y Posición Patrimonial</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-left sm:text-right text-xs text-slate-400 space-y-1">
+                  <p><strong className="text-slate-200">Hogar:</strong> {householdName}</p>
+                  <p><strong className="text-slate-200">Período:</strong> {new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</p>
+                  <p><strong className="text-slate-200">Fecha de Emisión:</strong> {new Date().toLocaleDateString('es-ES')}</p>
+                </div>
+              </div>
+
+              {/* KPI Strip Ejecutivo */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl mint-card border border-[#1E2B4D]">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Gasto Total Analizado</span>
+                  <p className="text-2xl font-bold text-rose-400 mt-1 tabular-nums">
+                    ${Number(distribution.totalExpense || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
+                  <span className="text-[10px] text-slate-400">{distribution.categoriesDistribution?.length || 0} categorías de gasto</span>
+                </div>
+
+                <div className="p-4 rounded-xl mint-card border border-[#1E2B4D]">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Burn Rate Diario</span>
+                  <p className="text-2xl font-bold text-slate-100 mt-1 tabular-nums">
+                    ${Number(cashflow?.dailyBurnRate || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
+                  <span className="text-[10px] text-slate-400">Ritmo de consumo medio</span>
+                </div>
+
+                <div className="p-4 rounded-xl mint-card border border-[#1E2B4D]">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Estado de Liquidez</span>
+                  <p className="text-2xl font-bold text-emerald-400 mt-1">
+                    {cashflow?.alert === 'HEALTHY' ? 'Saludable' : 'Atención'}
+                  </p>
+                  <span className="text-[10px] text-slate-400">Punto mínimo proyectado: ${Number(cashflow?.projectedMinBalance || 0).toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Tabla Desglose de Categorías */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Desglose de Consumo por Categoría
+                </h4>
+                <div className="border border-[#1E2B4D] rounded-xl overflow-hidden">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-[#0A1128] text-slate-400 font-semibold border-b border-[#1E2B4D]">
+                      <tr>
+                        <th className="p-3">Categoría</th>
+                        <th className="p-3 text-right">Monto</th>
+                        <th className="p-3 text-right">% del Gasto Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#1E2B4D]">
+                      {distribution.categoriesDistribution?.map((cat: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-[#162347]/40">
+                          <td className="p-3 font-medium text-slate-200 flex items-center gap-2">
+                            <span>{cat.icon || '🏷️'}</span>
+                            <span>{cat.name}</span>
+                          </td>
+                          <td className="p-3 text-right font-bold tabular-nums text-rose-400">
+                            ${Number(cat.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="p-3 text-right text-slate-300 font-semibold tabular-nums">
+                            {cat.percentage}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Compromisos Próximos */}
+              {cashflow?.upcomingCommitments && cashflow.upcomingCommitments.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Obligaciones y Compromisos Fijos Próximos
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {cashflow.upcomingCommitments.map((c: any, idx: number) => (
+                      <div key={idx} className="p-2.5 rounded-lg border border-[#1E2B4D] flex justify-between items-center mint-card">
+                        <div>
+                          <p className="font-semibold text-slate-200">{c.name}</p>
+                          <span className="text-[10px] text-slate-400">{new Date(c.date).toLocaleDateString()}</span>
+                        </div>
+                        <span className="font-bold text-rose-400 tabular-nums">-${Number(c.amount).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pie Oficial del Extracto */}
+              <div className="pt-6 border-t border-[#1E2B4D] flex flex-col sm:flex-row justify-between items-center text-[11px] text-slate-400 gap-2">
+                <span>Extracto oficial certificado de control financiero familiar HogarIQ.</span>
+                <span>Firma Responsable del Hogar: ___________________________</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* KPI Banner */}
+            <div className="mint-card p-6 border border-[#1E2B4D] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Total de Gastos Analizados</p>
             <h2 className="text-3xl font-bold text-rose-400 mt-1 tabular-nums">
@@ -467,6 +638,8 @@ export default function ReportsPage() {
             </div>
           )}
         </div>
+        </>
+      )}
       </main>
     </div>
   );

@@ -169,6 +169,19 @@ body {
   transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
 
+/* Cabecera / Header universal: siempre coincide con la superficie del tema */
+header {
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Modal Backdrops universales */
+.fixed.inset-0.backdrop-blur-sm,
+.fixed.inset-0.backdrop-blur-md {
+  background-color: var(--modal-backdrop) !important;
+}
+
 /* Selección de texto personalizada por tema */
 ::selection {
   background-color: var(--primary);
@@ -234,14 +247,15 @@ body {
   box-shadow: 0 6px 20px 0 var(--primary-border);
 }
 
-/* Clases de utilidad para navegación activa armonizada con el tema */
+/* Clases de navegación activa */
 .nav-link-active {
   background-color: var(--primary-muted) !important;
   color: var(--primary-text) !important;
   border: 1px solid var(--primary-border) !important;
 }
 
-.nav-link-active svg {
+.nav-link-active svg,
+.nav-icon-active {
   color: var(--primary) !important;
 }
 
@@ -264,6 +278,41 @@ body {
   color: var(--primary) !important;
 }
 
+/* Clases de navegación inactiva: garantizan alto contraste en todos los temas */
+.nav-link-inactive {
+  color: var(--foreground-muted) !important;
+  transition: all 0.15s ease;
+}
+
+.nav-link-inactive:hover {
+  color: var(--foreground) !important;
+  background-color: var(--surface-hover) !important;
+}
+
+.nav-icon-inactive {
+  color: var(--foreground-subtle) !important;
+  transition: color 0.15s ease;
+}
+
+.nav-link-inactive:hover .nav-icon-inactive {
+  color: var(--foreground) !important;
+}
+
+/* Tarjetas del modal de temas */
+.theme-card-selected {
+  background-color: var(--surface-hover) !important;
+}
+
+.theme-card-unselected {
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+.theme-card-unselected:hover {
+  background-color: var(--surface-hover) !important;
+  border-color: var(--border-hover) !important;
+}
+
 /* ==========================================================================
    TRANSFORMACIÓN DINÁMICA DE CLASES HARDCODEADAS
    (Sincronización Total de Superficies, Gráficos y Modales)
@@ -274,29 +323,50 @@ body {
    -------------------------------------------------------------------------- */
 [data-theme="warm-espresso"] body,
 [data-theme="warm-espresso"] .bg-\[\#0A1128\],
+[data-theme="warm-espresso"] .bg-\[\#0A1128\]\/30,
+[data-theme="warm-espresso"] .bg-\[\#0A1128\]\/40,
 [data-theme="warm-espresso"] .bg-\[\#0A1128\]\/50,
 [data-theme="warm-espresso"] .bg-\[\#0A1128\]\/60,
+[data-theme="warm-espresso"] .bg-\[\#0A1128\]\/70,
+[data-theme="warm-espresso"] .bg-\[\#0A1128\]\/75,
 [data-theme="warm-espresso"] .bg-\[\#0A1128\]\/80,
 [data-theme="warm-espresso"] .bg-\[\#0A1128\]\/85,
 [data-theme="warm-espresso"] .bg-\[\#0A1128\]\/90,
-[data-theme="warm-espresso"] .bg-\[\#0A1128\]\/95 {
+[data-theme="warm-espresso"] .bg-\[\#0A1128\]\/95,
+[data-theme="warm-espresso"] .bg-slate-950,
+[data-theme="warm-espresso"] .bg-slate-950\/80 {
   background-color: #120F0D !important;
 }
 
 [data-theme="warm-espresso"] .bg-\[\#101A36\],
+[data-theme="warm-espresso"] .bg-\[\#101A36\]\/50,
 [data-theme="warm-espresso"] .bg-\[\#101A36\]\/70,
+[data-theme="warm-espresso"] .bg-\[\#101A36\]\/75,
 [data-theme="warm-espresso"] .bg-\[\#101A36\]\/80,
 [data-theme="warm-espresso"] .bg-\[\#101A36\]\/90,
+[data-theme="warm-espresso"] .bg-slate-900,
+[data-theme="warm-espresso"] .bg-slate-900\/60,
+[data-theme="warm-espresso"] .bg-slate-900\/80,
+[data-theme="warm-espresso"] .bg-slate-900\/90,
 [data-theme="warm-espresso"] .mint-card,
 [data-theme="warm-espresso"] .glass-card {
   background-color: #1A1613 !important;
 }
 
 [data-theme="warm-espresso"] .bg-\[\#162347\],
+[data-theme="warm-espresso"] .bg-\[\#162347\]\/50,
 [data-theme="warm-espresso"] .bg-\[\#162347\]\/60,
+[data-theme="warm-espresso"] .bg-\[\#162347\]\/70,
+[data-theme="warm-espresso"] .bg-\[\#162347\]\/75,
 [data-theme="warm-espresso"] .bg-\[\#162347\]\/80,
 [data-theme="warm-espresso"] .bg-\[\#162347\]\/90,
-[data-theme="warm-espresso"] .hover\:bg-\[\#162347\]:hover {
+[data-theme="warm-espresso"] .bg-\[\#162347\]\/95,
+[data-theme="warm-espresso"] .bg-slate-800,
+[data-theme="warm-espresso"] .bg-slate-800\/60,
+[data-theme="warm-espresso"] .bg-slate-800\/70,
+[data-theme="warm-espresso"] .bg-slate-800\/80,
+[data-theme="warm-espresso"] .hover\:bg-\[\#162347\]:hover,
+[data-theme="warm-espresso"] .hover\:bg-slate-700:hover {
   background-color: #251F1B !important;
 }
 
@@ -306,7 +376,11 @@ body {
 }
 
 [data-theme="warm-espresso"] .border-\[\#1E2B4D\],
+[data-theme="warm-espresso"] .border-\[\#1E2B4D\]\/30,
 [data-theme="warm-espresso"] .border-\[\#1E2B4D\]\/60,
+[data-theme="warm-espresso"] .border-\[\#1E2B4D\]\/70,
+[data-theme="warm-espresso"] .border-slate-800,
+[data-theme="warm-espresso"] .border-slate-700,
 [data-theme="warm-espresso"] .mint-card,
 [data-theme="warm-espresso"] .glass-card {
   border-color: #362C24 !important;
@@ -332,41 +406,62 @@ body {
   --tw-gradient-to: #120F0D !important;
 }
 
-/* Textos cálidos con tinte café para evitar gris frío */
+/* Textos cálidos con tinte café */
 [data-theme="warm-espresso"] .text-slate-100 { color: #FDFBF7 !important; }
 [data-theme="warm-espresso"] .text-slate-200 { color: #F4EFEA !important; }
 [data-theme="warm-espresso"] .text-slate-300 { color: #D5C7BC !important; }
-[data-theme="warm-espresso"] .text-slate-400 { color: #A89A8E !important; }
-[data-theme="warm-espresso"] .text-slate-500 { color: #84776D !important; }
+[data-theme="warm-espresso"] .text-slate-400 { color: #C4B5A8 !important; }
+[data-theme="warm-espresso"] .text-slate-500 { color: #948578 !important; }
 
 /* --------------------------------------------------------------------------
    OVERRIDE: 3. COBRE & NOGAL REAL (Warm Copper)
    -------------------------------------------------------------------------- */
 [data-theme="warm-copper"] body,
 [data-theme="warm-copper"] .bg-\[\#0A1128\],
+[data-theme="warm-copper"] .bg-\[\#0A1128\]\/30,
+[data-theme="warm-copper"] .bg-\[\#0A1128\]\/40,
 [data-theme="warm-copper"] .bg-\[\#0A1128\]\/50,
 [data-theme="warm-copper"] .bg-\[\#0A1128\]\/60,
+[data-theme="warm-copper"] .bg-\[\#0A1128\]\/70,
+[data-theme="warm-copper"] .bg-\[\#0A1128\]\/75,
 [data-theme="warm-copper"] .bg-\[\#0A1128\]\/80,
 [data-theme="warm-copper"] .bg-\[\#0A1128\]\/85,
 [data-theme="warm-copper"] .bg-\[\#0A1128\]\/90,
-[data-theme="warm-copper"] .bg-\[\#0A1128\]\/95 {
+[data-theme="warm-copper"] .bg-\[\#0A1128\]\/95,
+[data-theme="warm-copper"] .bg-slate-950,
+[data-theme="warm-copper"] .bg-slate-950\/80 {
   background-color: #14100F !important;
 }
 
 [data-theme="warm-copper"] .bg-\[\#101A36\],
+[data-theme="warm-copper"] .bg-\[\#101A36\]\/50,
 [data-theme="warm-copper"] .bg-\[\#101A36\]\/70,
+[data-theme="warm-copper"] .bg-\[\#101A36\]\/75,
 [data-theme="warm-copper"] .bg-\[\#101A36\]\/80,
 [data-theme="warm-copper"] .bg-\[\#101A36\]\/90,
+[data-theme="warm-copper"] .bg-slate-900,
+[data-theme="warm-copper"] .bg-slate-900\/60,
+[data-theme="warm-copper"] .bg-slate-900\/80,
+[data-theme="warm-copper"] .bg-slate-900\/90,
 [data-theme="warm-copper"] .mint-card,
 [data-theme="warm-copper"] .glass-card {
   background-color: #1E1816 !important;
 }
 
 [data-theme="warm-copper"] .bg-\[\#162347\],
+[data-theme="warm-copper"] .bg-\[\#162347\]\/50,
 [data-theme="warm-copper"] .bg-\[\#162347\]\/60,
+[data-theme="warm-copper"] .bg-\[\#162347\]\/70,
+[data-theme="warm-copper"] .bg-\[\#162347\]\/75,
 [data-theme="warm-copper"] .bg-\[\#162347\]\/80,
 [data-theme="warm-copper"] .bg-\[\#162347\]\/90,
-[data-theme="warm-copper"] .hover\:bg-\[\#162347\]:hover {
+[data-theme="warm-copper"] .bg-\[\#162347\]\/95,
+[data-theme="warm-copper"] .bg-slate-800,
+[data-theme="warm-copper"] .bg-slate-800\/60,
+[data-theme="warm-copper"] .bg-slate-800\/70,
+[data-theme="warm-copper"] .bg-slate-800\/80,
+[data-theme="warm-copper"] .hover\:bg-\[\#162347\]:hover,
+[data-theme="warm-copper"] .hover\:bg-slate-700:hover {
   background-color: #2B2220 !important;
 }
 
@@ -376,7 +471,11 @@ body {
 }
 
 [data-theme="warm-copper"] .border-\[\#1E2B4D\],
+[data-theme="warm-copper"] .border-\[\#1E2B4D\]\/30,
 [data-theme="warm-copper"] .border-\[\#1E2B4D\]\/60,
+[data-theme="warm-copper"] .border-\[\#1E2B4D\]\/70,
+[data-theme="warm-copper"] .border-slate-800,
+[data-theme="warm-copper"] .border-slate-700,
 [data-theme="warm-copper"] .mint-card,
 [data-theme="warm-copper"] .glass-card {
   border-color: #42322E !important;
@@ -402,41 +501,62 @@ body {
   --tw-gradient-to: #14100F !important;
 }
 
-/* Textos cálidos con tinte arcilla / lino */
+/* Textos cálidos con tinte lino */
 [data-theme="warm-copper"] .text-slate-100 { color: #FAF5F0 !important; }
 [data-theme="warm-copper"] .text-slate-200 { color: #F2E9E3 !important; }
 [data-theme="warm-copper"] .text-slate-300 { color: #D7C6C0 !important; }
-[data-theme="warm-copper"] .text-slate-400 { color: #AA9892 !important; }
-[data-theme="warm-copper"] .text-slate-500 { color: #877671 !important; }
+[data-theme="warm-copper"] .text-slate-400 { color: #C8B6B0 !important; }
+[data-theme="warm-copper"] .text-slate-500 { color: #93817C !important; }
 
 /* --------------------------------------------------------------------------
    OVERRIDE: 4. CHAMPAGNE & BOSQUE CÁLIDO (Warm Olive)
    -------------------------------------------------------------------------- */
 [data-theme="warm-olive"] body,
 [data-theme="warm-olive"] .bg-\[\#0A1128\],
+[data-theme="warm-olive"] .bg-\[\#0A1128\]\/30,
+[data-theme="warm-olive"] .bg-\[\#0A1128\]\/40,
 [data-theme="warm-olive"] .bg-\[\#0A1128\]\/50,
 [data-theme="warm-olive"] .bg-\[\#0A1128\]\/60,
+[data-theme="warm-olive"] .bg-\[\#0A1128\]\/70,
+[data-theme="warm-olive"] .bg-\[\#0A1128\]\/75,
 [data-theme="warm-olive"] .bg-\[\#0A1128\]\/80,
 [data-theme="warm-olive"] .bg-\[\#0A1128\]\/85,
 [data-theme="warm-olive"] .bg-\[\#0A1128\]\/90,
-[data-theme="warm-olive"] .bg-\[\#0A1128\]\/95 {
+[data-theme="warm-olive"] .bg-\[\#0A1128\]\/95,
+[data-theme="warm-olive"] .bg-slate-950,
+[data-theme="warm-olive"] .bg-slate-950\/80 {
   background-color: #0F120F !important;
 }
 
 [data-theme="warm-olive"] .bg-\[\#101A36\],
+[data-theme="warm-olive"] .bg-\[\#101A36\]\/50,
 [data-theme="warm-olive"] .bg-\[\#101A36\]\/70,
+[data-theme="warm-olive"] .bg-\[\#101A36\]\/75,
 [data-theme="warm-olive"] .bg-\[\#101A36\]\/80,
 [data-theme="warm-olive"] .bg-\[\#101A36\]\/90,
+[data-theme="warm-olive"] .bg-slate-900,
+[data-theme="warm-olive"] .bg-slate-900\/60,
+[data-theme="warm-olive"] .bg-slate-900\/80,
+[data-theme="warm-olive"] .bg-slate-900\/90,
 [data-theme="warm-olive"] .mint-card,
 [data-theme="warm-olive"] .glass-card {
   background-color: #171B17 !important;
 }
 
 [data-theme="warm-olive"] .bg-\[\#162347\],
+[data-theme="warm-olive"] .bg-\[\#162347\]\/50,
 [data-theme="warm-olive"] .bg-\[\#162347\]\/60,
+[data-theme="warm-olive"] .bg-\[\#162347\]\/70,
+[data-theme="warm-olive"] .bg-\[\#162347\]\/75,
 [data-theme="warm-olive"] .bg-\[\#162347\]\/80,
 [data-theme="warm-olive"] .bg-\[\#162347\]\/90,
-[data-theme="warm-olive"] .hover\:bg-\[\#162347\]:hover {
+[data-theme="warm-olive"] .bg-\[\#162347\]\/95,
+[data-theme="warm-olive"] .bg-slate-800,
+[data-theme="warm-olive"] .bg-slate-800\/60,
+[data-theme="warm-olive"] .bg-slate-800\/70,
+[data-theme="warm-olive"] .bg-slate-800\/80,
+[data-theme="warm-olive"] .hover\:bg-\[\#162347\]:hover,
+[data-theme="warm-olive"] .hover\:bg-slate-700:hover {
   background-color: #222822 !important;
 }
 
@@ -446,7 +566,11 @@ body {
 }
 
 [data-theme="warm-olive"] .border-\[\#1E2B4D\],
+[data-theme="warm-olive"] .border-\[\#1E2B4D\]\/30,
 [data-theme="warm-olive"] .border-\[\#1E2B4D\]\/60,
+[data-theme="warm-olive"] .border-\[\#1E2B4D\]\/70,
+[data-theme="warm-olive"] .border-slate-800,
+[data-theme="warm-olive"] .border-slate-700,
 [data-theme="warm-olive"] .mint-card,
 [data-theme="warm-olive"] .glass-card {
   border-color: #353F35 !important;
@@ -472,50 +596,72 @@ body {
   --tw-gradient-to: #0F120F !important;
 }
 
-/* Textos cálidos con tinte salvia / bosque */
+/* Textos cálidos con tinte salvia */
 [data-theme="warm-olive"] .text-slate-100 { color: #F6F8F5 !important; }
 [data-theme="warm-olive"] .text-slate-200 { color: #E8ECE6 !important; }
 [data-theme="warm-olive"] .text-slate-300 { color: #C5CEC3 !important; }
-[data-theme="warm-olive"] .text-slate-400 { color: #9AA598 !important; }
-[data-theme="warm-olive"] .text-slate-500 { color: #768374 !important; }
+[data-theme="warm-olive"] .text-slate-400 { color: #B7BFB5 !important; }
+[data-theme="warm-olive"] .text-slate-500 { color: #828C80 !important; }
 
 /* --------------------------------------------------------------------------
    OVERRIDE: 5. MARFIL & CUERO PERGAMINO (Executive Warm Ivory - Modo Claro)
    Calibración completa de contraste, legibilidad de etiquetas e inputs
    -------------------------------------------------------------------------- */
-[data-theme="warm-ivory"] body,
-[data-theme="warm-ivory"] .bg-\[\#0A1128\],
-[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/50,
-[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/60 {
+[data-theme="warm-ivory"] body {
   background-color: #F6F3EC !important;
   color: #1C1917 !important;
 }
 
-/* Backdrops de modales en modo claro */
-[data-theme="warm-ivory"] .fixed.inset-0.bg-\[\#0A1128\]\/85,
-[data-theme="warm-ivory"] .fixed.inset-0.bg-\[\#0A1128\]\/80,
-[data-theme="warm-ivory"] .fixed.inset-0.bg-\[\#0A1128\]\/90,
-[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/85,
-[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/90,
-[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/95 {
-  background-color: rgba(28, 25, 23, 0.45) !important;
+[data-theme="warm-ivory"] header {
+  background-color: #FFFFFF !important;
+  border-color: #DCD3C3 !important;
+  box-shadow: 0 1px 3px 0 rgba(60, 45, 30, 0.05) !important;
 }
 
+/* Fondos y pozos en modo claro */
+[data-theme="warm-ivory"] .bg-\[\#0A1128\],
+[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/30,
+[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/40,
+[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/50,
+[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/60,
+[data-theme="warm-ivory"] .bg-\[\#0A1128\]\/70,
+[data-theme="warm-ivory"] .bg-slate-950 {
+  background-color: #F6F3EC !important;
+  color: #1C1917 !important;
+}
+
+/* Superficies principales y tarjetas en modo claro */
 [data-theme="warm-ivory"] .bg-\[\#101A36\],
+[data-theme="warm-ivory"] .bg-\[\#101A36\]\/50,
 [data-theme="warm-ivory"] .bg-\[\#101A36\]\/70,
+[data-theme="warm-ivory"] .bg-\[\#101A36\]\/75,
 [data-theme="warm-ivory"] .bg-\[\#101A36\]\/80,
 [data-theme="warm-ivory"] .bg-\[\#101A36\]\/90,
+[data-theme="warm-ivory"] .bg-slate-900,
+[data-theme="warm-ivory"] .bg-slate-900\/60,
+[data-theme="warm-ivory"] .bg-slate-900\/80,
+[data-theme="warm-ivory"] .bg-slate-900\/90,
 [data-theme="warm-ivory"] .mint-card,
 [data-theme="warm-ivory"] .glass-card {
   background-color: #FFFFFF !important;
   box-shadow: 0 2px 14px -2px rgba(60, 45, 30, 0.08), 0 1px 3px 0 rgba(60, 45, 30, 0.04) !important;
 }
 
+/* Superficies secundarias y hover en modo claro */
 [data-theme="warm-ivory"] .bg-\[\#162347\],
+[data-theme="warm-ivory"] .bg-\[\#162347\]\/50,
 [data-theme="warm-ivory"] .bg-\[\#162347\]\/60,
+[data-theme="warm-ivory"] .bg-\[\#162347\]\/70,
+[data-theme="warm-ivory"] .bg-\[\#162347\]\/75,
 [data-theme="warm-ivory"] .bg-\[\#162347\]\/80,
 [data-theme="warm-ivory"] .bg-\[\#162347\]\/90,
-[data-theme="warm-ivory"] .hover\:bg-\[\#162347\]:hover {
+[data-theme="warm-ivory"] .bg-\[\#162347\]\/95,
+[data-theme="warm-ivory"] .bg-slate-800,
+[data-theme="warm-ivory"] .bg-slate-800\/60,
+[data-theme="warm-ivory"] .bg-slate-800\/70,
+[data-theme="warm-ivory"] .bg-slate-800\/80,
+[data-theme="warm-ivory"] .hover\:bg-\[\#162347\]:hover,
+[data-theme="warm-ivory"] .hover\:bg-slate-700:hover {
   background-color: #EDE7DC !important;
 }
 
@@ -524,8 +670,13 @@ body {
   background-color: #E3DBD0 !important;
 }
 
+/* Bordes en modo claro */
 [data-theme="warm-ivory"] .border-\[\#1E2B4D\],
+[data-theme="warm-ivory"] .border-\[\#1E2B4D\]\/30,
 [data-theme="warm-ivory"] .border-\[\#1E2B4D\]\/60,
+[data-theme="warm-ivory"] .border-\[\#1E2B4D\]\/70,
+[data-theme="warm-ivory"] .border-slate-800,
+[data-theme="warm-ivory"] .border-slate-700,
 [data-theme="warm-ivory"] .mint-card,
 [data-theme="warm-ivory"] .glass-card {
   border-color: #DCD3C3 !important;
@@ -558,28 +709,31 @@ body {
 }
 
 [data-theme="warm-ivory"] .text-slate-300 {
-  color: #443E38 !important;
+  color: #38332E !important;
 }
 
 [data-theme="warm-ivory"] .text-slate-400 {
-  color: #5F574F !important;
+  color: #544E48 !important;
 }
 
 [data-theme="warm-ivory"] .text-slate-500 {
-  color: #7A7167 !important;
+  color: #787068 !important;
 }
 
-/* Legibilidad crítica de etiquetas de color en fondos claros */
+/* Legibilidad crítica de alertas y etiquetas de color en fondos claros */
+[data-theme="warm-ivory"] .text-emerald-200,
 [data-theme="warm-ivory"] .text-emerald-300,
 [data-theme="warm-ivory"] .text-emerald-400 {
   color: #065F46 !important;
 }
 
+[data-theme="warm-ivory"] .text-rose-200,
 [data-theme="warm-ivory"] .text-rose-300,
 [data-theme="warm-ivory"] .text-rose-400 {
   color: #9F1239 !important;
 }
 
+[data-theme="warm-ivory"] .text-amber-200,
 [data-theme="warm-ivory"] .text-amber-300,
 [data-theme="warm-ivory"] .text-amber-400 {
   color: #92400E !important;
@@ -595,6 +749,37 @@ body {
 [data-theme="warm-ivory"] .text-purple-300,
 [data-theme="warm-ivory"] .text-purple-400 {
   color: #6B21A8 !important;
+}
+
+/* Fondos de pastillas y banners en modo claro */
+[data-theme="warm-ivory"] .bg-rose-500\/15,
+[data-theme="warm-ivory"] .bg-rose-500\/10 {
+  background-color: #FFF1F2 !important;
+  border-color: #FECDD3 !important;
+}
+
+[data-theme="warm-ivory"] .bg-emerald-500\/15,
+[data-theme="warm-ivory"] .bg-emerald-500\/10 {
+  background-color: #ECFDF5 !important;
+  border-color: #A7F3D0 !important;
+}
+
+[data-theme="warm-ivory"] .bg-amber-500\/15,
+[data-theme="warm-ivory"] .bg-amber-500\/10 {
+  background-color: #FEF3C7 !important;
+  border-color: #FDE68A !important;
+}
+
+[data-theme="warm-ivory"] .bg-blue-500\/15,
+[data-theme="warm-ivory"] .bg-sky-500\/15,
+[data-theme="warm-ivory"] .bg-sky-500\/10 {
+  background-color: #F0F9FF !important;
+  border-color: #BAE6FD !important;
+}
+
+[data-theme="warm-ivory"] .bg-purple-500\/15 {
+  background-color: #FAF5FF !important;
+  border-color: #E9D5FF !important;
 }
 
 /* Preservar texto blanco en botones con fondo sólido oscuro */
@@ -648,4 +833,46 @@ body {
 [data-theme="warm-ivory"] textarea:focus {
   border-color: #B45309 !important;
   box-shadow: 0 0 0 2px rgba(180, 83, 9, 0.20) !important;
+}
+
+/* --------------------------------------------------------------------------
+   ESTILOS DE IMPRESIÓN Y EXPORTACIÓN PDF (Executive Bank Statement)
+   -------------------------------------------------------------------------- */
+@media print {
+  header,
+  nav,
+  .no-print,
+  button:not(.allow-print) {
+    display: none !important;
+  }
+
+  body,
+  main,
+  html {
+    background: #FFFFFF !important;
+    color: #1C1917 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .printable-statement {
+    background: #FFFFFF !important;
+    color: #1C1917 !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 10px !important;
+    page-break-inside: avoid;
+  }
+
+  .printable-statement * {
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .mint-card {
+    background: #FFFFFF !important;
+    border-color: #E7E5E4 !important;
+    box-shadow: none !important;
+  }
 }

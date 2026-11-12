@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X, Palette, Check, Sun, Moon, Sparkles, CheckCircle2 } from 'lucide-react';
+import { X, Palette, Check, Sun, Moon, Sparkles } from 'lucide-react';
 import { useTheme, ThemeId, THEMES } from '../ThemeProvider';
 
 interface ThemeModalProps {
@@ -15,7 +15,7 @@ export default function ThemeModal({ isOpen, onClose }: ThemeModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-[#0A1128]/85 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+    <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
       <div className="mint-card w-full max-w-xl p-5 sm:p-6 relative border border-[#1E2B4D] shadow-2xl animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto custom-scrollbar">
         {/* Header */}
         <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#1E2B4D]">
@@ -73,8 +73,8 @@ export default function ThemeModal({ isOpen, onClose }: ThemeModalProps) {
                 }}
                 className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 group ${
                   isSelected
-                    ? 'bg-[#162347]/95 shadow-lg'
-                    : 'border-[#1E2B4D] bg-[#101A36]/75 hover:bg-[#162347]/70 hover:border-[#2D3E6B]'
+                    ? 'theme-card-selected shadow-lg'
+                    : 'theme-card-unselected'
                 }`}
               >
                 <div className="space-y-1.5 flex-1 pr-2">
@@ -114,7 +114,7 @@ export default function ThemeModal({ isOpen, onClose }: ThemeModalProps) {
 
                 {/* Swatches de Muestra Cromática */}
                 <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                  <div className="flex items-center -space-x-1 p-1.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D]">
+                  <div className="flex items-center -space-x-1 p-1.5 rounded-xl bg-[var(--background)] border border-[var(--border)]">
                     <div
                       className="w-5 h-5 rounded-full border border-white/20 shadow-xs"
                       style={{ backgroundColor: t.bgHex }}
@@ -142,7 +142,7 @@ export default function ThemeModal({ isOpen, onClose }: ThemeModalProps) {
                     className={`w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${
                       isSelected
                         ? 'font-bold shadow-xs'
-                        : 'border-[#1E2B4D] text-transparent group-hover:border-slate-500'
+                        : 'border-[var(--border)] text-transparent group-hover:border-slate-500'
                     }`}
                     style={{
                       backgroundColor: isSelected ? t.accentHex : undefined,

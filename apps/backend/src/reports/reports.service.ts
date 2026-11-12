@@ -100,21 +100,42 @@ export class ReportsService {
   <title>Informe Financiero - ${household?.name || 'HogarIQ'}</title>
   <style>
     body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #0f172a; color: #f8fafc; padding: 40px; margin: 0; }
-    .header { text-align: center; border-bottom: 2px solid #8b5cf6; padding-bottom: 20px; margin-bottom: 30px; }
-    .title { font-size: 28px; font-weight: bold; color: #c084fc; margin: 0; }
-    .subtitle { color: #94a3b8; font-size: 14px; margin-top: 5px; }
+    .print-actions { display: flex; justify-content: flex-end; margin-bottom: 20px; }
+    .btn-print { background: #059669; color: #ffffff; border: none; padding: 10px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; }
+    .btn-print:hover { background: #10b981; }
+    .header { text-align: center; border-bottom: 2px solid #10b981; padding-bottom: 20px; margin-bottom: 30px; }
+    .title { font-size: 26px; font-weight: bold; color: #34d399; margin: 0; }
+    .subtitle { color: #94a3b8; font-size: 13px; margin-top: 5px; }
     .kpi-container { display: flex; justify-content: space-between; margin-bottom: 30px; gap: 15px; }
     .kpi-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; flex: 1; text-align: center; }
     .kpi-title { font-size: 11px; text-transform: uppercase; color: #94a3b8; letter-spacing: 1px; }
     .kpi-value { font-size: 24px; font-weight: bold; margin-top: 8px; }
-    .green { color: #34d399; } .red { color: #f43f5e; } .purple { color: #c084fc; }
+    .green { color: #34d399; } .red { color: #f43f5e; } .purple { color: #38bdf8; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #1e293b; border-radius: 12px; overflow: hidden; }
     th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #334155; font-size: 13px; }
-    th { background: #0f172a; color: #a78bfa; font-size: 11px; text-transform: uppercase; }
+    th { background: #0f172a; color: #34d399; font-size: 11px; text-transform: uppercase; }
     .footer { text-align: center; margin-top: 40px; font-size: 11px; color: #64748b; }
+    @media print {
+      body { background: #ffffff !important; color: #0f172a !important; padding: 20px !important; }
+      .no-print { display: none !important; }
+      .header { border-bottom-color: #059669 !important; }
+      .title { color: #065f46 !important; }
+      .subtitle { color: #64748b !important; }
+      .kpi-card { background: #f8fafc !important; border-color: #cbd5e1 !important; color: #0f172a !important; }
+      .kpi-title { color: #64748b !important; }
+      table { background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+      th { background: #f1f5f9 !important; color: #1e293b !important; border-bottom: 2px solid #cbd5e1 !important; }
+      td { border-bottom: 1px solid #e2e8f0 !important; color: #1e293b !important; }
+      .green { color: #059669 !important; }
+      .red { color: #dc2626 !important; }
+      .purple { color: #0284c7 !important; }
+    }
   </style>
 </head>
 <body>
+  <div class="print-actions no-print">
+    <button onclick="window.print()" class="btn-print">🖨️ Imprimir / Guardar en PDF</button>
+  </div>
   <div class="header">
     <div class="title">🏠 HogarIQ - Informe Financiero Ejecutivo</div>
     <div class="subtitle">${household?.name || 'Hogar'} • Generado el ${new Date().toLocaleDateString('es-ES')}</div>

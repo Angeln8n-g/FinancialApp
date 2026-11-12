@@ -4,6 +4,22 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import {
+  Users,
+  Handshake,
+  ArrowRightLeft,
+  CheckCircle2,
+  AlertCircle,
+  Zap,
+  X,
+  Plus,
+  RefreshCw,
+  Wallet,
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  Check,
+} from 'lucide-react';
 
 export default function FamilyPage() {
   const router = useRouter();
@@ -50,6 +66,18 @@ export default function FamilyPage() {
   const [splitSummary, setSplitSummary] = useState<any>(null);
   const [splitLoading, setSplitLoading] = useState(false);
   const [settling, setSettling] = useState(false);
+  const [settleModalOpen, setSettleModalOpen] = useState(false);
+  const [settleTarget, setSettleTarget] = useState<{
+    fromUserId: string;
+    fromName: string;
+    toUserId: string;
+    toName: string;
+    amount: number;
+  } | null>(null);
+  const [settleFromAccount, setSettleFromAccount] = useState('');
+  const [settleToAccount, setSettleToAccount] = useState('');
+  const [settleCreateTransfer, setSettleCreateTransfer] = useState(false);
+  const [settleNote, setSettleNote] = useState('');
 
   // Estados Misiones Familiares & Gamificación
   const [missions, setMissions] = useState<any[]>([]);
@@ -179,29 +207,67 @@ export default function FamilyPage() {
     }
   };
 
-  const handleSettleSplit = async (fromUserId: string, toUserId: string, amount: number) => {
-    if (!confirm(`¿Confirmas saldar el balance de $${amount.toFixed(2)}? Se registrará como liquidado entre ambos integrantes.`)) return;
-    const token = getToken();
+  const handleOpenSettleModal = (s: { fromUserId: string; fromName: string; toUserId: string; toName: string; amount: number }) => {
+    setSettleTarget(s);
+    setSettleNote(`Liquidación 50/50: ${s.fromName} saldó $${s.amount.toFixed(2)} a favor de ${s.toName}`);
+    if (accounts.length > 0) {
+      setSettleFromAccount(accounts[0].id);
+      if (accounts.length > 1) {
+        setSettleToAccount(accounts[1].id);
+        setSettleCreateTransfer(true);
+      } else {
+        setSettleToAccount(accounts[0].id);
+        setSettleCreateTransfer(false);
+      }
+    }
+    setSettleModalOpen(true);
+  };
+
+  const handleConfirmSettle = async () => {
+    if (!settleTarget) return;
     setSettling(true);
+    const token = getToken();
     try {
+      if (settleCreateTransfer && settleFromAccount && settleToAccount && settleFromAccount !== settleToAccount) {
+        await fetch(`${API_URL}/api/transactions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            accountId: settleFromAccount,
+            destinationAccountId: settleToAccount,
+            type: 'TRANSFER',
+            amount: settleTarget.amount,
+            description: `[🤝 Liquidación 50/50] ${settleTarget.fromName} saldó a ${settleTarget.toName}`,
+            date: new Date().toISOString(),
+          }),
+        });
+      }
+
       const res = await fetch(`${API_URL}/api/household/split-settle`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ fromUserId, toUserId, amount }),
+        body: JSON.stringify({
+          note: settleNote || `Liquidación de saldo común: ${settleTarget.fromName} saldó $${settleTarget.amount.toFixed(2)} a ${settleTarget.toName}`,
+        }),
       });
+
       if (res.ok) {
-        alert('¡Cuentas saldadas exitosamente!');
-        fetchSplitSummary();
-        fetchActivity();
+        setMsg({ type: 'success', text: `¡Cuentas saldadas exitosamente! ${settleTarget.fromName} liquidó $${settleTarget.amount.toFixed(2)} con ${settleTarget.toName}.` });
+        setSettleModalOpen(false);
+        setSettleTarget(null);
+        await Promise.all([fetchSplitSummary(), fetchActivity(), fetchAccounts()]);
       } else {
         const err = await res.json();
-        alert(err.message || 'Error al saldar la cuenta.');
+        setMsg({ type: 'error', text: err.message || 'Error al saldar la cuenta.' });
       }
-    } catch (e) {
-      console.error('Error saldando cuentas:', e);
+    } catch (e: any) {
+      setMsg({ type: 'error', text: e.message || 'Error de conexión al saldar.' });
     } finally {
       setSettling(false);
     }
@@ -796,12 +862,12 @@ export default function FamilyPage() {
         </div>
 
         {/* 🤝 GASTOS COMPARTIDOS EN PAREJA / HOGAR (SPLIT 50/50) */}
-        <section className="glass-card p-6 border border-[#1E2B4D] space-y-6">
+        <section className="mint-card p-6 border border-[#1E2B4D] space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xl">🤝</span>
-                <h3 className="text-lg font-bold text-white">Gastos Compartidos en Pareja / Hogar (Split 50/50)</h3>
+                <Handshake className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-lg font-bold text-slate-100">Gastos Compartidos en Pareja / Hogar (Split 50/50)</h3>
               </div>
               <p className="text-xs text-slate-400 mt-1">
                 División transparente y automática estilo Splitwise para gastos comunes del mes en curso.
@@ -810,161 +876,178 @@ export default function FamilyPage() {
             <button
               onClick={fetchSplitSummary}
               disabled={splitLoading}
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-[#162347] hover:bg-[#1D2D5A] text-xs font-semibold text-slate-200 border border-[#1E2B4D] flex items-center gap-1.5 self-start sm:self-auto cursor-pointer transition-colors"
             >
-              <span>{splitLoading ? '🔄 Calculando...' : '🔄 Actualizar Balance'}</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${splitLoading ? 'animate-spin text-emerald-400' : 'text-slate-400'}`} />
+              <span>{splitLoading ? 'Calculando...' : 'Actualizar Balance'}</span>
             </button>
           </div>
 
-          {/* KPI Strip de División */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-4 rounded-xl bg-[#0A1128] border border-[#1E2B4D]">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Gastado en Común</span>
-              <p className="text-2xl font-bold text-white mt-1 tabular-nums">
-                ${Number(splitSummary?.totalShared || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <span className="text-[11px] text-slate-500">{splitSummary?.sharedTransactions?.length || 0} compras compartidas este mes</span>
-            </div>
+          {(() => {
+            const total = splitSummary?.totalPool ?? splitSummary?.totalShared ?? 0;
+            const fairShare = splitSummary?.fairSharePerMember ?? splitSummary?.fairSharePerAdult ?? 0;
+            const memberList = splitSummary?.membersSummary ?? splitSummary?.memberBalances ?? [];
+            const txList = splitSummary?.splitTransactions ?? splitSummary?.sharedTransactions ?? [];
+            const adultsCount = splitSummary?.adultsCount ?? (memberList.filter((m: any) => m.role !== 'DEPENDENT').length || 1);
+            const myBal = memberList.find((b: any) => b.userId === currentUser?.id);
+            const net = myBal ? (myBal.netBalance ?? 0) : 0;
 
-            <div className="p-4 rounded-xl bg-[#0A1128] border border-[#1E2B4D]">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cuota Justa por Adulto</span>
-              <p className="text-2xl font-bold text-emerald-400 mt-1 tabular-nums">
-                ${Number(splitSummary?.fairSharePerAdult || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <span className="text-[11px] text-slate-500">Dividido entre {splitSummary?.adultsCount || 1} integrante(s) adultos</span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[#0A1128] border border-[#1E2B4D]">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tu Balance Personal</span>
-              {(() => {
-                const myBal = splitSummary?.memberBalances?.find((b: any) => b.userId === currentUser?.id);
-                const net = myBal ? myBal.netBalance : 0;
-                if (net > 0.01) {
-                  return (
-                    <>
-                      <p className="text-2xl font-bold text-emerald-400 mt-1 tabular-nums">+${net.toFixed(2)}</p>
-                      <span className="text-[11px] text-emerald-300/80 font-medium">Te deben dinero 🎉</span>
-                    </>
-                  );
-                } else if (net < -0.01) {
-                  return (
-                    <>
-                      <p className="text-2xl font-bold text-rose-400 mt-1 tabular-nums">-${Math.abs(net).toFixed(2)}</p>
-                      <span className="text-[11px] text-rose-300/80 font-medium">Debes transferir al hogar</span>
-                    </>
-                  );
-                } else {
-                  return (
-                    <>
-                      <p className="text-2xl font-bold text-slate-300 mt-1 tabular-nums">$0.00</p>
-                      <span className="text-[11px] text-slate-400">Estás al día (cuentas claras) 👌</span>
-                    </>
-                  );
-                }
-              })()}
-            </div>
-          </div>
-
-          {/* Liquidaciones / Quién le debe a Quién */}
-          {splitSummary?.settlements && splitSummary.settlements.length > 0 ? (
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
-              <div className="flex items-center gap-2 text-amber-300 font-bold text-sm">
-                <span>⚡ Liquidaciones Pendientes para estar a mano:</span>
-              </div>
-              <div className="space-y-2">
-                {splitSummary.settlements.map((s: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-xl bg-slate-900/90 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-rose-300">{s.fromName}</span>
-                      <span className="text-slate-400">le debe</span>
-                      <span className="text-emerald-300 font-bold tabular-nums">${Number(s.amount).toFixed(2)}</span>
-                      <span className="text-slate-400">a</span>
-                      <span className="font-semibold text-emerald-300">{s.toName}</span>
-                    </div>
-
-                    <button
-                      onClick={() => handleSettleSplit(s.fromUserId, s.toUserId, s.amount)}
-                      disabled={settling}
-                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer shadow-sm transition-all shrink-0 self-end sm:self-auto"
-                    >
-                      {settling ? 'Procesando...' : '✓ Marcar como Saldado'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 flex items-center gap-2">
-              <span>✓ ¡Cuentas totalmente equilibradas! Ningún integrante adulto debe dinero en este momento.</span>
-            </div>
-          )}
-
-          {/* Desglose de aportes de cada adulto */}
-          <div className="space-y-2">
-            <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Aportes individuales este mes</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {splitSummary?.memberBalances?.map((mb: any) => (
-                <div key={mb.memberId} className="p-3.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold flex items-center justify-center text-xs">
-                      {mb.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-white">{mb.name}</p>
-                      <p className="text-[11px] text-slate-400">Pagó: ${Number(mb.paidTotal).toFixed(2)}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className={`text-xs font-extrabold tabular-nums ${mb.netBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {mb.formattedBalance}
-                    </span>
-                    <p className="text-[10px] text-slate-500">
-                      {mb.netBalance >= 0 ? 'a favor' : 'por aportar'}
+            return (
+              <>
+                {/* KPI Strip de División */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-4 rounded-xl mint-card border border-[#1E2B4D]">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Gastado en Común</span>
+                    <p className="text-2xl font-bold text-slate-100 mt-1 tabular-nums">
+                      ${Number(total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
+                    <span className="text-[11px] text-slate-400">{txList.length} compras compartidas registradas</span>
+                  </div>
+
+                  <div className="p-4 rounded-xl mint-card border border-[#1E2B4D]">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cuota Justa por Adulto</span>
+                    <p className="text-2xl font-bold text-emerald-400 mt-1 tabular-nums">
+                      ${Number(fairShare).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <span className="text-[11px] text-slate-400">Dividido entre {adultsCount} integrante(s) adulto(s)</span>
+                  </div>
+
+                  <div className="p-4 rounded-xl mint-card border border-[#1E2B4D]">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tu Balance Personal</span>
+                    {net > 0.01 ? (
+                      <>
+                        <p className="text-2xl font-bold text-emerald-400 mt-1 tabular-nums">+${net.toFixed(2)}</p>
+                        <span className="text-[11px] text-emerald-400/90 font-medium">Te deben dinero 🎉</span>
+                      </>
+                    ) : net < -0.01 ? (
+                      <>
+                        <p className="text-2xl font-bold text-rose-400 mt-1 tabular-nums">-${Math.abs(net).toFixed(2)}</p>
+                        <span className="text-[11px] text-rose-400/90 font-medium">Debes transferir al hogar</span>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-bold text-slate-200 mt-1 tabular-nums">$0.00</p>
+                        <span className="text-[11px] text-slate-400">Estás al día (cuentas claras) 👌</span>
+                      </>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Últimos Gastos Compartidos Registrados */}
-          {splitSummary?.sharedTransactions && splitSummary.sharedTransactions.length > 0 && (
-            <div className="space-y-2 pt-2 border-t border-[#1E2B4D]">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Últimos Gastos Compartidos</h4>
-                <span className="text-[11px] text-slate-500 font-medium">Marcados con 🤝 50/50</span>
-              </div>
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {splitSummary.sharedTransactions.map((tx: any) => (
-                  <div key={tx.id} className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white font-medium">{tx.description}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                          {tx.category}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Pagado por <strong className="text-slate-200">{tx.memberName}</strong> ({tx.accountName}) • {new Date(tx.date).toLocaleDateString()}
-                      </p>
+                {/* Liquidaciones / Quién le debe a Quién */}
+                {splitSummary?.settlements && splitSummary.settlements.length > 0 ? (
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                    <div className="flex items-center gap-2 text-amber-300 font-bold text-sm">
+                      <Zap className="w-4 h-4 text-amber-400" />
+                      <span>Liquidaciones pendientes para estar a mano:</span>
                     </div>
-                    <span className="text-rose-400 font-bold tabular-nums text-sm shrink-0">
-                      -${Number(tx.amount).toFixed(2)}
-                    </span>
+                    <div className="space-y-2">
+                      {splitSummary.settlements.map((s: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="p-3 rounded-xl mint-card border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-rose-400">{s.fromName}</span>
+                            <span className="text-slate-400">le debe</span>
+                            <span className="text-emerald-400 font-bold tabular-nums">${Number(s.amount).toFixed(2)}</span>
+                            <span className="text-slate-400">a</span>
+                            <span className="font-semibold text-emerald-400">{s.toName}</span>
+                          </div>
+
+                          <button
+                            onClick={() => handleOpenSettleModal(s)}
+                            disabled={settling}
+                            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer shadow-sm transition-all shrink-0 self-end sm:self-auto flex items-center gap-1.5"
+                          >
+                            <Zap className="w-3.5 h-3.5 text-emerald-200" />
+                            <span>1-Click Saldar</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                ) : (
+                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-emerald-300 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>¡Cuentas totalmente equilibradas! Ningún integrante adulto tiene deudas comunes pendientes.</span>
+                  </div>
+                )}
+
+                {/* Desglose de aportes de cada adulto */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Aportes individuales este mes</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {memberList.map((mb: any) => {
+                      const memberName = mb.fullName || mb.name || mb.email?.split('@')[0] || 'Miembro';
+                      const paid = mb.paidAmount ?? mb.paidTotal ?? 0;
+                      const netBal = mb.netBalance ?? 0;
+                      return (
+                        <div key={mb.memberId || mb.userId} className="p-3.5 rounded-xl mint-card border border-[#1E2B4D] flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold flex items-center justify-center text-xs">
+                              {memberName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-100">{memberName}</p>
+                              <p className="text-[11px] text-slate-400">Pagó: ${Number(paid).toFixed(2)}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-xs font-extrabold tabular-nums ${netBal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {netBal >= 0 ? `+$${netBal.toFixed(2)}` : `-$${Math.abs(netBal).toFixed(2)}`}
+                            </span>
+                            <p className="text-[10px] text-slate-400">
+                              {netBal >= 0 ? 'a favor' : 'por aportar'}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Últimos Gastos Compartidos Registrados */}
+                {txList.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-[#1E2B4D]">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Últimos Gastos Compartidos</h4>
+                      <span className="text-[11px] text-slate-400 font-medium">Marcados con 🤝 50/50</span>
+                    </div>
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
+                      {txList.map((tx: any) => {
+                        const payer = tx.payerName || tx.memberName || tx.paidBy || 'Miembro';
+                        const category = tx.categoryName || tx.category || 'General';
+                        return (
+                          <div key={tx.id} className="p-2.5 rounded-xl mint-card border border-[#1E2B4D] flex items-center justify-between text-xs">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-slate-100 font-medium">{tx.description}</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+                                  {category}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                Pagado por <strong className="text-slate-200">{payer}</strong> {tx.accountName ? `(${tx.accountName})` : ''} • {new Date(tx.date).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <span className="text-rose-400 font-bold tabular-nums text-sm shrink-0">
+                              -${Number(tx.amount).toFixed(2)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           {/* Banner explicativo rápido */}
-          <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
-            <span className="text-base shrink-0">💡</span>
+          <div className="p-3.5 rounded-xl mint-card border border-[#1E2B4D] text-[11px] text-slate-400 flex items-start gap-2.5">
+            <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <span>
-              <strong>¿Cómo funciona?</strong> Al registrar cualquier gasto en el Dashboard (o vía el botón rápido), activa la casilla <em>"🤝 Gasto Común en Pareja / Hogar (50/50)"</em>. El sistema divide equitativamente los montos entre los integrantes adultos y calcula quién le debe a quién automáticamente.
+              <strong>¿Cómo funciona?</strong> Al registrar cualquier gasto en el Dashboard (o vía atajos rápidos), activa la casilla <em>"🤝 Gasto Común en Pareja / Hogar (50/50)"</em>. HogarIQ calcula automáticamente las cuotas justas de los adultos del hogar y te permite liquidarlas en 1-Click con o sin transferencia bancaria.
             </span>
           </div>
         </section>
@@ -983,18 +1066,18 @@ export default function FamilyPage() {
               <p className="text-xs text-slate-500 italic">No hay actividad reciente registrada.</p>
             ) : (
               activities.map((act) => (
-                <div key={act.id} className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between text-xs">
+                <div key={act.id} className="mint-card p-3 rounded-xl border border-[#1E2B4D] flex items-center justify-between text-xs">
                   <div className="flex items-center space-x-3">
-                    <span className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-emerald-400">
+                    <span className="w-7 h-7 rounded-full bg-[var(--primary-muted)] border border-[var(--primary-border)] flex items-center justify-center font-bold text-[var(--primary)]">
                       {act.userName.charAt(0).toUpperCase()}
                     </span>
                     <div>
                       <p className="text-slate-200 font-semibold">
-                        <strong className="text-white">{act.userName}</strong>: {act.details}
+                        <strong className="text-slate-100">{act.userName}</strong>: {act.details}
                       </p>
                     </div>
                   </div>
-                  <span className="text-[10px] text-slate-500 font-mono">
+                  <span className="text-[10px] text-slate-400 font-mono">
                     {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
@@ -1607,6 +1690,144 @@ export default function FamilyPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+        {/* Modal 1-Click Liquidar Gasto Compartido */}
+        {settleModalOpen && settleTarget && (
+          <div className="fixed inset-0 bg-[#0A1128]/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="mint-card w-full max-w-md p-6 relative border border-[#1E2B4D] shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[#1E2B4D]">
+                <div className="flex items-center gap-2">
+                  <Handshake className="w-5 h-5 text-emerald-400" />
+                  <h3 className="text-base font-bold text-slate-100">Liquidar Gasto Compartido</h3>
+                </div>
+                <button
+                  onClick={() => setSettleModalOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-[#162347] transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Tarjeta de Resumen de Deuda */}
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-semibold text-amber-300 block">Acuerdo de Liquidación</span>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    <strong className="text-rose-400">{settleTarget.fromName}</strong> paga a <strong className="text-emerald-400">{settleTarget.toName}</strong>
+                  </p>
+                </div>
+                <span className="text-2xl font-bold text-emerald-400 tabular-nums">
+                  ${Number(settleTarget.amount).toFixed(2)}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {/* Opción de registrar movimiento contable */}
+                <div
+                  onClick={() => setSettleCreateTransfer(!settleCreateTransfer)}
+                  className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-colors ${
+                    settleCreateTransfer
+                      ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                      : 'bg-[#0A1128] border-[#1E2B4D] text-slate-400 hover:border-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <ArrowRightLeft className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div>
+                      <span className="text-xs font-semibold block text-slate-100">
+                        Crear Transferencia entre Cuentas del Hogar
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Debita de la cuenta emisora y acredita a la cuenta receptora
+                      </span>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settleCreateTransfer}
+                    onChange={() => setSettleCreateTransfer(!settleCreateTransfer)}
+                    className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
+                  />
+                </div>
+
+                {settleCreateTransfer && accounts.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 rounded-xl bg-[#0A1128] border border-[#1E2B4D]">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        Cuenta Emisora (Origen)
+                      </label>
+                      <select
+                        value={settleFromAccount}
+                        onChange={(e) => setSettleFromAccount(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-[#162347] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-emerald-400"
+                      >
+                        {accounts.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name} (${Number(a.balance).toFixed(2)})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        Cuenta Receptora (Destino)
+                      </label>
+                      <select
+                        value={settleToAccount}
+                        onChange={(e) => setSettleToAccount(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-[#162347] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-emerald-400"
+                      >
+                        {accounts.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name} (${Number(a.balance).toFixed(2)})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">
+                    Nota o Referencia
+                  </label>
+                  <input
+                    type="text"
+                    value={settleNote}
+                    onChange={(e) => setSettleNote(e.target.value)}
+                    placeholder="Ej. Transferencia Bizum / SPEI / Efectivo"
+                    className="w-full px-3 py-2 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2.5 pt-2 border-t border-[#1E2B4D]">
+                <button
+                  type="button"
+                  onClick={() => setSettleModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-[#162347] hover:bg-[#1D2D5A] text-slate-300 font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmSettle}
+                  disabled={settling}
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  {settling ? (
+                    <span>Liquidando...</span>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Confirmar Liquidación</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}

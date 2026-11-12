@@ -13,6 +13,7 @@ import {
   Zap,
   Sparkles
 } from 'lucide-react';
+import { suggestCategory } from '@/lib/categorizer';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -51,6 +52,8 @@ export default function TransactionModal({
   const [categorySearch, setCategorySearch] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState('');
+  const [autoSuggestedLabel, setAutoSuggestedLabel] = useState<string | null>(null);
+  const [manualCategoryChosen, setManualCategoryChosen] = useState(false);
 
   const amountInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,6 +66,8 @@ export default function TransactionModal({
       }
       if (categories.length > 0 && !categoryId) setCategoryId(categories[0].id);
       setSuccessToast('');
+      setAutoSuggestedLabel(null);
+      setManualCategoryChosen(false);
       // Autofoco inmediato en el monto
       setTimeout(() => amountInputRef.current?.focus(), 50);
     }
@@ -145,6 +150,17 @@ export default function TransactionModal({
     const current = parseFloat(amount) || 0;
     setAmount((current + extra).toString());
     amountInputRef.current?.focus();
+  };
+
+  const handleDescriptionChange = (val: string) => {
+    setDescription(val);
+    if (type !== 'TRANSFER' && !manualCategoryChosen && val.trim().length >= 3) {
+      const match = suggestCategory(val, categories);
+      if (match) {
+        setCategoryId(match.id);
+        setAutoSuggestedLabel(match.name);
+      }
+    }
   };
 
   // Filtrado de categorías para búsqueda instantánea
@@ -334,9 +350,17 @@ export default function TransactionModal({
           {type !== 'TRANSFER' && (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
-                  Categoría
-                </label>
+                <div className="flex items-center gap-2">
+                  <label className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                    Categoría
+                  </label>
+                  {autoSuggestedLabel && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 animate-pulse">
+                      <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
+                      Auto-detectada: {autoSuggestedLabel}
+                    </span>
+                  )}
+                </div>
                 {selectedCategoryObj && (
                   <span className="text-xs font-semibold text-emerald-400">
                     {selectedCategoryObj.name}
@@ -353,6 +377,8 @@ export default function TransactionModal({
                     onClick={() => {
                       setCategoryId(cat.id);
                       setCategorySearch('');
+                      setManualCategoryChosen(true);
+                      setAutoSuggestedLabel(null);
                     }}
                     className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer flex items-center gap-1.5 ${
                       categoryId === cat.id
@@ -389,6 +415,8 @@ export default function TransactionModal({
                         onClick={() => {
                           setCategoryId(c.id);
                           setCategorySearch('');
+                          setManualCategoryChosen(true);
+                          setAutoSuggestedLabel(null);
                         }}
                         className={`p-2 rounded-lg text-xs text-left transition-colors flex items-center justify-between ${
                           categoryId === c.id
@@ -467,7 +495,7 @@ export default function TransactionModal({
             <input
               type="text"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => handleDescriptionChange(e.target.value)}
               placeholder="Ej. Almuerzo de trabajo, Gasolina, Supermercado"
               className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-emerald-400 transition-colors"
             />
