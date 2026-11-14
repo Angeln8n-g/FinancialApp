@@ -1,0 +1,8 @@
+{
+  "assertions": [
+    { "kind": "appearsBy", "selector": "#end-tagline", "bySec": 1.05 },
+    { "kind": "staysInFrame", "selector": ".end-stack" },
+    { "kind": "before", "a": ".mark-badge", "b": ".cta-pill" },
+    { "kind": "keepsMoving", "withinSelector": "#root" }
+  ]
+}

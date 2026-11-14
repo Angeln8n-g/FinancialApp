@@ -1,10 +1,43 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
@@ -13,10 +46,18 @@ exports.HouseholdService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const client_1 = require("@prisma/client");
+const parental_control_helper_1 = require("./parental-control.helper");
+const crypto = __importStar(require("crypto"));
 let HouseholdService = class HouseholdService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
+    }
+    hashPassword(password) {
+        const salt = crypto.randomBytes(16).toString('hex');
+        const iterations = 100000;
+        const hash = crypto.pbkdf2Sync(password, salt, iterations, 64, 'sha512').toString('hex');
+        return `pbkdf2$${iterations}$${salt}$${hash}`;
     }
     async getMembers(householdId) {
         const members = await this.prisma.householdMember.findMany({
@@ -33,16 +74,26 @@ let HouseholdService = class HouseholdService {
             },
             orderBy: { joinedAt: 'asc' },
         });
-        return members.map(m => ({
-            id: m.id,
-            userId: m.userId,
-            email: m.user.email,
-            fullName: m.user.fullName,
-            avatarUrl: m.user.avatarUrl,
-            role: m.role,
-            customTitle: m.customTitle,
-            joinedAt: m.joinedAt,
-        }));
+        const parentalConfigs = await parental_control_helper_1.ParentalControlHelper.getHouseholdParentalControls(this.prisma, householdId);
+        return members.map(m => {
+            const childCfg = m.role === client_1.Role.DEPENDENT
+                ? parentalConfigs.find(c => c.childUserId === m.userId)
+                : null;
+            return {
+                id: m.id,
+                userId: m.userId,
+                email: m.user.email,
+                fullName: m.user.fullName,
+                avatarUrl: m.user.avatarUrl,
+                role: m.role,
+                customTitle: m.customTitle,
+                joinedAt: m.joinedAt,
+                isChildAccount: m.role === client_1.Role.DEPENDENT,
+                parentEmail: childCfg?.parentEmail || null,
+                childAccountId: childCfg?.childAccountId || null,
+                parentalControls: childCfg || null,
+            };
+        });
     }
     async inviteMember(currentUserId, householdId, dto) {
         const currentMember = await this.prisma.householdMember.findUnique({
@@ -52,6 +103,7 @@ let HouseholdService = class HouseholdService {
                     householdId,
                 },
             },
+            include: { user: true },
         });
         if (!currentMember || currentMember.role !== client_1.Role.ADMIN) {
             throw new common_1.ForbiddenException('Solo los administradores pueden invitar nuevos miembros');
@@ -59,12 +111,12 @@ let HouseholdService = class HouseholdService {
         const code = 'HIQ-' + Math.random().toString(36).substring(2, 8).toUpperCase();
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
         let targetUser = await this.prisma.user.findUnique({
-            where: { email: dto.email },
+            where: { email: dto.email.trim().toLowerCase() },
         });
         if (!targetUser) {
             targetUser = await this.prisma.user.create({
                 data: {
-                    email: dto.email,
+                    email: dto.email.trim().toLowerCase(),
                     fullName: dto.email.split('@')[0],
                 },
             });
@@ -80,18 +132,32 @@ let HouseholdService = class HouseholdService {
         if (existingMembership) {
             throw new common_1.ConflictException('El usuario ya pertenece a este hogar');
         }
+        const isChild = dto.role === client_1.Role.DEPENDENT;
+        const parentEmailForChild = (dto.parentEmail || currentMember.user.email).trim().toLowerCase();
         const member = await this.prisma.householdMember.create({
             data: {
                 userId: targetUser.id,
                 householdId,
                 role: dto.role || client_1.Role.COLLABORATOR,
+                customTitle: isChild ? `👦 Cuenta Infantil (Tutor: ${parentEmailForChild})` : undefined,
             },
             include: { user: true },
         });
-        const invitation = await this.prisma.householdInvitation.create({
+        if (isChild) {
+            await parental_control_helper_1.ParentalControlHelper.ensureChildSetup(this.prisma, {
+                householdId,
+                childUserId: targetUser.id,
+                childEmail: targetUser.email,
+                childName: targetUser.fullName || targetUser.email.split('@')[0],
+                memberId: member.id,
+                parentEmail: parentEmailForChild,
+                parentUserId: currentUserId,
+            });
+        }
+        await this.prisma.householdInvitation.create({
             data: {
                 householdId,
-                email: dto.email,
+                email: dto.email.trim().toLowerCase(),
                 role: dto.role || client_1.Role.COLLABORATOR,
                 code,
                 expiresAt,
@@ -102,13 +168,333 @@ let HouseholdService = class HouseholdService {
                 userId: currentUserId,
                 householdId,
                 action: 'INVITE_MEMBER',
-                details: `Invitó a ${dto.email} como ${dto.role || client_1.Role.COLLABORATOR} (Código: ${code})`,
+                details: isChild
+                    ? `Creó y enlazó cuenta de niño para ${dto.email} bajo control parental de ${parentEmailForChild} (Código: ${code})`
+                    : `Invitó a ${dto.email} como ${dto.role || client_1.Role.COLLABORATOR} (Código: ${code})`,
             },
         });
         return {
             member,
             invitationCode: code,
             inviteLink: `http://localhost:3001/invite/${code}`,
+        };
+    }
+    async getParentalControls(householdId, requestingUserId) {
+        const configs = await parental_control_helper_1.ParentalControlHelper.getHouseholdParentalControls(this.prisma, householdId);
+        const accounts = await this.prisma.account.findMany({
+            where: { householdId },
+        });
+        const allowances = await this.prisma.allowance.findMany({
+            where: { householdId },
+        });
+        const requests = await this.prisma.allowanceRequest.findMany({
+            where: { householdId, status: 'PENDING' },
+        });
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const todayExpenses = await this.prisma.transaction.findMany({
+            where: {
+                householdId,
+                type: client_1.TransactionType.EXPENSE,
+                isVoided: false,
+                date: { gte: startOfDay },
+            },
+        });
+        const callerConfig = requestingUserId
+            ? await parental_control_helper_1.ParentalControlHelper.getChildConfigIfDependent(this.prisma, householdId, requestingUserId)
+            : null;
+        const filteredConfigs = callerConfig
+            ? configs.filter((c) => c.childUserId === requestingUserId)
+            : configs;
+        return filteredConfigs.map((cfg) => {
+            const account = accounts.find((a) => a.id === cfg.childAccountId ||
+                a.name.toLowerCase().includes(cfg.childEmail.toLowerCase()));
+            const allowance = allowances.find((al) => al.memberId === cfg.memberId);
+            const pendingReqs = requests.filter((r) => r.memberId === cfg.memberId);
+            const todaySpent = todayExpenses
+                .filter((t) => (account && t.accountId === account.id) || t.createdById === cfg.childUserId)
+                .reduce((sum, t) => sum + Number(t.amount), 0);
+            return {
+                ...cfg,
+                account: account
+                    ? {
+                        id: account.id,
+                        name: account.name,
+                        balance: Number(account.balance),
+                        currency: account.currency,
+                    }
+                    : null,
+                allowance: allowance
+                    ? {
+                        id: allowance.id,
+                        title: allowance.title,
+                        limitAmount: Number(allowance.limitAmount),
+                        spentAmount: Number(allowance.spentAmount),
+                        remainingAmount: Math.max(0, Number(allowance.limitAmount) - Number(allowance.spentAmount)),
+                        period: allowance.period,
+                    }
+                    : null,
+                todaySpent: Math.round(todaySpent * 100) / 100,
+                pendingRequestsCount: pendingReqs.length,
+            };
+        });
+    }
+    async createChildAccount(currentUserId, householdId, dto) {
+        const currentMember = await this.prisma.householdMember.findUnique({
+            where: {
+                userId_householdId: {
+                    userId: currentUserId,
+                    householdId,
+                },
+            },
+            include: { user: true },
+        });
+        if (!currentMember || currentMember.role === client_1.Role.DEPENDENT) {
+            throw new common_1.ForbiddenException('Solo un padre o administrador puede crear y enlazar cuentas de niños.');
+        }
+        const cleanChildEmail = dto.childEmail.trim().toLowerCase();
+        const cleanParentEmail = (dto.parentEmail || currentMember.user.email).trim().toLowerCase();
+        const cleanChildName = dto.childName.trim();
+        if (cleanChildEmail === cleanParentEmail) {
+            throw new common_1.BadRequestException('El correo del niño debe ser distinto al correo del padre o tutor.');
+        }
+        const passwordHash = this.hashPassword(dto.childPassword || '123456');
+        let parentUser = await this.prisma.user.findUnique({
+            where: { email: cleanParentEmail },
+        });
+        if (!parentUser) {
+            parentUser = await this.prisma.user.create({
+                data: {
+                    email: cleanParentEmail,
+                    fullName: cleanParentEmail.split('@')[0],
+                },
+            });
+        }
+        const parentMembership = await this.prisma.householdMember.findUnique({
+            where: {
+                userId_householdId: {
+                    userId: parentUser.id,
+                    householdId,
+                },
+            },
+        });
+        if (!parentMembership) {
+            await this.prisma.householdMember.create({
+                data: {
+                    userId: parentUser.id,
+                    householdId,
+                    role: client_1.Role.ADMIN,
+                    customTitle: '👨‍👩‍👧 Padre / Tutor (Control Parental)',
+                },
+            });
+        }
+        let childUser = await this.prisma.user.findUnique({
+            where: { email: cleanChildEmail },
+        });
+        if (!childUser) {
+            childUser = await this.prisma.user.create({
+                data: {
+                    email: cleanChildEmail,
+                    fullName: cleanChildName,
+                    passwordHash,
+                },
+            });
+        }
+        else {
+            childUser = await this.prisma.user.update({
+                where: { id: childUser.id },
+                data: {
+                    fullName: cleanChildName || childUser.fullName,
+                    ...(dto.childPassword || !childUser.passwordHash ? { passwordHash } : {}),
+                },
+            });
+        }
+        const customTitle = `👦 Cuenta Infantil (Tutor: ${cleanParentEmail})`;
+        let childMember = await this.prisma.householdMember.findUnique({
+            where: {
+                userId_householdId: {
+                    userId: childUser.id,
+                    householdId,
+                },
+            },
+        });
+        if (!childMember) {
+            childMember = await this.prisma.householdMember.create({
+                data: {
+                    userId: childUser.id,
+                    householdId,
+                    role: client_1.Role.DEPENDENT,
+                    customTitle,
+                },
+            });
+        }
+        else {
+            childMember = await this.prisma.householdMember.update({
+                where: { id: childMember.id },
+                data: {
+                    role: client_1.Role.DEPENDENT,
+                    customTitle,
+                },
+            });
+        }
+        const { config, account } = await parental_control_helper_1.ParentalControlHelper.ensureChildSetup(this.prisma, {
+            householdId,
+            childUserId: childUser.id,
+            childEmail: cleanChildEmail,
+            childName: cleanChildName,
+            memberId: childMember.id,
+            parentEmail: cleanParentEmail,
+            parentUserId: parentUser.id,
+            initialBalance: dto.initialBalance ?? 0,
+            maxDailySpend: dto.maxDailySpend ?? 25,
+            maxSingleTransaction: dto.maxSingleTransaction ?? 15,
+            requireApprovalAbove: dto.requireApprovalAbove ?? 10,
+            allowanceAmount: dto.allowanceAmount ?? 50,
+            allowancePeriod: dto.allowancePeriod || client_1.RecurrencePeriod.WEEKLY,
+        });
+        if (dto.initialBalance && dto.initialBalance > 0 && account && Number(account.balance) === 0) {
+            await this.prisma.account.update({
+                where: { id: account.id },
+                data: { balance: dto.initialBalance },
+            });
+        }
+        await this.prisma.auditLog.create({
+            data: {
+                userId: currentUserId,
+                householdId,
+                action: 'CREATE_CHILD_ACCOUNT',
+                details: `Creó cuenta de niño para ${cleanChildName} (${cleanChildEmail}) enlazada automáticamente al control parental de ${cleanParentEmail}`,
+            },
+        });
+        return {
+            message: `Cuenta de niño creada para ${cleanChildName} y enlazada al control parental de ${cleanParentEmail}.`,
+            config,
+            account,
+        };
+    }
+    async updateParentalControl(currentUserId, householdId, childUserId, dto) {
+        const currentMember = await this.prisma.householdMember.findUnique({
+            where: {
+                userId_householdId: {
+                    userId: currentUserId,
+                    householdId,
+                },
+            },
+        });
+        if (!currentMember || currentMember.role === client_1.Role.DEPENDENT) {
+            throw new common_1.ForbiddenException('Solo los padres o administradores pueden modificar el control parental.');
+        }
+        const configs = await parental_control_helper_1.ParentalControlHelper.getHouseholdParentalControls(this.prisma, householdId);
+        const existing = configs.find((c) => c.childUserId === childUserId);
+        if (!existing) {
+            throw new common_1.NotFoundException('Configuración de cuenta de niño no encontrada en este hogar.');
+        }
+        const updatedParentEmail = dto.parentEmail ? dto.parentEmail.trim().toLowerCase() : existing.parentEmail;
+        const updatedConfig = await parental_control_helper_1.ParentalControlHelper.saveConfig(this.prisma, {
+            ...existing,
+            parentEmail: updatedParentEmail,
+            maxDailySpend: dto.maxDailySpend !== undefined ? Number(dto.maxDailySpend) : existing.maxDailySpend,
+            maxSingleTransaction: dto.maxSingleTransaction !== undefined ? Number(dto.maxSingleTransaction) : existing.maxSingleTransaction,
+            requireApprovalAbove: dto.requireApprovalAbove !== undefined ? Number(dto.requireApprovalAbove) : existing.requireApprovalAbove,
+            isFrozen: dto.isFrozen !== undefined ? Boolean(dto.isFrozen) : existing.isFrozen,
+            allowSavingsGoals: dto.allowSavingsGoals !== undefined ? Boolean(dto.allowSavingsGoals) : existing.allowSavingsGoals,
+            blockedCategories: dto.blockedCategories !== undefined ? dto.blockedCategories : existing.blockedCategories,
+        }, currentUserId);
+        if (dto.parentEmail && existing.memberId) {
+            await this.prisma.householdMember.update({
+                where: { id: existing.memberId },
+                data: { customTitle: `👦 Cuenta Infantil (Tutor: ${updatedParentEmail})` },
+            });
+        }
+        await this.prisma.notification.create({
+            data: {
+                userId: childUserId,
+                householdId,
+                title: updatedConfig.isFrozen ? '🔒 Cuenta Infantil Pausada' : '🛡️ Control Parental Actualizado',
+                body: updatedConfig.isFrozen
+                    ? `Tu padre/tutor (${updatedConfig.parentEmail}) ha pausado temporalmente los gastos de tu cuenta.`
+                    : `Tu padre/tutor (${updatedConfig.parentEmail}) actualizó tus reglas: Límite por compra $${updatedConfig.maxSingleTransaction.toFixed(2)}, Límite diario $${updatedConfig.maxDailySpend.toFixed(2)}.`,
+                type: 'PARENTAL_CONTROL',
+            },
+        });
+        return updatedConfig;
+    }
+    async topUpChildAccount(currentUserId, householdId, childUserId, body) {
+        const currentMember = await this.prisma.householdMember.findUnique({
+            where: {
+                userId_householdId: {
+                    userId: currentUserId,
+                    householdId,
+                },
+            },
+            include: { user: true },
+        });
+        if (!currentMember || currentMember.role === client_1.Role.DEPENDENT) {
+            throw new common_1.ForbiddenException('Solo un padre o administrador puede recargar saldo a una cuenta de niño.');
+        }
+        const amount = Number(body.amount);
+        if (!amount || amount <= 0) {
+            throw new common_1.BadRequestException('El monto de recarga debe ser mayor a cero.');
+        }
+        const configs = await parental_control_helper_1.ParentalControlHelper.getHouseholdParentalControls(this.prisma, householdId);
+        const childCfg = configs.find((c) => c.childUserId === childUserId);
+        if (!childCfg || !childCfg.childAccountId) {
+            throw new common_1.NotFoundException('Cuenta de niño no encontrada.');
+        }
+        const fromAccount = await this.prisma.account.findFirst({
+            where: { id: body.fromAccountId, householdId },
+        });
+        if (!fromAccount) {
+            throw new common_1.NotFoundException('Cuenta de origen no encontrada.');
+        }
+        const childAccount = await this.prisma.account.findFirst({
+            where: { id: childCfg.childAccountId, householdId },
+        });
+        if (!childAccount) {
+            throw new common_1.NotFoundException('Cuenta financiera del niño no encontrada.');
+        }
+        await this.prisma.$transaction(async (tx) => {
+            await tx.transaction.create({
+                data: {
+                    householdId,
+                    accountId: fromAccount.id,
+                    destinationAccountId: childAccount.id,
+                    createdById: currentUserId,
+                    type: client_1.TransactionType.TRANSFER,
+                    amount,
+                    description: body.note || `💝 Recarga Control Parental para ${childCfg.childName}`,
+                    date: new Date(),
+                },
+            });
+            await tx.account.update({
+                where: { id: fromAccount.id },
+                data: { balance: { decrement: amount } },
+            });
+            await tx.account.update({
+                where: { id: childAccount.id },
+                data: { balance: { increment: amount } },
+            });
+            await tx.notification.create({
+                data: {
+                    userId: childUserId,
+                    householdId,
+                    title: '🎉 ¡Recibiste Dinero en tu Cuenta!',
+                    body: `${currentMember.user.fullName || currentMember.user.email} te envió $${amount.toFixed(2)} a tu cuenta de niño.`,
+                    type: 'PARENTAL_CONTROL',
+                },
+            });
+            await tx.auditLog.create({
+                data: {
+                    userId: currentUserId,
+                    householdId,
+                    action: 'TOPUP_CHILD_ACCOUNT',
+                    details: `Transfirió $${amount.toFixed(2)} desde ${fromAccount.name} a la cuenta de niño de ${childCfg.childName}`,
+                },
+            });
+        });
+        return {
+            success: true,
+            message: `Se transfirieron $${amount.toFixed(2)} exitosamente a la cuenta de ${childCfg.childName}.`,
         };
     }
     async getInvitations(householdId) {
@@ -158,7 +544,10 @@ let HouseholdService = class HouseholdService {
     }
     async getActivityFeed(householdId) {
         const logs = await this.prisma.auditLog.findMany({
-            where: { householdId },
+            where: {
+                householdId,
+                action: { not: 'PARENTAL_CONTROL_CONFIG' },
+            },
             include: {
                 user: {
                     select: { id: true, fullName: true, email: true, avatarUrl: true },
@@ -184,6 +573,7 @@ let HouseholdService = class HouseholdService {
                     householdId,
                 },
             },
+            include: { user: true },
         });
         if (!currentMember || currentMember.role !== client_1.Role.ADMIN) {
             throw new common_1.ForbiddenException('Solo los administradores pueden cambiar roles');
@@ -196,9 +586,25 @@ let HouseholdService = class HouseholdService {
         }
         const updated = await this.prisma.householdMember.update({
             where: { id: memberId },
-            data: { role: dto.role },
+            data: {
+                role: dto.role,
+                ...(dto.role === client_1.Role.DEPENDENT
+                    ? { customTitle: `👦 Cuenta Infantil (Tutor: ${currentMember.user.email})` }
+                    : {}),
+            },
             include: { user: true },
         });
+        if (dto.role === client_1.Role.DEPENDENT) {
+            await parental_control_helper_1.ParentalControlHelper.ensureChildSetup(this.prisma, {
+                householdId,
+                childUserId: updated.userId,
+                childEmail: updated.user.email,
+                childName: updated.user.fullName || updated.user.email.split('@')[0],
+                memberId: updated.id,
+                parentEmail: currentMember.user.email,
+                parentUserId: currentUserId,
+            });
+        }
         await this.prisma.auditLog.create({
             data: {
                 userId: currentUserId,

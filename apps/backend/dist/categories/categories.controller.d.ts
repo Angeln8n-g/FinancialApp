@@ -5,9 +5,9 @@ export declare class CategoriesController {
     constructor(categoriesService: CategoriesService);
     findAll(user: UserPayload): Promise<{
         id: string;
-        createdAt: Date;
-        name: string;
         householdId: string | null;
+        name: string;
+        createdAt: Date;
         icon: string;
         color: string;
     }[]>;

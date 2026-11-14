@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAccountDto, UpdateAccountDto } from './accounts.dto';
 import { AccountType, MitigationStrategy, PayrollFrequency, TransactionType } from '@prisma/client';
 import { EventsGateway } from '../events/events.gateway';
 import { DebtsService } from '../debts/debts.service';
+import { ParentalControlHelper } from '../household/parental-control.helper';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AccountsService {
@@ -12,8 +14,15 @@ export class AccountsService {
   constructor(
     private prisma: PrismaService,
     private eventsGateway: EventsGateway,
-    private debtsService: DebtsService,
+    @Optional() private debtsService?: DebtsService,
   ) {}
+
+  private hashPassword(password: string): string {
+    const salt = crypto.randomBytes(16).toString('hex');
+    const iterations = 100000;
+    const hash = crypto.pbkdf2Sync(password, salt, iterations, 64, 'sha512').toString('hex');
+    return `pbkdf2$${iterations}$${salt}$${hash}`;
+  }
 
   /**
    * Determina si a una cuenta de nómina le corresponde un depósito automático en la fecha indicada.
@@ -40,7 +49,6 @@ export class AccountsService {
       if (currentDay < targetDay) {
         return false;
       }
-      // Si ya se depositó este mes, no corresponde duplicar
       return !hasDepositInCurrentMonth;
     }
 
@@ -67,17 +75,12 @@ export class AccountsService {
   }
 
   /**
-   * Ejecuta el abono de nómina atómicamente:
-   * 1. Crea la transacción de ingreso en la categoría "Nómina".
-   * 2. Incrementa el saldo de la cuenta.
-   * 3. Registra lastPayrollDeposit con la fecha actual.
-   * 4. Emite eventos en tiempo real al hogar.
+   * Ejecuta el abono de nómina atómicamente
    */
   async executePayrollDeposit(account: any, currentUserId?: string, now: Date = new Date()) {
     const amount = Number(account.payrollAmount);
 
     const result = await this.prisma.$transaction(async (tx) => {
-      // 1. Buscar o crear categoría 'Nómina' para el hogar
       let category = await tx.category.findFirst({
         where: {
           householdId: account.householdId,
@@ -96,7 +99,6 @@ export class AccountsService {
         });
       }
 
-      // 2. Crear transacción de ingreso
       const freqLabel = account.payrollFrequency === PayrollFrequency.BIWEEKLY ? 'quincenal' : 'mensual';
       const transaction = await tx.transaction.create({
         data: {
@@ -111,7 +113,6 @@ export class AccountsService {
         },
       });
 
-      // 3. Incrementar saldo de la cuenta y actualizar marca de tiempo
       const updatedAccount = await tx.account.update({
         where: { id: account.id },
         data: {
@@ -125,17 +126,12 @@ export class AccountsService {
 
     this.logger.log(`Abono automático de nómina aplicado: $${amount} a cuenta ${account.name} (${account.id})`);
 
-    // Notificaciones en tiempo real
     this.eventsGateway.notifyHouseholdChange(account.householdId, 'transaction', 'CREATE');
     this.eventsGateway.notifyHouseholdChange(account.householdId, 'account', 'UPDATE');
 
     return result;
   }
 
-  /**
-   * Procesa nóminas automáticas pendientes.
-   * Si se especifica householdId, solo evalúa ese hogar; si no, evalúa todos.
-   */
   async processPendingPayroll(householdId?: string): Promise<number> {
     const where: any = {
       type: AccountType.PAYROLL,
@@ -164,12 +160,8 @@ export class AccountsService {
     return processedCount;
   }
 
-  /**
-   * Permite al usuario forzar el abono manual de la nómina en cualquier momento
-   * (por ejemplo, si la empresa pagó antes de un fin de semana o festivo).
-   */
   async manualPayrollDeposit(householdId: string, accountId: string, currentUserId?: string) {
-    const account = await this.findOne(householdId, accountId);
+    const account = await this.findOne(householdId, accountId, currentUserId);
 
     const amount = Number(account.payrollAmount || 0);
     if (amount <= 0) {
@@ -185,24 +177,66 @@ export class AccountsService {
     };
   }
 
-  async findAllByHousehold(householdId: string) {
-    // Procesar cualquier nómina pendiente antes de retornar las cuentas
+  async findAllByHousehold(householdId: string, userId?: string) {
     try {
       await this.processPendingPayroll(householdId);
     } catch (err) {
       this.logger.error(`Error al procesar nóminas automáticas en findAllByHousehold:`, err);
     }
 
-    return this.prisma.account.findMany({
+    const accounts = await this.prisma.account.findMany({
       where: { householdId },
       include: {
         debts: true,
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Verificar si el usuario actual es una cuenta de niño (DEPENDENT)
+    const childConfig = await ParentalControlHelper.getChildConfigIfDependent(this.prisma, householdId, userId);
+
+    if (childConfig) {
+      // Restricción estricta: La cuenta de niño SOLO tiene acceso a su propia cuenta infantil
+      const childAccounts = accounts.filter(
+        (a) =>
+          a.id === childConfig.childAccountId ||
+          a.name.toLowerCase().includes(childConfig.childEmail.toLowerCase()) ||
+          a.name.toLowerCase().includes(`niño - ${childConfig.childName.split(' ')[0].toLowerCase()}`),
+      );
+
+      return childAccounts.map((a) => ({
+        ...a,
+        isChildAccount: true,
+        parentEmail: childConfig.parentEmail,
+        childEmail: childConfig.childEmail,
+        childName: childConfig.childName,
+        parentalControls: childConfig,
+      }));
+    }
+
+    // Para padres/adultos: enriquecer las cuentas que pertenecen a niños con sus metadatos de control parental
+    const allChildConfigs = await ParentalControlHelper.getHouseholdParentalControls(this.prisma, householdId);
+    return accounts.map((a) => {
+      const matchedChild = allChildConfigs.find(
+        (c) =>
+          c.childAccountId === a.id ||
+          (c.childEmail && a.name.toLowerCase().includes(c.childEmail.toLowerCase())),
+      );
+      if (matchedChild) {
+        return {
+          ...a,
+          isChildAccount: true,
+          parentEmail: matchedChild.parentEmail,
+          childEmail: matchedChild.childEmail,
+          childName: matchedChild.childName,
+          parentalControls: matchedChild,
+        };
+      }
+      return a;
+    });
   }
 
-  async findOne(householdId: string, accountId: string) {
+  async findOne(householdId: string, accountId: string, userId?: string) {
     const account = await this.prisma.account.findFirst({
       where: { id: accountId, householdId },
       include: {
@@ -214,13 +248,28 @@ export class AccountsService {
       throw new NotFoundException('Cuenta no encontrada');
     }
 
+    const childConfig = await ParentalControlHelper.getChildConfigIfDependent(this.prisma, householdId, userId);
+    if (childConfig && account.id !== childConfig.childAccountId && !account.name.toLowerCase().includes(childConfig.childEmail.toLowerCase())) {
+      throw new ForbiddenException('Las cuentas de niño solo tienen acceso a su propia cuenta infantil.');
+    }
+
     return account;
   }
 
-  async create(householdId: string, dto: CreateAccountDto) {
-    const isCreditCard = dto.type === AccountType.CREDIT_CARD;
+  async create(householdId: string, dto: CreateAccountDto, currentUserId?: string) {
+    const callerChildConfig = await ParentalControlHelper.getChildConfigIfDependent(this.prisma, householdId, currentUserId);
+    if (callerChildConfig && !dto.isChildAccount) {
+      throw new ForbiddenException('Las cuentas de niño con control parental no pueden crear cuentas bancarias o tarjetas de adulto.');
+    }
 
-    // Si es tarjeta de crédito, calcular balance inicial (saldo utilizado = pasivo / negativo)
+    if (dto.isChildAccount) {
+      if (!dto.parentEmail || !dto.parentEmail.trim()) {
+        throw new BadRequestException('Si es una cuenta para niño, debes ingresar el correo del padre o tutor que tendrá el control parental.');
+      }
+    }
+
+    const isCreditCard = !dto.isChildAccount && dto.type === AccountType.CREDIT_CARD;
+
     const initialDebtAmount = dto.debtRemainingAmount !== undefined
       ? Number(dto.debtRemainingAmount)
       : (dto.debtTotalAmount !== undefined ? Number(dto.debtTotalAmount) : Math.abs(Number(dto.balance || 0)));
@@ -229,23 +278,141 @@ export class AccountsService {
       ? (initialDebtAmount > 0 ? -Math.abs(initialDebtAmount) : 0)
       : (dto.balance ?? 0.0);
 
+    const cleanChildEmail = dto.childEmail?.trim().toLowerCase();
+    const cleanParentEmail = dto.parentEmail?.trim().toLowerCase();
+
+    const accountName = dto.isChildAccount
+      ? (cleanChildEmail && !dto.name.toLowerCase().includes(cleanChildEmail)
+          ? `${dto.name} (${cleanChildEmail})`
+          : dto.name)
+      : dto.name;
+
     const account = await this.prisma.account.create({
       data: {
         householdId,
-        name: dto.name,
-        type: dto.type,
+        name: accountName,
+        type: dto.isChildAccount ? AccountType.SAVINGS : dto.type,
         balance: initialBalance,
         currency: dto.currency || 'USD',
-        payrollAmount: dto.payrollAmount ?? null,
-        payrollFrequency: dto.payrollFrequency ?? null,
-        payrollDay1: dto.payrollDay1 ?? null,
-        payrollDay2: dto.payrollDay2 ?? null,
-        payrollAutoDeposit: dto.payrollAutoDeposit ?? (dto.type === AccountType.PAYROLL),
+        payrollAmount: dto.isChildAccount ? null : (dto.payrollAmount ?? null),
+        payrollFrequency: dto.isChildAccount ? null : (dto.payrollFrequency ?? null),
+        payrollDay1: dto.isChildAccount ? null : (dto.payrollDay1 ?? null),
+        payrollDay2: dto.isChildAccount ? null : (dto.payrollDay2 ?? null),
+        payrollAutoDeposit: dto.isChildAccount ? false : (dto.payrollAutoDeposit ?? (dto.type === AccountType.PAYROLL)),
       },
     });
 
+    // Si es una cuenta para niño, enlazar automáticamente al padre y al niño con Control Parental
+    if (dto.isChildAccount && cleanParentEmail) {
+      try {
+        // 1. Asegurar que el padre exista y esté enlazado como ADMIN en este hogar
+        let parentUser = await this.prisma.user?.findUnique?.({
+          where: { email: cleanParentEmail },
+        });
+        if (!parentUser && this.prisma.user?.create) {
+          parentUser = await this.prisma.user.create({
+            data: {
+              email: cleanParentEmail,
+              fullName: cleanParentEmail.split('@')[0],
+            },
+          });
+        }
+        if (parentUser && this.prisma.householdMember?.findUnique) {
+          const parentMem = await this.prisma.householdMember.findUnique({
+            where: {
+              userId_householdId: {
+                userId: parentUser.id,
+                householdId,
+              },
+            },
+          });
+          if (!parentMem && this.prisma.householdMember?.create) {
+            await this.prisma.householdMember.create({
+              data: {
+                userId: parentUser.id,
+                householdId,
+                role: 'ADMIN',
+                customTitle: '👨‍👩‍👧 Padre / Tutor (Control Parental)',
+              },
+            });
+          }
+        }
+
+        // 2. Asegurar usuario y membresía DEPENDENT para el niño
+        const targetChildEmail = cleanChildEmail || `nino.${account.id.substring(0, 6)}@hogariq.familiar`;
+        const targetChildName = dto.childName?.trim() || dto.name.replace(/Cuenta\s*(de\s*)?Niño\s*-?\s*/i, '').trim() || 'Hijo/a';
+
+        let childUser = await this.prisma.user?.findUnique?.({
+          where: { email: targetChildEmail },
+        });
+
+        const passwordHash = dto.childPassword ? this.hashPassword(dto.childPassword) : undefined;
+
+        if (!childUser && this.prisma.user?.create) {
+          childUser = await this.prisma.user.create({
+            data: {
+              email: targetChildEmail,
+              fullName: targetChildName,
+              ...(passwordHash ? { passwordHash } : {}),
+            },
+          });
+        } else if (childUser && passwordHash && !childUser.passwordHash && this.prisma.user?.update) {
+          childUser = await this.prisma.user.update({
+            where: { id: childUser.id },
+            data: { passwordHash, fullName: targetChildName || childUser.fullName },
+          });
+        }
+
+        if (childUser && this.prisma.householdMember) {
+          let childMember = await this.prisma.householdMember.findUnique?.({
+            where: {
+              userId_householdId: {
+                userId: childUser.id,
+                householdId,
+              },
+            },
+          });
+
+          const customTitle = `👦 Cuenta Infantil (Tutor: ${cleanParentEmail})`;
+          if (!childMember && this.prisma.householdMember.create) {
+            childMember = await this.prisma.householdMember.create({
+              data: {
+                userId: childUser.id,
+                householdId,
+                role: 'DEPENDENT',
+                customTitle,
+              },
+            });
+          } else if (childMember && this.prisma.householdMember.update) {
+            childMember = await this.prisma.householdMember.update({
+              where: { id: childMember.id },
+              data: { role: 'DEPENDENT', customTitle },
+            });
+          }
+
+          if (childMember) {
+            await ParentalControlHelper.ensureChildSetup(this.prisma, {
+              householdId,
+              childUserId: childUser.id,
+              childEmail: targetChildEmail,
+              childName: targetChildName,
+              memberId: childMember.id,
+              parentEmail: cleanParentEmail,
+              parentUserId: parentUser?.id || currentUserId || '',
+              existingAccountId: account.id,
+              maxDailySpend: dto.maxDailySpend ?? 25,
+              maxSingleTransaction: dto.maxSingleTransaction ?? 15,
+              requireApprovalAbove: dto.requireApprovalAbove ?? 10,
+            });
+          }
+        }
+      } catch (err) {
+        this.logger.warn(`Aviso al enlazar control parental para la cuenta ${account.id}: ${err}`);
+      }
+    }
+
     // Si es tarjeta de crédito, crear y vincular automáticamente su deuda y compromiso
-    if (isCreditCard) {
+    if (isCreditCard && this.debtsService) {
       const totalAmount = dto.debtTotalAmount ? Number(dto.debtTotalAmount) : Math.max(initialDebtAmount, 100);
       const remainingAmount = initialDebtAmount;
 
@@ -268,11 +435,11 @@ export class AccountsService {
     }
 
     this.eventsGateway.notifyHouseholdChange(householdId, 'account', 'CREATE');
-    return this.findOne(householdId, account.id);
+    return this.findOne(householdId, account.id, currentUserId);
   }
 
-  async update(householdId: string, accountId: string, dto: UpdateAccountDto) {
-    const existing = await this.findOne(householdId, accountId);
+  async update(householdId: string, accountId: string, dto: UpdateAccountDto, currentUserId?: string) {
+    await this.findOne(householdId, accountId, currentUserId);
 
     const updated = await this.prisma.account.update({
       where: { id: accountId },
@@ -292,8 +459,7 @@ export class AccountsService {
       },
     });
 
-    // Si es tarjeta de crédito y tiene deuda vinculada, sincronizar también
-    if (updated.type === AccountType.CREDIT_CARD && updated.debts && updated.debts.length > 0) {
+    if (updated.type === AccountType.CREDIT_CARD && updated.debts && updated.debts.length > 0 && this.debtsService) {
       const debtId = updated.debts[0].id;
       await this.debtsService.update(householdId, debtId, {
         ...(dto.name !== undefined && { contactName: dto.name }),
@@ -313,11 +479,16 @@ export class AccountsService {
     }
 
     this.eventsGateway.notifyHouseholdChange(householdId, 'account', 'UPDATE');
-    return this.findOne(householdId, accountId);
+    return this.findOne(householdId, accountId, currentUserId);
   }
 
-  async delete(householdId: string, accountId: string) {
-    await this.findOne(householdId, accountId);
+  async delete(householdId: string, accountId: string, currentUserId?: string) {
+    const childConfig = await ParentalControlHelper.getChildConfigIfDependent(this.prisma, householdId, currentUserId);
+    if (childConfig) {
+      throw new ForbiddenException('Las cuentas de niño bajo control parental no pueden ser eliminadas por el niño.');
+    }
+
+    await this.findOne(householdId, accountId, currentUserId);
 
     const deleted = await this.prisma.account.delete({
       where: { id: accountId },

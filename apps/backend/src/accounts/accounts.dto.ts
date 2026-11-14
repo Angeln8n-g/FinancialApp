@@ -1,5 +1,5 @@
 import { AccountType, MitigationStrategy, PayrollFrequency } from '@prisma/client';
-import { IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, Max, Min } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, Max, Min, ValidateIf } from 'class-validator';
 
 export class CreateAccountDto {
   @IsString()
@@ -16,6 +16,43 @@ export class CreateAccountDto {
   @IsOptional()
   @IsString()
   currency?: string;
+
+  // Configuración de Cuenta para Niño & Control Parental
+  @IsOptional()
+  @IsBoolean()
+  isChildAccount?: boolean;
+
+  @ValidateIf((o) => o.isChildAccount === true)
+  @IsEmail({}, { message: 'Debes especificar un correo válido del padre o tutor para el control parental' })
+  @IsNotEmpty({ message: 'El correo del padre o tutor es obligatorio para una cuenta de niño' })
+  parentEmail?: string;
+
+  @IsOptional()
+  @IsEmail({}, { message: 'El correo del niño debe ser válido' })
+  childEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  childName?: string;
+
+  @IsOptional()
+  @IsString()
+  childPassword?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  maxDailySpend?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  maxSingleTransaction?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  requireApprovalAbove?: number;
 
   // Configuración de Nómina
   @IsOptional()

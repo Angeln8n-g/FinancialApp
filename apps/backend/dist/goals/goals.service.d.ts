@@ -21,9 +21,9 @@ export declare class GoalsService {
         targetDate?: string;
     }): Promise<{
         id: string;
-        createdAt: Date;
-        name: string;
         householdId: string;
+        name: string;
+        createdAt: Date;
         targetAmount: import("@prisma/client/runtime/library").Decimal;
         currentAmount: import("@prisma/client/runtime/library").Decimal;
         targetDate: Date | null;
@@ -34,9 +34,9 @@ export declare class GoalsService {
         targetDate?: string;
     }): Promise<{
         id: string;
-        createdAt: Date;
-        name: string;
         householdId: string;
+        name: string;
+        createdAt: Date;
         targetAmount: import("@prisma/client/runtime/library").Decimal;
         currentAmount: import("@prisma/client/runtime/library").Decimal;
         targetDate: Date | null;
@@ -47,9 +47,9 @@ export declare class GoalsService {
         notes?: string;
     }, currentUserId?: string): Promise<{
         id: string;
-        createdAt: Date;
-        name: string;
         householdId: string;
+        name: string;
+        createdAt: Date;
         targetAmount: import("@prisma/client/runtime/library").Decimal;
         currentAmount: import("@prisma/client/runtime/library").Decimal;
         targetDate: Date | null;

@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Building2,
   Briefcase,
   Calendar,
-  Sparkles,
   CreditCard,
   Target,
   AlertTriangle,
@@ -14,6 +13,8 @@ import {
   Clock,
   TrendingDown,
   ShieldCheck,
+  Users,
+  Lock,
 } from 'lucide-react';
 
 interface AccountModalProps {
@@ -24,6 +25,14 @@ interface AccountModalProps {
     type: string;
     balance: number;
     currency: string;
+    isChildAccount?: boolean;
+    parentEmail?: string;
+    childEmail?: string;
+    childName?: string;
+    childPassword?: string;
+    maxDailySpend?: number;
+    maxSingleTransaction?: number;
+    requireApprovalAbove?: number;
     payrollAmount?: number;
     payrollFrequency?: 'MONTHLY' | 'BIWEEKLY';
     payrollDay1?: number;
@@ -55,6 +64,15 @@ export default function AccountModal({
   const [balance, setBalance] = useState('0');
   const [currency, setCurrency] = useState('USD');
 
+  // Configuración de Cuenta para Niño & Control Parental
+  const [isChildAccount, setIsChildAccount] = useState(false);
+  const [parentEmail, setParentEmail] = useState('');
+  const [childEmail, setChildEmail] = useState('');
+  const [childName, setChildName] = useState('');
+  const [childPassword, setChildPassword] = useState('123456');
+  const [maxSingleTransaction, setMaxSingleTransaction] = useState('15');
+  const [maxDailySpend, setMaxDailySpend] = useState('25');
+
   // Configuración de Nómina
   const [payrollAmount, setPayrollAmount] = useState('');
   const [payrollFrequency, setPayrollFrequency] = useState<'MONTHLY' | 'BIWEEKLY'>('BIWEEKLY');
@@ -79,6 +97,22 @@ export default function AccountModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (isOpen && typeof window !== 'undefined') {
+      try {
+        const uStr = localStorage.getItem('hogariq_user');
+        if (uStr) {
+          const u = JSON.parse(uStr);
+          if (u?.email && !parentEmail) {
+            setParentEmail(u.email);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, [isOpen, parentEmail]);
+
   if (!isOpen) return null;
 
   // Cálculo en tiempo real de sugerencia mensual si se define fecha meta para la tarjeta
@@ -101,8 +135,19 @@ export default function AccountModal({
       return;
     }
 
-    const isCreditCard = type === 'CREDIT_CARD';
-    const isPayroll = type === 'PAYROLL';
+    if (isChildAccount) {
+      if (!parentEmail.trim() || !parentEmail.includes('@')) {
+        setError('Para una cuenta de niño debes especificar el correo electrónico del padre o tutor con control parental.');
+        return;
+      }
+      if (childEmail.trim() && childEmail.trim().toLowerCase() === parentEmail.trim().toLowerCase()) {
+        setError('El correo del niño debe ser diferente al correo del padre o tutor.');
+        return;
+      }
+    }
+
+    const isCreditCard = !isChildAccount && type === 'CREDIT_CARD';
+    const isPayroll = !isChildAccount && type === 'PAYROLL';
 
     if (isCreditCard) {
       const total = parseFloat(debtTotalAmount);
@@ -134,9 +179,20 @@ export default function AccountModal({
 
       await onSubmit({
         name: name.trim(),
-        type,
+        type: isChildAccount ? 'SAVINGS' : type,
         balance: isCreditCard ? (parsedRemainingAmount > 0 ? -Math.abs(parsedRemainingAmount) : 0) : (parseFloat(balance) || 0),
         currency,
+        ...(isChildAccount
+          ? {
+              isChildAccount: true,
+              parentEmail: parentEmail.trim().toLowerCase(),
+              childEmail: childEmail.trim() ? childEmail.trim().toLowerCase() : undefined,
+              childName: childName.trim() || name.trim(),
+              childPassword: childPassword.trim() || '123456',
+              maxSingleTransaction: parseFloat(maxSingleTransaction) || 15,
+              maxDailySpend: parseFloat(maxDailySpend) || 25,
+            }
+          : {}),
         ...(isPayroll && !isNaN(parsedPayrollAmount) && parsedPayrollAmount > 0
           ? {
               payrollAmount: parsedPayrollAmount,
@@ -169,6 +225,9 @@ export default function AccountModal({
       // Reset
       setName('');
       setBalance('0');
+      setIsChildAccount(false);
+      setChildEmail('');
+      setChildName('');
       setPayrollAmount('');
       setDebtTotalAmount('');
       setDebtRemainingAmount('0');
@@ -193,7 +252,9 @@ export default function AccountModal({
       <div className="mint-card w-full max-w-xl p-6 relative border border-[#1E2B4D] shadow-2xl animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto custom-scrollbar">
         <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#1E2B4D]">
           <div className="flex items-center gap-2">
-            {type === 'CREDIT_CARD' ? (
+            {isChildAccount ? (
+              <ShieldCheck className="w-5 h-5 text-amber-400" />
+            ) : type === 'CREDIT_CARD' ? (
               <CreditCard className="w-5 h-5 text-amber-400" />
             ) : type === 'PAYROLL' ? (
               <Briefcase className="w-5 h-5 text-emerald-400" />
@@ -202,12 +263,18 @@ export default function AccountModal({
             )}
             <div>
               <h3 className="text-base font-bold text-slate-100">
-                {type === 'CREDIT_CARD' ? 'Nueva Tarjeta de Crédito (Compromiso Vinculado)' : 'Nueva Cuenta Financiera'}
+                {isChildAccount
+                  ? 'Nueva Cuenta para Niño (Con Control Parental)'
+                  : type === 'CREDIT_CARD'
+                  ? 'Nueva Tarjeta de Crédito (Compromiso Vinculado)'
+                  : 'Nueva Cuenta Financiera'}
               </h3>
               <p className="text-[11px] text-slate-400">
-                {type === 'CREDIT_CARD'
+                {isChildAccount
+                  ? 'El niño tendrá acceso exclusivo a esta cuenta infantil y estará enlazado al padre/tutor'
+                  : type === 'CREDIT_CARD'
                   ? 'Registra la tarjeta y enlaza automáticamente todos los datos de deuda y fechas de pago'
-                  : 'Configura tus cuentas bancarias, nómina, efectivo o ahorros'}
+                  : 'Configura tus cuentas bancarias, nómina, efectivo, ahorros o cuenta infantil'}
               </p>
             </div>
           </div>
@@ -228,35 +295,187 @@ export default function AccountModal({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
-              Tipo de Cuenta
+          {/* Selector de ¿Es una cuenta para niño? */}
+          <div className="p-3.5 rounded-2xl bg-[#0A1128] border border-[#1E2B4D] space-y-2.5">
+            <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+              ¿Es una cuenta para niño con control parental?
             </label>
-            <select
-              value={type}
-              onChange={(e) => {
-                const newType = e.target.value;
-                setType(newType);
-                if (newType === 'PAYROLL' && !name) {
-                  setName('Cuenta de Nómina');
-                } else if (newType === 'CREDIT_CARD' && !name) {
-                  setName('Tarjeta de Crédito');
-                }
-              }}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 cursor-pointer transition-colors"
-            >
-              <option value="BANK_ACCOUNT" className="bg-[#101A36]">🏦 Cuenta Bancaria Corriente / Débito</option>
-              <option value="CREDIT_CARD" className="bg-[#101A36]">💳 Tarjeta de Crédito (Vinculada como Deuda)</option>
-              <option value="PAYROLL" className="bg-[#101A36]">💼 Cuenta de Nómina (Ingreso Automático)</option>
-              <option value="CASH" className="bg-[#101A36]">💵 Efectivo / Caja</option>
-              <option value="SAVINGS" className="bg-[#101A36]">🐷 Cuenta de Ahorros</option>
-              <option value="INVESTMENT" className="bg-[#101A36]">📈 Inversión / Otros</option>
-            </select>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsChildAccount(false)}
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                  !isChildAccount
+                    ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300'
+                    : 'bg-[#101A36] border-[#1E2B4D] text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <Users className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div>
+                  <span className="text-xs font-bold text-slate-100 block">No, Cuenta Regular</span>
+                  <span className="text-[10px] text-slate-400">Adulto / Hogar general</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsChildAccount(true);
+                  setType('SAVINGS');
+                  if (!name || name === 'Cuenta de Nómina' || name === 'Tarjeta de Crédito') {
+                    setName('Cuenta Niño');
+                  }
+                }}
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                  isChildAccount
+                    ? 'bg-amber-500/15 border-amber-500/50 text-amber-300'
+                    : 'bg-[#101A36] border-[#1E2B4D] text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                <div>
+                  <span className="text-xs font-bold text-slate-100 block">Sí, Cuenta para Niño</span>
+                  <span className="text-[10px] text-slate-400">Solo acceso infantil supervisado</span>
+                </div>
+              </button>
+            </div>
           </div>
+
+          {/* Configuración de Enlace Parental si es cuenta para niño */}
+          {isChildAccount && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3.5">
+              <div className="flex items-start gap-2.5">
+                <Lock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-[11px] text-amber-200/90 leading-relaxed">
+                  <strong className="text-amber-300 block">Enlace Automático de Control Parental</strong>
+                  El niño solo tendrá acceso a esta cuenta infantil y estará enlazado automáticamente al correo del padre o tutor indicado.
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-amber-300 uppercase tracking-wider mb-1">
+                    Correo del Padre / Tutor *
+                  </label>
+                  <input
+                    type="email"
+                    required={isChildAccount}
+                    value={parentEmail}
+                    onChange={(e) => setParentEmail(e.target.value)}
+                    placeholder="padre@ejemplo.com"
+                    className="w-full px-3 py-2 rounded-xl bg-[#0A1128] border border-amber-500/40 text-slate-100 text-xs focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    Nombre del Niño(a)
+                  </label>
+                  <input
+                    type="text"
+                    value={childName}
+                    onChange={(e) => {
+                      setChildName(e.target.value);
+                      if (!name || name.startsWith('Cuenta Niño')) {
+                        setName(e.target.value ? `Cuenta Niño - ${e.target.value}` : 'Cuenta Niño');
+                      }
+                    }}
+                    placeholder="Ej. Mateo"
+                    className="w-full px-3 py-2 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 uppercase tracking-wider mb-1">
+                    Correo de Acceso del Niño(a)
+                  </label>
+                  <input
+                    type="email"
+                    value={childEmail}
+                    onChange={(e) => setChildEmail(e.target.value)}
+                    placeholder="nino@ejemplo.com"
+                    className="w-full px-3 py-2 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 uppercase tracking-wider mb-1">
+                    Clave Inicial del Niño(a)
+                  </label>
+                  <input
+                    type="text"
+                    value={childPassword}
+                    onChange={(e) => setChildPassword(e.target.value)}
+                    placeholder="123456"
+                    className="w-full px-3 py-2 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-xs focus:outline-none focus:border-amber-400 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Límite Máx. por Compra ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.50"
+                    min="1"
+                    value={maxSingleTransaction}
+                    onChange={(e) => setMaxSingleTransaction(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-xs tabular-nums focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Límite de Gasto Diario ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.50"
+                    min="1"
+                    value={maxDailySpend}
+                    onChange={(e) => setMaxDailySpend(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-xs tabular-nums focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!isChildAccount && (
+            <div>
+              <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                Tipo de Cuenta
+              </label>
+              <select
+                value={type}
+                onChange={(e) => {
+                  const newType = e.target.value;
+                  setType(newType);
+                  if (newType === 'PAYROLL' && !name) {
+                    setName('Cuenta de Nómina');
+                  } else if (newType === 'CREDIT_CARD' && !name) {
+                    setName('Tarjeta de Crédito');
+                  }
+                }}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 cursor-pointer transition-colors"
+              >
+                <option value="BANK_ACCOUNT" className="bg-[#101A36]">🏦 Cuenta Bancaria Corriente / Débito</option>
+                <option value="CREDIT_CARD" className="bg-[#101A36]">💳 Tarjeta de Crédito (Vinculada como Deuda)</option>
+                <option value="PAYROLL" className="bg-[#101A36]">💼 Cuenta de Nómina (Ingreso Automático)</option>
+                <option value="CASH" className="bg-[#101A36]">💵 Efectivo / Caja</option>
+                <option value="SAVINGS" className="bg-[#101A36]">🐷 Cuenta de Ahorros</option>
+                <option value="INVESTMENT" className="bg-[#101A36]">📈 Inversión / Otros</option>
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
-              Nombre de la {type === 'CREDIT_CARD' ? 'Tarjeta / Entidad Emisora' : 'Cuenta'}
+              Nombre de la {type === 'CREDIT_CARD' && !isChildAccount ? 'Tarjeta / Entidad Emisora' : isChildAccount ? 'Cuenta de Niño' : 'Cuenta'}
             </label>
             <input
               type="text"
@@ -264,7 +483,9 @@ export default function AccountModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={
-                type === 'CREDIT_CARD'
+                isChildAccount
+                  ? 'Ej. Cuenta Niño - Mateo'
+                  : type === 'CREDIT_CARD'
                   ? 'Ej. Visa Platinum Banreservas, Amex Oro, Mastercard Scotia'
                   : 'Ej. Nómina Santander, Banco Principal, Efectivo'
               }
@@ -275,14 +496,14 @@ export default function AccountModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">
-                {type === 'CREDIT_CARD' ? 'Saldo Actual Adeudado / Utilizado ($)' : 'Saldo Inicial ($)'}
+                {type === 'CREDIT_CARD' && !isChildAccount ? 'Saldo Actual Adeudado / Utilizado ($)' : 'Saldo Inicial ($)'}
               </label>
               <input
                 type="number"
                 step="0.01"
-                value={type === 'CREDIT_CARD' ? debtRemainingAmount : balance}
+                value={type === 'CREDIT_CARD' && !isChildAccount ? debtRemainingAmount : balance}
                 onChange={(e) => {
-                  if (type === 'CREDIT_CARD') {
+                  if (type === 'CREDIT_CARD' && !isChildAccount) {
                     setDebtRemainingAmount(e.target.value);
                     setBalance(e.target.value);
                   } else {
@@ -292,7 +513,7 @@ export default function AccountModal({
                 placeholder="0.00"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1128] border border-[#1E2B4D] text-slate-100 text-sm focus:outline-none focus:border-emerald-400 tabular-nums transition-colors"
               />
-              {type === 'CREDIT_CARD' && (
+              {type === 'CREDIT_CARD' && !isChildAccount && (
                 <span className="text-[10px] text-slate-400 mt-1 block">
                   Ingresa 0 si la tarjeta está en cero o el saldo al corte pendiente
                 </span>
@@ -325,7 +546,7 @@ export default function AccountModal({
           {/* ============================================================== */}
           {/* SECCIÓN COMPLETA DE DEUDA Y COMPROMISOS (TARJETA DE CRÉDITO)   */}
           {/* ============================================================== */}
-          {type === 'CREDIT_CARD' && (
+          {!isChildAccount && type === 'CREDIT_CARD' && (
             <div className="p-4 rounded-2xl bg-[#0A1128] border border-amber-500/30 space-y-4 relative overflow-hidden shadow-inner">
               <div className="flex items-center justify-between pb-3 border-b border-[#1E2B4D]">
                 <div className="flex items-center gap-2">
@@ -561,7 +782,7 @@ export default function AccountModal({
           {/* ============================================================== */}
           {/* SECCIÓN ESPECÍFICA DE CUENTA DE NÓMINA                        */}
           {/* ============================================================== */}
-          {type === 'PAYROLL' && (
+          {!isChildAccount && type === 'PAYROLL' && (
             <div className="p-4 rounded-xl bg-[#0A1128] border border-emerald-500/30 space-y-3.5 relative overflow-hidden">
               <div className="flex items-center justify-between pb-2 border-b border-[#1E2B4D]">
                 <div className="flex items-center gap-2">
@@ -706,12 +927,20 @@ export default function AccountModal({
               type="submit"
               disabled={submitting}
               className={`px-5 py-2 rounded-xl text-white text-xs font-semibold shadow-sm transition-all cursor-pointer disabled:opacity-50 ${
-                type === 'CREDIT_CARD'
+                isChildAccount
+                  ? 'bg-amber-600 hover:bg-amber-500'
+                  : type === 'CREDIT_CARD'
                   ? 'bg-amber-600 hover:bg-amber-500'
                   : 'bg-emerald-600 hover:bg-emerald-500'
               }`}
             >
-              {submitting ? 'Guardando...' : type === 'CREDIT_CARD' ? 'Crear Tarjeta y Vincular Deuda' : 'Crear Cuenta'}
+              {submitting
+                ? 'Guardando...'
+                : isChildAccount
+                ? 'Crear Cuenta de Niño y Enlazar Padre'
+                : type === 'CREDIT_CARD'
+                ? 'Crear Tarjeta y Vincular Deuda'
+                : 'Crear Cuenta'}
             </button>
           </div>
         </form>

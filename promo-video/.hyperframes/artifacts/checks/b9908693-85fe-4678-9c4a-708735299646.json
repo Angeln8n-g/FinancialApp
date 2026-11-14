@@ -1,0 +1,509 @@
+{
+  "ok": false,
+  "strict": false,
+  "browserSkipped": false,
+  "lint": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "filesScanned": 6
+  },
+  "runtime": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": []
+  },
+  "layout": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 2,
+    "findings": [
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 19.609,
+        "selector": "span.pr-label",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 1493.15,
+          "top": 549.59,
+          "right": 1678.66,
+          "bottom": 571.44,
+          "width": 185.51,
+          "height": 21.85
+        },
+        "containerSelector": "span.pr-done-text",
+        "text": "1-Click Saldar ($42.50)",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply. Decoration nobody needs to read can take data-layout-ignore.",
+        "dataAttributes": {},
+        "sourceFile": "compositions/components/press-ripple.html",
+        "bbox": {
+          "x": 1493.15,
+          "y": 549.59,
+          "width": 185.51,
+          "height": 21.85
+        },
+        "firstSeen": 19.609,
+        "lastSeen": 19.609,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          19.609
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 20.517,
+        "selector": "div.balance-stack > div:nth-of-type(1)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 1273.33,
+          "top": 343.58,
+          "right": 1496.78,
+          "bottom": 416.58,
+          "width": 223.45,
+          "height": 73
+        },
+        "containerSelector": "div.balance-stack > div:nth-of-type(2)",
+        "text": "+$42.50",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply. Decoration nobody needs to read can take data-layout-ignore.",
+        "dataAttributes": {},
+        "sourceFile": "compositions/03-family-split.html",
+        "bbox": {
+          "x": 1273.33,
+          "y": 343.58,
+          "width": 223.45,
+          "height": 73
+        },
+        "firstSeen": 20.517,
+        "lastSeen": 20.517,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          20.517
+        ]
+      }
+    ],
+    "duration": 32.5,
+    "samples": [
+      1.806,
+      5.417,
+      9.028,
+      12.639,
+      16.25,
+      19.861,
+      23.472,
+      27.083,
+      30.694
+    ],
+    "transitionSamples": [],
+    "transitionSamplesDropped": 0,
+    "tolerance": 2,
+    "totalIssueCount": 2,
+    "truncated": false
+  },
+  "motion": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": false,
+    "samples": 0
+  },
+  "contrast": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": true,
+    "samples": [
+      1.806,
+      9.028,
+      16.25,
+      23.472,
+      30.694
+    ],
+    "checked": 47,
+    "passed": 47
+  },
+  "craft": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 1,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "line_unread",
+        "severity": "warning",
+        "message": "\"1-Click Saldar ($42.50)\" (5 words) is on screen 1.20 s (±0.01 s), under its 1.50 s floor: hold it about 0.5 s + 0.3 s a word (2.00 s here) before it leaves or changes; see references/motion.md.",
+        "text": "1-Click Saldar ($42.50)",
+        "selector": "span.pr-label",
+        "dataAttributes": {},
+        "sourceFile": "compositions/components/press-ripple.html",
+        "bbox": {
+          "x": 1433.05,
+          "y": 555.63,
+          "width": 305.72,
+          "height": 36
+        },
+        "time": 18.367,
+        "words": 5,
+        "seconds": 1.203,
+        "floorSeconds": 1.5,
+        "measured": [
+          {
+            "time": 18,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 18.125,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 18.25,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 18.375,
+            "opacity": 0.53,
+            "heightPx": 36
+          },
+          {
+            "time": 18.5,
+            "opacity": 0.9,
+            "heightPx": 36
+          },
+          {
+            "time": 18.625,
+            "opacity": 0.98,
+            "heightPx": 36
+          },
+          {
+            "time": 18.75,
+            "opacity": 1,
+            "heightPx": 36
+          },
+          {
+            "time": 19.125,
+            "opacity": 1,
+            "heightPx": 36
+          },
+          {
+            "time": 19.25,
+            "opacity": 1,
+            "heightPx": 36
+          },
+          {
+            "time": 19.375,
+            "opacity": 1,
+            "heightPx": 36
+          },
+          {
+            "time": 19.5,
+            "opacity": 1,
+            "heightPx": 35
+          },
+          {
+            "time": 19.625,
+            "opacity": 0.48,
+            "heightPx": 22
+          },
+          {
+            "time": 19.75,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 19.875,
+            "opacity": null,
+            "heightPx": null
+          }
+        ]
+      }
+    ],
+    "enabled": true,
+    "step": 0.125,
+    "samples": 260
+  },
+  "audio": {
+    "ok": false,
+    "errorCount": 12,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/bgm/track.wav cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#bgm",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "timeRange": [
+          0,
+          32.5
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/typing.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#sfx-typing",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 3.1,
+        "timeRange": [
+          3.1,
+          4.15
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/key-press.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#sfx-key-press",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 4.6,
+        "timeRange": [
+          4.6,
+          4.989999999999999
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/notification.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#sfx-notification",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 5.65,
+        "timeRange": [
+          5.65,
+          7.8500000000000005
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/whoosh.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#sfx-whoosh-collapse",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 9.87,
+        "timeRange": [
+          9.87,
+          10.43
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/impact-bass-1.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#sfx-impact-bass",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 9.96,
+        "timeRange": [
+          9.96,
+          11.96
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/pop.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#sfx-pop",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 11.26,
+        "timeRange": [
+          11.26,
+          11.959999999999999
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/whoosh-short.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#sfx-whoosh-tab",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 16.12,
+        "timeRange": [
+          16.12,
+          16.68
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/click-soft.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#sfx-click-soft",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 20.2,
+        "timeRange": [
+          20.2,
+          20.55
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/sparkle.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#sfx-sparkle",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 20.42,
+        "timeRange": [
+          20.42,
+          22.12
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/whoosh.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#sfx-whoosh-theme",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 25.87,
+        "timeRange": [
+          25.87,
+          26.43
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/click.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#sfx-click-end",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 29.13,
+        "timeRange": [
+          29.13,
+          29.48
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      }
+    ]
+  },
+  "hdr": {
+    "autoPromotion": null,
+    "inspection": "available"
+  },
+  "snapshots": {
+    "enabled": true,
+    "files": [
+      ".hyperframes\\artifacts\\snapshots\\0804d971-fe41-4dd0-9f7b-e1a78e63d00d\\frame-00-at-1.8s.png",
+      ".hyperframes\\artifacts\\snapshots\\0804d971-fe41-4dd0-9f7b-e1a78e63d00d\\frame-01-at-9.0s.png",
+      ".hyperframes\\artifacts\\snapshots\\0804d971-fe41-4dd0-9f7b-e1a78e63d00d\\frame-02-at-16.3s.png",
+      ".hyperframes\\artifacts\\snapshots\\0804d971-fe41-4dd0-9f7b-e1a78e63d00d\\frame-03-at-23.5s.png",
+      ".hyperframes\\artifacts\\snapshots\\0804d971-fe41-4dd0-9f7b-e1a78e63d00d\\frame-04-at-30.7s.png"
+    ],
+    "times": [
+      1.806,
+      9.028,
+      16.25,
+      23.472,
+      30.694
+    ],
+    "findingFiles": []
+  }
+}

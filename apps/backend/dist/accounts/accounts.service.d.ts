@@ -5,19 +5,20 @@ import { DebtsService } from '../debts/debts.service';
 export declare class AccountsService {
     private prisma;
     private eventsGateway;
-    private debtsService;
+    private debtsService?;
     private readonly logger;
-    constructor(prisma: PrismaService, eventsGateway: EventsGateway, debtsService: DebtsService);
+    constructor(prisma: PrismaService, eventsGateway: EventsGateway, debtsService?: DebtsService | undefined);
+    private hashPassword;
     isPayrollDue(account: any, now?: Date): boolean;
     executePayrollDeposit(account: any, currentUserId?: string, now?: Date): Promise<{
         transaction: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             householdId: string;
             type: import(".prisma/client").$Enums.TransactionType;
-            categoryId: string | null;
+            createdAt: Date;
+            updatedAt: Date;
             accountId: string;
+            categoryId: string | null;
             amount: import("@prisma/client/runtime/library").Decimal;
             description: string | null;
             date: Date;
@@ -33,10 +34,8 @@ export declare class AccountsService {
         };
         updatedAccount: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
             householdId: string;
+            name: string;
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
@@ -46,6 +45,8 @@ export declare class AccountsService {
             payrollDay2: number | null;
             payrollAutoDeposit: boolean;
             lastPayrollDeposit: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
         };
     }>;
     processPendingPayroll(householdId?: string): Promise<number>;
@@ -53,12 +54,12 @@ export declare class AccountsService {
         message: string;
         transaction: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             householdId: string;
             type: import(".prisma/client").$Enums.TransactionType;
-            categoryId: string | null;
+            createdAt: Date;
+            updatedAt: Date;
             accountId: string;
+            categoryId: string | null;
             amount: import("@prisma/client/runtime/library").Decimal;
             description: string | null;
             date: Date;
@@ -74,10 +75,8 @@ export declare class AccountsService {
         };
         account: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
             householdId: string;
+            name: string;
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
@@ -87,15 +86,18 @@ export declare class AccountsService {
             payrollDay2: number | null;
             payrollAutoDeposit: boolean;
             lastPayrollDeposit: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
         };
     }>;
-    findAllByHousehold(householdId: string): Promise<({
+    findAllByHousehold(householdId: string, userId?: string): Promise<(({
         debts: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             householdId: string;
             type: import(".prisma/client").$Enums.DebtType;
+            createdAt: Date;
+            updatedAt: Date;
+            accountId: string | null;
             contactName: string;
             totalAmount: import("@prisma/client/runtime/library").Decimal;
             remainingAmount: import("@prisma/client/runtime/library").Decimal;
@@ -111,14 +113,11 @@ export declare class AccountsService {
             minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
             alertDaysBefore: number | null;
             autoAlert: boolean;
-            accountId: string | null;
         }[];
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        name: string;
         householdId: string;
+        name: string;
         type: import(".prisma/client").$Enums.AccountType;
         balance: import("@prisma/client/runtime/library").Decimal;
         currency: string;
@@ -128,14 +127,60 @@ export declare class AccountsService {
         payrollDay2: number | null;
         payrollAutoDeposit: boolean;
         lastPayrollDeposit: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+    }) | {
+        isChildAccount: boolean;
+        parentEmail: string;
+        childEmail: string;
+        childName: string;
+        parentalControls: import("../household/parental-control.helper").ParentalControlConfig;
+        debts: {
+            id: string;
+            householdId: string;
+            type: import(".prisma/client").$Enums.DebtType;
+            createdAt: Date;
+            updatedAt: Date;
+            accountId: string | null;
+            contactName: string;
+            totalAmount: import("@prisma/client/runtime/library").Decimal;
+            remainingAmount: import("@prisma/client/runtime/library").Decimal;
+            dueDate: Date | null;
+            interestRate: import("@prisma/client/runtime/library").Decimal;
+            targetPayoffDate: Date | null;
+            monthlyTargetPayment: import("@prisma/client/runtime/library").Decimal | null;
+            mitigationStrategy: import(".prisma/client").$Enums.MitigationStrategy | null;
+            isPaidOff: boolean;
+            notes: string | null;
+            cutoffDay: number | null;
+            paymentDueDay: number | null;
+            minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
+            alertDaysBefore: number | null;
+            autoAlert: boolean;
+        }[];
+        id: string;
+        householdId: string;
+        name: string;
+        type: import(".prisma/client").$Enums.AccountType;
+        balance: import("@prisma/client/runtime/library").Decimal;
+        currency: string;
+        payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+        payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+        payrollDay1: number | null;
+        payrollDay2: number | null;
+        payrollAutoDeposit: boolean;
+        lastPayrollDeposit: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
     })[]>;
-    findOne(householdId: string, accountId: string): Promise<{
+    findOne(householdId: string, accountId: string, userId?: string): Promise<{
         debts: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             householdId: string;
             type: import(".prisma/client").$Enums.DebtType;
+            createdAt: Date;
+            updatedAt: Date;
+            accountId: string | null;
             contactName: string;
             totalAmount: import("@prisma/client/runtime/library").Decimal;
             remainingAmount: import("@prisma/client/runtime/library").Decimal;
@@ -151,14 +196,11 @@ export declare class AccountsService {
             minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
             alertDaysBefore: number | null;
             autoAlert: boolean;
-            accountId: string | null;
         }[];
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        name: string;
         householdId: string;
+        name: string;
         type: import(".prisma/client").$Enums.AccountType;
         balance: import("@prisma/client/runtime/library").Decimal;
         currency: string;
@@ -168,14 +210,17 @@ export declare class AccountsService {
         payrollDay2: number | null;
         payrollAutoDeposit: boolean;
         lastPayrollDeposit: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
-    create(householdId: string, dto: CreateAccountDto): Promise<{
+    create(householdId: string, dto: CreateAccountDto, currentUserId?: string): Promise<{
         debts: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             householdId: string;
             type: import(".prisma/client").$Enums.DebtType;
+            createdAt: Date;
+            updatedAt: Date;
+            accountId: string | null;
             contactName: string;
             totalAmount: import("@prisma/client/runtime/library").Decimal;
             remainingAmount: import("@prisma/client/runtime/library").Decimal;
@@ -191,14 +236,11 @@ export declare class AccountsService {
             minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
             alertDaysBefore: number | null;
             autoAlert: boolean;
-            accountId: string | null;
         }[];
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        name: string;
         householdId: string;
+        name: string;
         type: import(".prisma/client").$Enums.AccountType;
         balance: import("@prisma/client/runtime/library").Decimal;
         currency: string;
@@ -208,14 +250,17 @@ export declare class AccountsService {
         payrollDay2: number | null;
         payrollAutoDeposit: boolean;
         lastPayrollDeposit: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
-    update(householdId: string, accountId: string, dto: UpdateAccountDto): Promise<{
+    update(householdId: string, accountId: string, dto: UpdateAccountDto, currentUserId?: string): Promise<{
         debts: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             householdId: string;
             type: import(".prisma/client").$Enums.DebtType;
+            createdAt: Date;
+            updatedAt: Date;
+            accountId: string | null;
             contactName: string;
             totalAmount: import("@prisma/client/runtime/library").Decimal;
             remainingAmount: import("@prisma/client/runtime/library").Decimal;
@@ -231,14 +276,11 @@ export declare class AccountsService {
             minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
             alertDaysBefore: number | null;
             autoAlert: boolean;
-            accountId: string | null;
         }[];
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        name: string;
         householdId: string;
+        name: string;
         type: import(".prisma/client").$Enums.AccountType;
         balance: import("@prisma/client/runtime/library").Decimal;
         currency: string;
@@ -248,13 +290,13 @@ export declare class AccountsService {
         payrollDay2: number | null;
         payrollAutoDeposit: boolean;
         lastPayrollDeposit: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
-    delete(householdId: string, accountId: string): Promise<{
+    delete(householdId: string, accountId: string, currentUserId?: string): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        name: string;
         householdId: string;
+        name: string;
         type: import(".prisma/client").$Enums.AccountType;
         balance: import("@prisma/client/runtime/library").Decimal;
         currency: string;
@@ -264,5 +306,7 @@ export declare class AccountsService {
         payrollDay2: number | null;
         payrollAutoDeposit: boolean;
         lastPayrollDeposit: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
 }

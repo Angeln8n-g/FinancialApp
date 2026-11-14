@@ -39,6 +39,7 @@ describe('DebtsService', () => {
 
   const mockNotificationsService = {
     createNotification: jest.fn(),
+    create: jest.fn(),
   };
 
   const mockEventsGateway = {

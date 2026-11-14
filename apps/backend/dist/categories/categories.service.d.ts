@@ -4,9 +4,9 @@ export declare class CategoriesService {
     constructor(prisma: PrismaService);
     findAllByHousehold(householdId: string): Promise<{
         id: string;
-        createdAt: Date;
-        name: string;
         householdId: string | null;
+        name: string;
+        createdAt: Date;
         icon: string;
         color: string;
     }[]>;

@@ -34,10 +34,48 @@ export default function FamilyPage() {
   // Formulario Invitación & Unirme
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('COLLABORATOR');
+  const [inviteParentEmail, setInviteParentEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [joinLoading, setJoinLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Estados Cuentas de Niños & Control Parental
+  const [parentalChildren, setParentalChildren] = useState<any[]>([]);
+  const [showCreateChildModal, setShowCreateChildModal] = useState(false);
+  const [childFullName, setChildFullName] = useState('');
+  const [childEmail, setChildEmail] = useState('');
+  const [childPassword, setChildPassword] = useState('');
+  const [childParentEmail, setChildParentEmail] = useState('');
+  const [childInitialBalance, setChildInitialBalance] = useState('25.00');
+  const [childAllowanceAmount, setChildAllowanceAmount] = useState('50.00');
+  const [childMaxSingle, setChildMaxSingle] = useState('25.00');
+  const [childMaxDaily, setChildMaxDaily] = useState('50.00');
+  const [creatingChild, setCreatingChild] = useState(false);
+
+  // Modal Editar Límites de Control Parental
+  const [showEditParentalModal, setShowEditParentalModal] = useState(false);
+  const [selectedChildControl, setSelectedChildControl] = useState<any>(null);
+  const [editParentEmail, setEditParentEmail] = useState('');
+  const [editMaxSingle, setEditMaxSingle] = useState('25');
+  const [editMaxDaily, setEditMaxDaily] = useState('50');
+  const [editRequireApproval, setEditRequireApproval] = useState('20');
+  const [savingParental, setSavingParental] = useState(false);
+
+  // Modal Recargar Saldo a Cuenta de Niño
+  const [showTopUpModal, setShowTopUpModal] = useState(false);
+  const [selectedChildForTopUp, setSelectedChildForTopUp] = useState<any>(null);
+  const [topUpAmount, setTopUpAmount] = useState('20.00');
+  const [topUpFromAccountId, setTopUpFromAccountId] = useState('');
+  const [topUpNotes, setTopUpNotes] = useState('Recarga de saldo de control parental');
+  const [toppingUp, setToppingUp] = useState(false);
+
+  // Modal Solicitud de Permiso / Dinero Extra (Para Niños)
+  const [showChildRequestModal, setShowChildRequestModal] = useState(false);
+  const [selectedAllowanceForRequest, setSelectedAllowanceForRequest] = useState<any>(null);
+  const [reqAmount, setReqAmount] = useState('');
+  const [reqReason, setReqReason] = useState('');
+  const [sendingRequest, setSendingRequest] = useState(false);
 
   // Formulario Crear Mesada
   const [showAllowModal, setShowAllowModal] = useState(false);
@@ -402,6 +440,187 @@ export default function FamilyPage() {
     }
   };
 
+  const fetchParentalControls = async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/household/parental-controls`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setParentalChildren(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      console.log('Error cargando controles parentales:', e);
+    }
+  };
+
+  const handleCreateChildAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!childFullName.trim() || !childEmail.trim() || !childParentEmail.trim()) return;
+    setCreatingChild(true);
+    setMsg(null);
+    const token = getToken();
+
+    try {
+      const res = await fetch(`${API_URL}/api/household/child-account`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          childFullName: childFullName.trim(),
+          childEmail: childEmail.trim().toLowerCase(),
+          childPassword: childPassword.trim() || undefined,
+          parentEmail: childParentEmail.trim().toLowerCase(),
+          initialBalance: parseFloat(childInitialBalance) || 0,
+          allowanceAmount: parseFloat(childAllowanceAmount) || 50,
+          maxSingleTransaction: parseFloat(childMaxSingle) || 25,
+          maxDailySpend: parseFloat(childMaxDaily) || 50,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Error al crear la cuenta de niño');
+      }
+
+      setMsg({
+        type: 'success',
+        text: data.message || `¡Cuenta de niño para ${childFullName} creada y enlazada con ${childParentEmail}!`,
+      });
+      setShowCreateChildModal(false);
+      setChildFullName('');
+      setChildEmail('');
+      setChildPassword('');
+      await Promise.all([
+        fetchParentalControls(),
+        fetchMembers(),
+        fetchAccounts(),
+        fetchAllowances(),
+        fetchActivity(),
+      ]);
+    } catch (err: any) {
+      setMsg({ type: 'error', text: err.message });
+    } finally {
+      setCreatingChild(false);
+    }
+  };
+
+  const handleToggleFreezeChild = async (child: any) => {
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/api/household/parental-controls/${child.childUserId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ isFrozen: !child.isFrozen }),
+      });
+      if (res.ok) {
+        await Promise.all([fetchParentalControls(), fetchMembers(), fetchActivity()]);
+      }
+    } catch (e) {
+      console.error('Error al pausar/reactivar cuenta de niño:', e);
+    }
+  };
+
+  const handleSaveParentalLimits = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedChildControl) return;
+    setSavingParental(true);
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/api/household/parental-controls/${selectedChildControl.childUserId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          parentEmail: editParentEmail.trim().toLowerCase() || undefined,
+          maxSingleTransaction: parseFloat(editMaxSingle) || 25,
+          maxDailySpend: parseFloat(editMaxDaily) || 50,
+          requireApprovalAbove: parseFloat(editRequireApproval) || 20,
+        }),
+      });
+      if (res.ok) {
+        setShowEditParentalModal(false);
+        setSelectedChildControl(null);
+        await Promise.all([fetchParentalControls(), fetchMembers(), fetchActivity()]);
+      }
+    } catch (e) {
+      console.error('Error actualizando límites parentales:', e);
+    } finally {
+      setSavingParental(false);
+    }
+  };
+
+  const handleTopUpChildAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedChildForTopUp || !topUpAmount) return;
+    setToppingUp(true);
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/api/household/parental-controls/${selectedChildForTopUp.childUserId}/topup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          amount: parseFloat(topUpAmount),
+          fromAccountId: topUpFromAccountId || undefined,
+          notes: topUpNotes.trim() || undefined,
+        }),
+      });
+      if (res.ok) {
+        setShowTopUpModal(false);
+        setSelectedChildForTopUp(null);
+        setTopUpAmount('20.00');
+        await Promise.all([fetchParentalControls(), fetchAccounts(), fetchActivity()]);
+      }
+    } catch (e) {
+      console.error('Error recargando cuenta de niño:', e);
+    } finally {
+      setToppingUp(false);
+    }
+  };
+
+  const handleSendChildRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAllowanceForRequest || !reqAmount || !reqReason.trim()) return;
+    setSendingRequest(true);
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/api/allowances/${selectedAllowanceForRequest.id}/request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          amount: parseFloat(reqAmount),
+          reason: reqReason.trim(),
+        }),
+      });
+      if (res.ok) {
+        setShowChildRequestModal(false);
+        setReqAmount('');
+        setReqReason('');
+        await Promise.all([fetchAllowanceRequests(), fetchActivity()]);
+        alert('¡Solicitud enviada a tu padre/tutor para aprobación!');
+      }
+    } catch (e) {
+      console.error('Error enviando solicitud:', e);
+    } finally {
+      setSendingRequest(false);
+    }
+  };
+
   useEffect(() => {
     const uStr = localStorage.getItem('hogariq_user');
     const hStr = localStorage.getItem('hogariq_household');
@@ -411,10 +630,16 @@ export default function FamilyPage() {
       return;
     }
 
-    setCurrentUser(JSON.parse(uStr));
+    const parsedUser = JSON.parse(uStr);
+    setCurrentUser(parsedUser);
+    if (parsedUser?.email) {
+      setInviteParentEmail(parsedUser.email);
+      setChildParentEmail(parsedUser.email);
+    }
     if (hStr) setHousehold(JSON.parse(hStr));
 
     fetchMembers();
+    fetchParentalControls();
     fetchAllowances();
     fetchAccounts();
     fetchActivity();
@@ -546,7 +771,12 @@ export default function FamilyPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+        body: JSON.stringify({
+          email: inviteEmail,
+          role: inviteRole,
+          isChildAccount: inviteRole === 'DEPENDENT',
+          parentEmail: inviteRole === 'DEPENDENT' ? (inviteParentEmail || currentUser?.email) : undefined,
+        }),
       });
 
       const data = await res.json();
@@ -555,12 +785,15 @@ export default function FamilyPage() {
         throw new Error(data.message || 'Error al invitar al familiar');
       }
 
-      setMsg({ type: 'success', text: `¡Invitación enviada a ${inviteEmail}! Código: ${data.invitationCode}` });
+      setMsg({ type: 'success', text: data.message || `¡Invitación enviada a ${inviteEmail}! Código: ${data.invitationCode}` });
       if (data.inviteLink) {
         setLastInviteLink(data.inviteLink);
       }
       setInviteEmail('');
       fetchMembers();
+      fetchParentalControls();
+      fetchAccounts();
+      fetchAllowances();
       fetchInvitations();
       fetchActivity();
     } catch (err: any) {
@@ -690,6 +923,17 @@ export default function FamilyPage() {
     }
   };
 
+  const isChildAccount = Boolean(
+    household?.role === 'DEPENDENT' ||
+      household?.isChildAccount ||
+      currentUser?.isChildAccount,
+  );
+  const myParentalControl =
+    parentalChildren.find((c) => c.childUserId === currentUser?.id) ||
+    household?.parentalControls ||
+    currentUser?.parentalControls ||
+    null;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0A1128] text-slate-100 flex items-center justify-center">
@@ -704,12 +948,76 @@ export default function FamilyPage() {
 
       {/* Main Container */}
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+        {isChildAccount ? (
+          /* 👦 VISTA EXCLUSIVA PARA CUENTA DE NIÑO EN SECCIÓN FAMILIA */
+          <div className="glass-card p-6 border border-amber-500/35 bg-gradient-to-br from-[#101A36] to-amber-950/20 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-amber-400" />
+                  <h2 className="text-lg font-bold text-white">
+                    Mi Enlace Familiar y Control Parental
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-300 mt-1">
+                  Tu cuenta de niño está enlazada automáticamente con el correo de tu padre/tutor:{' '}
+                  <strong className="text-amber-300">
+                    {myParentalControl?.parentEmail || household?.parentEmail || currentUser?.parentEmail || 'Tutor familiar'}
+                  </strong>
+                </p>
+              </div>
+              <Link
+                href="/dashboard"
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold self-start sm:self-auto"
+              >
+                ← Ir a Mi Cuenta de Niño
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+              <div className="p-3.5 rounded-xl bg-[#0A1128]/80 border border-[#1E2B4D]">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Estado de Cuenta</span>
+                <p className={`text-sm font-bold mt-1 ${myParentalControl?.isFrozen ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  {myParentalControl?.isFrozen ? '🔒 Pausada por Control Parental' : '✅ Activa'}
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl bg-[#0A1128]/80 border border-[#1E2B4D]">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Límite por Compra</span>
+                <p className="text-sm font-bold text-slate-100 tabular-nums mt-1">
+                  ${Number(myParentalControl?.maxSingleTransaction || 25).toFixed(2)}
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl bg-[#0A1128]/80 border border-[#1E2B4D]">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Límite Diario</span>
+                <p className="text-sm font-bold text-slate-100 tabular-nums mt-1">
+                  ${Number(myParentalControl?.maxDailySpend || 50).toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+        <>
         {/* Formulario Invitación */}
         <div className="glass-card p-6 border border-[#1E2B4D]">
-          <h2 className="text-lg font-bold text-white mb-2">Invitar a un nuevo Integrante</h2>
-          <p className="text-xs text-slate-400 mb-6">
-            Agrega parejas, hijos o colaboradores a las finanzas familiares con permisos específicos.
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-lg font-bold text-white mb-1">Invitar a un nuevo Integrante</h2>
+              <p className="text-xs text-slate-400">
+                Agrega parejas, hijos o colaboradores a las finanzas familiares con permisos específicos.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (currentUser?.email && !childParentEmail) setChildParentEmail(currentUser.email);
+                setShowCreateChildModal(true);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shrink-0"
+            >
+              <ShieldCheck className="w-4 h-4 text-amber-400" />
+              <span>+ Crear Cuenta de Niño con Control Parental</span>
+            </button>
+          </div>
 
           {msg && (
             <div className={`mb-4 p-3 rounded-xl text-xs font-semibold ${msg.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/30 text-rose-400'}`}>
@@ -717,34 +1025,61 @@ export default function FamilyPage() {
             </div>
           )}
 
-          <form onSubmit={handleInvite} className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="email"
-              required
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="familiar@ejemplo.com"
-              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-emerald-400"
-            />
+          <form onSubmit={handleInvite} className="space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="email"
+                required
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder={inviteRole === 'DEPENDENT' ? 'correo.hijo@ejemplo.com' : 'familiar@ejemplo.com'}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-emerald-400"
+              />
 
-            <select
-              value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value)}
-              className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-emerald-400"
-            >
-              <option value="COLLABORATOR">Colaborador (Editar)</option>
-              <option value="ADMIN">Administrador (Control Total)</option>
-              <option value="VIEWER">Espectador (Solo Ver)</option>
-              <option value="DEPENDENT">👦 Hijo / Dependiente (Solo su Mesada)</option>
-            </select>
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value)}
+                className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-emerald-400"
+              >
+                <option value="COLLABORATOR">Colaborador (Editar)</option>
+                <option value="ADMIN">Administrador (Control Total)</option>
+                <option value="VIEWER">Espectador (Solo Ver)</option>
+                <option value="DEPENDENT">👦 Cuenta para Niño (Con Control Parental)</option>
+              </select>
 
-            <button
-              type="submit"
-              disabled={inviteLoading}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all text-xs font-bold text-white rounded-xl cursor-pointer disabled:opacity-50 shrink-0"
-            >
-              {inviteLoading ? 'Enviando...' : 'Generar Invitación'}
-            </button>
+              <button
+                type="submit"
+                disabled={inviteLoading}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all text-xs font-bold text-white rounded-xl cursor-pointer disabled:opacity-50 shrink-0"
+              >
+                {inviteLoading ? 'Enviando...' : inviteRole === 'DEPENDENT' ? 'Enlazar Cuenta de Niño' : 'Generar Invitación'}
+              </button>
+            </div>
+
+            {inviteRole === 'DEPENDENT' && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2">
+                <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  <span>Enlace Automático de Control Parental</span>
+                </div>
+                <p className="text-[11px] text-slate-300">
+                  Especifica el correo del padre o madre que tendrá el control parental. El niño solo tendrá acceso a su propia cuenta de niño y quedará enlazado automáticamente.
+                </p>
+                <div>
+                  <label className="block text-[10px] font-bold text-amber-300 uppercase tracking-wider mb-1">
+                    Correo del Padre / Madre con Control Parental *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={inviteParentEmail}
+                    onChange={(e) => setInviteParentEmail(e.target.value)}
+                    placeholder="padre@ejemplo.com"
+                    className="w-full sm:max-w-md px-3.5 py-2 rounded-xl bg-slate-950 border border-amber-500/40 text-xs text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+            )}
           </form>
 
           {lastInviteLink && (
@@ -790,6 +1125,199 @@ export default function FamilyPage() {
             </form>
           </div>
         </div>
+
+        {/* 🛡️ CUENTAS DE NIÑOS & CONTROL PARENTAL */}
+        <section className="glass-card p-6 border border-amber-500/30 bg-gradient-to-br from-[#101A36] via-[#101A36] to-amber-950/10 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-amber-400" />
+                <h3 className="text-lg font-bold text-white">
+                  Cuentas de Niños con Control Parental ({parentalChildren.length})
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Cada cuenta de niño tiene acceso exclusivo a su propio saldo y está enlazada automáticamente con el correo del padre/madre tutor.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                if (currentUser?.email && !childParentEmail) setChildParentEmail(currentUser.email);
+                setShowCreateChildModal(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs cursor-pointer shadow-md transition-all self-start sm:self-auto"
+            >
+              + Nueva Cuenta para Niño
+            </button>
+          </div>
+
+          {parentalChildren.length === 0 ? (
+            <div className="p-6 rounded-2xl border border-dashed border-amber-500/30 bg-[#0A1128]/50 text-center space-y-2">
+              <p className="text-xs text-slate-300 font-semibold">
+                Aún no hay cuentas de niños con control parental en este hogar.
+              </p>
+              <p className="text-[11px] text-slate-400 max-w-lg mx-auto">
+                Crea una cuenta para tu hijo/a especificando el correo del padre tutor. Quedarán automáticamente enlazados y el niño solo tendrá acceso a su cuenta de niño.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {parentalChildren.map((child) => {
+                const dailyPct =
+                  child.maxDailySpend > 0
+                    ? Math.min(100, Math.round((Number(child.todaySpent || 0) / Number(child.maxDailySpend)) * 100))
+                    : 0;
+
+                return (
+                  <div
+                    key={child.childUserId}
+                    className={`p-5 rounded-2xl border space-y-4 transition-all ${
+                      child.isFrozen
+                        ? 'bg-rose-950/15 border-rose-500/40'
+                        : 'bg-[#0A1128]/90 border-amber-500/30'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-white">👦 {child.childName}</span>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              child.isFrozen
+                                ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                                : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                            }`}
+                          >
+                            {child.isFrozen ? '🔒 Congelada' : '🛡️ Control Activo'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">{child.childEmail}</p>
+                        <p className="text-[11px] text-amber-300 font-semibold mt-1">
+                          Tutor enlazado: {child.parentEmail}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase text-slate-400 font-bold block">
+                          Saldo Cuenta Niño
+                        </span>
+                        <span className="text-lg font-extrabold text-emerald-400 tabular-nums">
+                          ${Number(child.account?.balance ?? 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Límites y Consumo de Hoy */}
+                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">
+                          Máx. por compra: <strong className="text-white tabular-nums">${Number(child.maxSingleTransaction).toFixed(2)}</strong>
+                        </span>
+                        <span className="text-slate-400">
+                          Tope diario: <strong className="text-amber-300 tabular-nums">${Number(child.maxDailySpend).toFixed(2)}</strong>
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-slate-950 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${dailyPct >= 90 ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                          style={{ width: `${dailyPct}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] text-slate-400">
+                        <span>Gastado hoy: ${Number(child.todaySpent || 0).toFixed(2)} ({dailyPct}%)</span>
+                        <span>Acceso: Solo Cuenta de Niño</span>
+                      </div>
+                    </div>
+
+                    {/* Botones de Control Parental */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        onClick={() => {
+                          setSelectedChildForTopUp(child);
+                          if (accounts.length > 0 && !topUpFromAccountId) {
+                            const adultAcc = accounts.find((a) => !a.isChildAccount) || accounts[0];
+                            setTopUpFromAccountId(adultAcc.id);
+                          }
+                          setShowTopUpModal(true);
+                        }}
+                        className="flex-1 py-2 px-3 rounded-xl bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-200 border border-emerald-500/30 text-xs font-bold cursor-pointer transition-colors"
+                      >
+                        💵 Recargar
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setSelectedChildControl(child);
+                          setEditParentEmail(child.parentEmail || currentUser?.email || '');
+                          setEditMaxSingle(String(child.maxSingleTransaction || 25));
+                          setEditMaxDaily(String(child.maxDailySpend || 50));
+                          setEditRequireApproval(String(child.requireApprovalAbove || 20));
+                          setShowEditParentalModal(true);
+                        }}
+                        className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold cursor-pointer transition-colors"
+                      >
+                        ⚙️ Límites / Tutor
+                      </button>
+
+                      <button
+                        onClick={() => handleToggleFreezeChild(child)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold cursor-pointer border transition-colors ${
+                          child.isFrozen
+                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
+                            : 'bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border-rose-500/30'
+                        }`}
+                        title={child.isFrozen ? 'Descongelar cuenta del niño' : 'Congelar compras del niño'}
+                      >
+                        {child.isFrozen ? '🔓 Activar' : '🔒 Pausar'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Solicitudes de Permiso / Dinero Extra de los Niños */}
+          {allowanceRequests.filter((r) => r.status === 'PENDING').length > 0 && (
+            <div className="pt-4 border-t border-slate-800 space-y-2.5">
+              <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                <span>🙋‍♂️ Solicitudes de Permiso / Dinero Extra Pendientes</span>
+              </h4>
+              <div className="space-y-2">
+                {allowanceRequests
+                  .filter((r) => r.status === 'PENDING')
+                  .map((req) => (
+                    <div
+                      key={req.id}
+                      className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                    >
+                      <div>
+                        <p className="font-bold text-white">
+                          👦 {req.memberName} solicita{' '}
+                          <span className="text-emerald-400 tabular-nums">+${Number(req.amount).toFixed(2)}</span>
+                        </p>
+                        <p className="text-slate-300 text-[11px] mt-0.5">Motivo: "{req.reason}"</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handleRespondRequest(req.id, 'APPROVED')}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold cursor-pointer"
+                        >
+                          ✓ Aprobar y Acreditar
+                        </button>
+                        <button
+                          onClick={() => handleRespondRequest(req.id, 'REJECTED')}
+                          className="px-3 py-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-500/30 font-bold cursor-pointer"
+                        >
+                          ✕ Rechazar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+        </section>
 
         {/* Lista de Miembros */}
         <div className="space-y-4">
@@ -1085,32 +1613,44 @@ export default function FamilyPage() {
             )}
           </div>
         </div>
+        </>
+        )}
 
         {/* 💸 2. CONTROL DE MESADAS & PRESUPUESTOS FAMILIARES */}
         <section className="glass-card p-6 border border-[#1E2B4D] space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold text-white">💸 Mesadas & Presupuestos para Integrantes</h3>
-              <p className="text-xs text-slate-400">Asigna presupuestos periódicos a tus hijos o familiares dependientes con seguimiento de consumo.</p>
+              <h3 className="text-lg font-bold text-white">
+                {isChildAccount ? '💸 Mi Mesada y Presupuesto' : '💸 Mesadas & Presupuestos para Integrantes'}
+              </h3>
+              <p className="text-xs text-slate-400">
+                {isChildAccount
+                  ? 'Revisa cuánto llevas consumido de tu mesada y solicita permiso o saldo extra a tu padre/tutor.'
+                  : 'Asigna presupuestos periódicos a tus hijos o familiares dependientes con seguimiento de consumo.'}
+              </p>
             </div>
-            <button
-              onClick={() => {
-                if (members.length > 0 && !allowMemberId) setAllowMemberId(members[0].id);
-                setShowAllowModal(true);
-              }}
-              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all text-xs font-bold text-white cursor-pointer shadow-md"
-            >
-              + Asignar Mesada
-            </button>
+            {!isChildAccount && (
+              <button
+                onClick={() => {
+                  if (members.length > 0 && !allowMemberId) setAllowMemberId(members[0].id);
+                  setShowAllowModal(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all text-xs font-bold text-white cursor-pointer shadow-md"
+              >
+                + Asignar Mesada
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {allowances.length === 0 ? (
+            {allowances.filter((a) => !isChildAccount || a.member?.userId === currentUser?.id).length === 0 ? (
               <div className="col-span-2 text-center py-6 border border-dashed border-slate-800 rounded-xl">
                 <p className="text-xs text-slate-400">No hay mesadas ni límites asignados aún.</p>
               </div>
             ) : (
-              allowances.map((a) => {
+              allowances
+                .filter((a) => !isChildAccount || a.member?.userId === currentUser?.id)
+                .map((a) => {
                 const pct = a.percentageUsed || 0;
                 const barColor = pct >= 90 ? 'bg-rose-500' : pct >= 70 ? 'bg-amber-500' : 'bg-emerald-500';
                 const badgeColor = pct >= 90 ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' : pct >= 70 ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
@@ -1128,13 +1668,15 @@ export default function FamilyPage() {
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeColor}`}>
                           {a.period === 'WEEKLY' ? 'Semanal' : 'Mensual'}
                         </span>
-                        <button
-                          onClick={() => handleDeleteAllowance(a.id)}
-                          className="text-slate-500 hover:text-rose-400 text-xs font-bold cursor-pointer"
-                          title="Eliminar Mesada"
-                        >
-                          🗑️
-                        </button>
+                        {!isChildAccount && (
+                          <button
+                            onClick={() => handleDeleteAllowance(a.id)}
+                            className="text-slate-500 hover:text-rose-400 text-xs font-bold cursor-pointer"
+                            title="Eliminar Mesada"
+                          >
+                            🗑️
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -1159,33 +1701,49 @@ export default function FamilyPage() {
 
                     {/* Acciones de Mesada */}
                     <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
-                      <button
-                        onClick={() => {
-                          setSelectedAllowance(a);
-                          setExpenseAmount('');
-                          setShowExpenseModal(true);
-                        }}
-                        className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 cursor-pointer border border-slate-700 transition-colors"
-                      >
-                        📉 Gasto
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedAllowance(a);
-                          setDisburseAmount(a.limitAmount.toString());
-                          setShowDisburseModal(true);
-                        }}
-                        className="flex-1 py-2 px-3 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 text-xs font-bold cursor-pointer border border-emerald-500/30 transition-colors"
-                      >
-                        💵 Desembolsar
-                      </button>
-                      <button
-                        onClick={() => handleResetAllowance(a.id)}
-                        className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-bold cursor-pointer border border-slate-700"
-                        title="Reiniciar consumo a $0"
-                      >
-                        🔄
-                      </button>
+                      {isChildAccount ? (
+                        <button
+                          onClick={() => {
+                            setSelectedAllowanceForRequest(a);
+                            setReqAmount('10.00');
+                            setReqReason('');
+                            setShowChildRequestModal(true);
+                          }}
+                          className="w-full py-2.5 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-bold cursor-pointer border border-amber-500/40 transition-colors"
+                        >
+                          🙋‍♂️ Pedir Permiso / Dinero Extra a Papá o Mamá
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => {
+                              setSelectedAllowance(a);
+                              setExpenseAmount('');
+                              setShowExpenseModal(true);
+                            }}
+                            className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 cursor-pointer border border-slate-700 transition-colors"
+                          >
+                            📉 Gasto
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedAllowance(a);
+                              setDisburseAmount(a.limitAmount.toString());
+                              setShowDisburseModal(true);
+                            }}
+                            className="flex-1 py-2 px-3 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 text-xs font-bold cursor-pointer border border-emerald-500/30 transition-colors"
+                          >
+                            💵 Desembolsar
+                          </button>
+                          <button
+                            onClick={() => handleResetAllowance(a.id)}
+                            className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-bold cursor-pointer border border-slate-700"
+                            title="Reiniciar consumo a $0"
+                          >
+                            🔄
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
@@ -1203,18 +1761,20 @@ export default function FamilyPage() {
                 <h3 className="text-lg font-bold text-white">Misiones Familiares & Tareas Remuneradas</h3>
               </div>
               <p className="text-xs text-slate-400 mt-1">
-                Gamificación financiera: Asigna misiones y recompensas a tus hijos para cultivar hábitos de esfuerzo, ahorro y responsabilidad.
+                Gamificación financiera: Completa misiones y recibe recompensas directamente en tu cuenta.
               </p>
             </div>
-            <button
-              onClick={() => {
-                if (members.length > 0 && !missionMemberId) setMissionMemberId(members[0].id);
-                setShowMissionModal(true);
-              }}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 text-white font-bold text-xs cursor-pointer shadow-md self-start sm:self-auto transition-all"
-            >
-              + Nueva Misión
-            </button>
+            {!isChildAccount && (
+              <button
+                onClick={() => {
+                  if (members.length > 0 && !missionMemberId) setMissionMemberId(members[0].id);
+                  setShowMissionModal(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 text-white font-bold text-xs cursor-pointer shadow-md self-start sm:self-auto transition-all"
+              >
+                + Nueva Misión
+              </button>
+            )}
           </div>
 
           {/* Grid de Misiones */}
@@ -1255,13 +1815,15 @@ export default function FamilyPage() {
                         >
                           {isPaid ? '✓ Pagada' : isDone ? '⚡ Por Aprobar' : '⏳ Pendiente'}
                         </span>
-                        <button
-                          onClick={() => handleDeleteMission(m.id)}
-                          className="text-slate-500 hover:text-rose-400 text-xs p-0.5"
-                          title="Eliminar misión"
-                        >
-                          ✕
-                        </button>
+                        {!isChildAccount && (
+                          <button
+                            onClick={() => handleDeleteMission(m.id)}
+                            className="text-slate-500 hover:text-rose-400 text-xs p-0.5"
+                            title="Eliminar misión"
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -1288,7 +1850,7 @@ export default function FamilyPage() {
                           </button>
                         )}
 
-                        {m.status === 'COMPLETED' && (
+                        {m.status === 'COMPLETED' && !isChildAccount && (
                           <button
                             onClick={() => {
                               setSelectedMission(m);
@@ -1828,6 +2390,392 @@ export default function FamilyPage() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Crear y Enlazar Cuenta de Niño con Control Parental */}
+        {showCreateChildModal && (
+          <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="glass-card w-full max-w-lg p-6 relative border border-amber-500/40 my-8">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-amber-400" />
+                  <h3 className="text-base font-bold text-white">
+                    Crear Cuenta para Niño con Control Parental
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowCreateChildModal(false)}
+                  className="text-slate-400 hover:text-white cursor-pointer text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-300 mb-4 leading-relaxed">
+                El niño solo tendrá acceso a su propia cuenta de niño y quedará enlazado automáticamente con el correo del padre o madre tutor.
+              </p>
+
+              <form onSubmit={handleCreateChildAccount} className="space-y-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                      Nombre del Niño/a *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={childFullName}
+                      onChange={(e) => setChildFullName(e.target.value)}
+                      placeholder="Ej. Mateo Pérez"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                      Correo de la Cuenta del Niño *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={childEmail}
+                      onChange={(e) => setChildEmail(e.target.value)}
+                      placeholder="mateo@ejemplo.com"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-amber-300 uppercase mb-1">
+                      Correo del Padre con Control Parental *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={childParentEmail}
+                      onChange={(e) => setChildParentEmail(e.target.value)}
+                      placeholder="padre@ejemplo.com"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-amber-500/40 text-xs text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                      Contraseña de Acceso del Niño
+                    </label>
+                    <input
+                      type="password"
+                      value={childPassword}
+                      onChange={(e) => setChildPassword(e.target.value)}
+                      placeholder="Mín. 6 caracteres"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                      Saldo Inicial ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={childInitialBalance}
+                      onChange={(e) => setChildInitialBalance(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-emerald-400 tabular-nums"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                      Mesada ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={childAllowanceAmount}
+                      onChange={(e) => setChildAllowanceAmount(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-white tabular-nums"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                      Máx Compra ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={childMaxSingle}
+                      onChange={(e) => setChildMaxSingle(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-amber-300 tabular-nums"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                      Tope Diario ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={childMaxDaily}
+                      onChange={(e) => setChildMaxDaily(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-amber-300 tabular-nums"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateChildModal(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingChild}
+                    className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs cursor-pointer shadow-md"
+                  >
+                    {creatingChild ? 'Enlazando Cuenta...' : '🛡️ Crear y Enlazar Cuenta de Niño'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Editar Límites de Control Parental */}
+        {showEditParentalModal && selectedChildControl && (
+          <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="glass-card w-full max-w-md p-6 relative border border-amber-500/40">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-bold text-white">
+                  ⚙️ Control Parental: {selectedChildControl.childName}
+                </h3>
+                <button
+                  onClick={() => setShowEditParentalModal(false)}
+                  className="text-slate-400 hover:text-white cursor-pointer text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveParentalLimits} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-amber-300 uppercase mb-1">
+                    Correo del Padre / Madre con Control Parental
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={editParentEmail}
+                    onChange={(e) => setEditParentEmail(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-amber-500/40 text-xs text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                      Máximo por Compra ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={editMaxSingle}
+                      onChange={(e) => setEditMaxSingle(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm font-bold text-white tabular-nums"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                      Límite Diario ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={editMaxDaily}
+                      onChange={(e) => setEditMaxDaily(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm font-bold text-white tabular-nums"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditParentalModal(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingParental}
+                    className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer"
+                  >
+                    {savingParental ? 'Guardando...' : 'Guardar Cambios'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Recargar Saldo a Cuenta de Niño */}
+        {showTopUpModal && selectedChildForTopUp && (
+          <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="glass-card w-full max-w-md p-6 relative border border-emerald-500/40">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-bold text-white">
+                  💵 Recargar Cuenta de {selectedChildForTopUp.childName}
+                </h3>
+                <button
+                  onClick={() => setShowTopUpModal(false)}
+                  className="text-slate-400 hover:text-white cursor-pointer text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleTopUpChildAccount} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                    Cuenta de Origen (Opcional)
+                  </label>
+                  <select
+                    value={topUpFromAccountId}
+                    onChange={(e) => setTopUpFromAccountId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
+                  >
+                    <option value="">Recarga directa (Sin descontar de otra cuenta)</option>
+                    {accounts
+                      .filter((a) => !a.isChildAccount)
+                      .map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name} (${Number(a.balance).toFixed(2)})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                    Monto a Recargar ($) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.50"
+                    required
+                    value={topUpAmount}
+                    onChange={(e) => setTopUpAmount(e.target.value)}
+                    className="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-slate-700 text-lg font-extrabold text-emerald-400 tabular-nums"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                    Concepto / Nota
+                  </label>
+                  <input
+                    type="text"
+                    value={topUpNotes}
+                    onChange={(e) => setTopUpNotes(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowTopUpModal(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={toppingUp}
+                    className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer"
+                  >
+                    {toppingUp ? 'Recargando...' : `✓ Acreditar $${Number(topUpAmount || 0).toFixed(2)}`}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Solicitar Permiso / Dinero Extra al Padre (Vista Niño) */}
+        {showChildRequestModal && selectedAllowanceForRequest && (
+          <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="glass-card w-full max-w-md p-6 relative border border-amber-500/40">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-bold text-white">
+                  🙋‍♂️ Pedir Permiso / Dinero Extra a Papá o Mamá
+                </h3>
+                <button
+                  onClick={() => setShowChildRequestModal(false)}
+                  className="text-slate-400 hover:text-white cursor-pointer text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSendChildRequest} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                    Monto Solicitado ($) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.50"
+                    required
+                    value={reqAmount}
+                    onChange={(e) => setReqAmount(e.target.value)}
+                    placeholder="10.00"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-base font-bold text-emerald-400 tabular-nums"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                    ¿Para qué necesitas el permiso o dinero? *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={reqReason}
+                    onChange={(e) => setReqReason(e.target.value)}
+                    placeholder="Ej. Libro del colegio / Salida con amigos"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowChildRequestModal(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sendingRequest}
+                    className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs cursor-pointer"
+                  >
+                    {sendingRequest ? 'Enviando...' : 'Enviar Solicitud al Padre'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

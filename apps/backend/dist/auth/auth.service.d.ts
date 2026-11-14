@@ -14,11 +14,18 @@ export declare class AuthService {
             email: string;
             fullName: string | null;
             avatarUrl: string | null;
+            isChildAccount: boolean;
+            parentEmail: any;
+            childAccountId: any;
         };
         household: {
             id: string;
             name: string;
             role: import(".prisma/client").$Enums.Role;
+            isChildAccount: boolean;
+            parentEmail: any;
+            childAccountId: any;
+            parentalControls: any;
         } | null;
         availableHouseholds: {
             id: string;
@@ -30,15 +37,60 @@ export declare class AuthService {
     register(registerDto: RegisterDto): Promise<{
         accessToken: string;
         user: {
+            id: any;
+            email: any;
+            fullName: any;
+            isChildAccount: boolean;
+            parentEmail: string;
+            childAccountId: string;
+        };
+        household: {
+            id: string;
+            name: string;
+            role: string;
+            isChildAccount: boolean;
+            parentEmail: string;
+            childAccountId: string;
+            parentalControls: import("../household/parental-control.helper").ParentalControlConfig;
+        };
+    } | {
+        accessToken: string;
+        user: {
             id: string;
             email: string;
             fullName: string | null;
+            isChildAccount: boolean;
+            parentEmail: string | null;
+            childAccountId: string | null;
         };
         household: {
             id: string;
             name: string;
             role: import(".prisma/client").$Enums.Role;
+            isChildAccount: boolean;
+            parentEmail: string | null;
+            childAccountId: string | null;
+            parentalControls: import("../household/parental-control.helper").ParentalControlConfig | null;
         } | null;
+    } | {
+        accessToken: string;
+        user: {
+            id: string;
+            email: string;
+            fullName: string | null;
+            isChildAccount: boolean;
+            parentEmail?: undefined;
+            childAccountId?: undefined;
+        };
+        household: {
+            id: string;
+            name: string;
+            role: import(".prisma/client").$Enums.Role;
+            isChildAccount: boolean;
+            parentEmail?: undefined;
+            childAccountId?: undefined;
+            parentalControls?: undefined;
+        };
     }>;
     switchHousehold(userId: string, targetHouseholdId: string): Promise<{
         accessToken: string;
@@ -47,11 +99,18 @@ export declare class AuthService {
             email: string;
             fullName: string | null;
             avatarUrl: string | null;
+            isChildAccount: boolean;
+            parentEmail: string | null;
+            childAccountId: string | null;
         };
         household: {
             id: string;
             name: string;
             role: import(".prisma/client").$Enums.Role;
+            isChildAccount: boolean;
+            parentEmail: string | null;
+            childAccountId: string | null;
+            parentalControls: import("../household/parental-control.helper").ParentalControlConfig | null;
         };
     }>;
     getMe(userId: string, householdId: string): Promise<{
@@ -60,11 +119,18 @@ export declare class AuthService {
             email: string;
             fullName: string | null;
             avatarUrl: string | null;
+            isChildAccount: boolean;
+            parentEmail: string | null;
+            childAccountId: string | null;
         };
         household: {
             id: string;
             name: string;
             role: import(".prisma/client").$Enums.Role;
+            isChildAccount: boolean;
+            parentEmail: string | null;
+            childAccountId: string | null;
+            parentalControls: import("../household/parental-control.helper").ParentalControlConfig | null;
         } | null;
         availableHouseholds: {
             id: string;
@@ -81,59 +147,31 @@ export declare class AuthService {
             email: string;
             fullName: string | null;
             id: string;
-            avatarUrl: string | null;
             createdAt: Date;
+            avatarUrl: string | null;
             memberships: ({
                 household: {
-                    allowances: {
+                    subscriptions: {
                         id: string;
-                        createdAt: Date;
                         householdId: string;
-                        memberId: string;
-                        title: string;
-                        limitAmount: import("@prisma/client/runtime/library").Decimal;
-                        spentAmount: import("@prisma/client/runtime/library").Decimal;
-                        period: import(".prisma/client").$Enums.RecurrencePeriod;
-                    }[];
-                    accounts: {
-                        id: string;
-                        createdAt: Date;
-                        updatedAt: Date;
                         name: string;
-                        householdId: string;
-                        type: import(".prisma/client").$Enums.AccountType;
-                        balance: import("@prisma/client/runtime/library").Decimal;
-                        currency: string;
-                        payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
-                        payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
-                        payrollDay1: number | null;
-                        payrollDay2: number | null;
-                        payrollAutoDeposit: boolean;
-                        lastPayrollDeposit: Date | null;
-                    }[];
-                    categories: {
-                        id: string;
                         createdAt: Date;
-                        name: string;
-                        householdId: string | null;
-                        icon: string;
-                        color: string;
-                    }[];
-                    budgets: {
-                        id: string;
-                        householdId: string;
-                        limitAmount: import("@prisma/client/runtime/library").Decimal;
                         period: import(".prisma/client").$Enums.RecurrencePeriod;
-                        categoryId: string;
-                        startDate: Date;
-                        endDate: Date | null;
+                        accountId: string | null;
+                        categoryId: string | null;
+                        cost: import("@prisma/client/runtime/library").Decimal;
+                        nextBillingDate: Date;
+                        autoDeduct: boolean;
+                        lastDeductAttempt: Date | null;
+                        isActive: boolean;
                     }[];
                     debts: {
                         id: string;
-                        createdAt: Date;
-                        updatedAt: Date;
                         householdId: string;
                         type: import(".prisma/client").$Enums.DebtType;
+                        createdAt: Date;
+                        updatedAt: Date;
+                        accountId: string | null;
                         contactName: string;
                         totalAmount: import("@prisma/client/runtime/library").Decimal;
                         remainingAmount: import("@prisma/client/runtime/library").Decimal;
@@ -149,26 +187,54 @@ export declare class AuthService {
                         minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
                         alertDaysBefore: number | null;
                         autoAlert: boolean;
-                        accountId: string | null;
                     }[];
-                    subscriptions: {
+                    allowances: {
                         id: string;
-                        createdAt: Date;
-                        name: string;
                         householdId: string;
+                        memberId: string;
+                        createdAt: Date;
+                        title: string;
+                        limitAmount: import("@prisma/client/runtime/library").Decimal;
+                        spentAmount: import("@prisma/client/runtime/library").Decimal;
                         period: import(".prisma/client").$Enums.RecurrencePeriod;
-                        categoryId: string | null;
-                        accountId: string | null;
-                        cost: import("@prisma/client/runtime/library").Decimal;
-                        nextBillingDate: Date;
-                        autoDeduct: boolean;
-                        lastDeductAttempt: Date | null;
-                        isActive: boolean;
+                    }[];
+                    accounts: {
+                        id: string;
+                        householdId: string;
+                        name: string;
+                        type: import(".prisma/client").$Enums.AccountType;
+                        balance: import("@prisma/client/runtime/library").Decimal;
+                        currency: string;
+                        payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
+                        payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
+                        payrollDay1: number | null;
+                        payrollDay2: number | null;
+                        payrollAutoDeposit: boolean;
+                        lastPayrollDeposit: Date | null;
+                        createdAt: Date;
+                        updatedAt: Date;
+                    }[];
+                    categories: {
+                        id: string;
+                        householdId: string | null;
+                        name: string;
+                        createdAt: Date;
+                        icon: string;
+                        color: string;
+                    }[];
+                    budgets: {
+                        id: string;
+                        householdId: string;
+                        limitAmount: import("@prisma/client/runtime/library").Decimal;
+                        period: import(".prisma/client").$Enums.RecurrencePeriod;
+                        categoryId: string;
+                        startDate: Date;
+                        endDate: Date | null;
                     }[];
                     reminders: {
                         id: string;
-                        createdAt: Date;
                         householdId: string;
+                        createdAt: Date;
                         title: string;
                         dueDate: Date;
                         amount: import("@prisma/client/runtime/library").Decimal;
@@ -178,11 +244,11 @@ export declare class AuthService {
                     }[];
                     assets: {
                         id: string;
+                        householdId: string;
+                        name: string;
+                        type: string;
                         createdAt: Date;
                         updatedAt: Date;
-                        name: string;
-                        householdId: string;
-                        type: string;
                         notes: string | null;
                         debtId: string | null;
                         value: import("@prisma/client/runtime/library").Decimal;
@@ -191,33 +257,33 @@ export declare class AuthService {
                     }[];
                 } & {
                     id: string;
+                    name: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    name: string;
                 };
             } & {
                 id: string;
-                joinedAt: Date;
                 userId: string;
                 householdId: string;
                 role: import(".prisma/client").$Enums.Role;
                 customTitle: string | null;
+                joinedAt: Date;
             })[];
             auditLogs: {
                 id: string;
-                userId: string;
-                householdId: string;
                 action: string;
                 details: string | null;
                 timestamp: Date;
+                userId: string;
+                householdId: string;
             }[];
             notifications: {
                 id: string;
-                createdAt: Date;
                 userId: string;
                 householdId: string;
-                title: string;
                 type: string;
+                createdAt: Date;
+                title: string;
                 body: string;
                 isRead: boolean;
                 metadata: string | null;

@@ -23,6 +23,19 @@ describe('AccountsService', () => {
     transaction: {
       create: jest.fn(),
     },
+    auditLog: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
+      create: jest.fn(),
+    },
+    householdMember: {
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+    },
+    allowance: {
+      create: jest.fn(),
+    },
     $transaction: jest.fn((callback) => callback(mockPrismaService)),
   };
 
@@ -185,6 +198,94 @@ describe('AccountsService', () => {
       expect(mockEventsGateway.notifyHouseholdChange).toHaveBeenCalledWith('hh-1', 'transaction', 'CREATE');
       expect(mockEventsGateway.notifyHouseholdChange).toHaveBeenCalledWith('hh-1', 'account', 'UPDATE');
       expect(res.account.balance).toBe(3500);
+    });
+  });
+
+  describe('Child Account Isolation (DEPENDENT role)', () => {
+    it('should restrict findAllByHousehold so a DEPENDENT child only sees their own child account', async () => {
+      mockPrismaService.householdMember.findUnique.mockResolvedValue({
+        id: 'member-child-1',
+        userId: 'child-1',
+        householdId: 'hh-1',
+        role: 'DEPENDENT',
+        user: { id: 'child-1', email: 'mateo@familia.com', fullName: 'Mateo' },
+      });
+
+      mockPrismaService.householdMember.findMany.mockResolvedValue([
+        {
+          id: 'member-parent-1',
+          userId: 'parent-1',
+          householdId: 'hh-1',
+          role: 'ADMIN',
+          user: { id: 'parent-1', email: 'papa@familia.com', fullName: 'Papá' },
+        },
+        {
+          id: 'member-child-1',
+          userId: 'child-1',
+          householdId: 'hh-1',
+          role: 'DEPENDENT',
+          customTitle: '👦 Cuenta Infantil (Tutor: papa@familia.com)',
+          user: { id: 'child-1', email: 'mateo@familia.com', fullName: 'Mateo' },
+        },
+      ]);
+
+      mockPrismaService.auditLog.findMany.mockResolvedValue([
+        {
+          details: JSON.stringify({
+            childUserId: 'child-1',
+            memberId: 'member-child-1',
+            childEmail: 'mateo@familia.com',
+            childName: 'Mateo',
+            parentUserId: 'parent-1',
+            parentEmail: 'papa@familia.com',
+            householdId: 'hh-1',
+            childAccountId: 'acc-child-1',
+            maxDailySpend: 50,
+            maxSingleTransaction: 25,
+            requireApprovalAbove: 20,
+            isFrozen: false,
+            updatedAt: new Date().toISOString(),
+          }),
+        },
+      ]);
+
+      mockPrismaService.account.findFirst.mockResolvedValue({
+        id: 'acc-child-1',
+        householdId: 'hh-1',
+        name: 'Cuenta de Niño • Mateo',
+        type: AccountType.SAVINGS,
+        balance: 40,
+        currency: 'USD',
+        debts: [],
+      });
+
+      mockPrismaService.account.findMany.mockResolvedValue([
+        {
+          id: 'acc-adult-1',
+          householdId: 'hh-1',
+          name: 'Cuenta Principal Papá',
+          type: AccountType.BANK_ACCOUNT,
+          balance: 5000,
+          currency: 'USD',
+          debts: [],
+        },
+        {
+          id: 'acc-child-1',
+          householdId: 'hh-1',
+          name: 'Cuenta de Niño • Mateo',
+          type: AccountType.SAVINGS,
+          balance: 40,
+          currency: 'USD',
+          debts: [],
+        },
+      ]);
+
+      const accounts = await service.findAllByHousehold('hh-1', 'child-1');
+
+      expect(accounts).toHaveLength(1);
+      expect(accounts[0].id).toBe('acc-child-1');
+      expect((accounts[0] as any).isChildAccount).toBe(true);
+      expect((accounts[0] as any).parentEmail).toBe('papa@familia.com');
     });
   });
 });

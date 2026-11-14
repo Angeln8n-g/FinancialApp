@@ -30,6 +30,8 @@ class RegisterDto {
     email;
     password;
     fullName;
+    isChildAccount;
+    parentEmail;
 }
 exports.RegisterDto = RegisterDto;
 __decorate([
@@ -47,4 +49,15 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)({ message: 'El nombre completo es requerido' }),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "fullName", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)({ message: 'El indicador de cuenta para niño debe ser booleano' }),
+    __metadata("design:type", Boolean)
+], RegisterDto.prototype, "isChildAccount", void 0);
+__decorate([
+    (0, class_validator_1.ValidateIf)((o) => o.isChildAccount === true),
+    (0, class_validator_1.IsEmail)({}, { message: 'Debes ingresar un correo electrónico válido del padre o tutor para el control parental' }),
+    (0, class_validator_1.IsNotEmpty)({ message: 'El correo del padre o tutor es obligatorio para cuentas de niño' }),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "parentEmail", void 0);
 //# sourceMappingURL=auth.dto.js.map

@@ -41,10 +41,8 @@ export declare class SubscriptionsController {
     }): Promise<{
         account: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
             householdId: string;
+            name: string;
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
@@ -54,23 +52,25 @@ export declare class SubscriptionsController {
             payrollDay2: number | null;
             payrollAutoDeposit: boolean;
             lastPayrollDeposit: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
         } | null;
         category: {
             id: string;
-            createdAt: Date;
-            name: string;
             householdId: string | null;
+            name: string;
+            createdAt: Date;
             icon: string;
             color: string;
         } | null;
     } & {
         id: string;
-        createdAt: Date;
-        name: string;
         householdId: string;
+        name: string;
+        createdAt: Date;
         period: import(".prisma/client").$Enums.RecurrencePeriod;
-        categoryId: string | null;
         accountId: string | null;
+        categoryId: string | null;
         cost: import("@prisma/client/runtime/library").Decimal;
         nextBillingDate: Date;
         autoDeduct: boolean;
@@ -88,10 +88,8 @@ export declare class SubscriptionsController {
     }): Promise<{
         account: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
             householdId: string;
+            name: string;
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
@@ -101,23 +99,25 @@ export declare class SubscriptionsController {
             payrollDay2: number | null;
             payrollAutoDeposit: boolean;
             lastPayrollDeposit: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
         } | null;
         category: {
             id: string;
-            createdAt: Date;
-            name: string;
             householdId: string | null;
+            name: string;
+            createdAt: Date;
             icon: string;
             color: string;
         } | null;
     } & {
         id: string;
-        createdAt: Date;
-        name: string;
         householdId: string;
+        name: string;
+        createdAt: Date;
         period: import(".prisma/client").$Enums.RecurrencePeriod;
-        categoryId: string | null;
         accountId: string | null;
+        categoryId: string | null;
         cost: import("@prisma/client/runtime/library").Decimal;
         nextBillingDate: Date;
         autoDeduct: boolean;
@@ -138,12 +138,12 @@ export declare class SubscriptionsController {
         message: string;
         transaction: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             householdId: string;
             type: import(".prisma/client").$Enums.TransactionType;
-            categoryId: string | null;
+            createdAt: Date;
+            updatedAt: Date;
             accountId: string;
+            categoryId: string | null;
             amount: import("@prisma/client/runtime/library").Decimal;
             description: string | null;
             date: Date;

@@ -7,10 +7,8 @@ export declare class TransactionsController {
     findAll(user: UserPayload): Promise<({
         account: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
             householdId: string;
+            name: string;
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
@@ -20,21 +18,21 @@ export declare class TransactionsController {
             payrollDay2: number | null;
             payrollAutoDeposit: boolean;
             lastPayrollDeposit: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
         };
         category: {
             id: string;
-            createdAt: Date;
-            name: string;
             householdId: string | null;
+            name: string;
+            createdAt: Date;
             icon: string;
             color: string;
         } | null;
         destinationAccount: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
             householdId: string;
+            name: string;
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
@@ -44,6 +42,8 @@ export declare class TransactionsController {
             payrollDay2: number | null;
             payrollAutoDeposit: boolean;
             lastPayrollDeposit: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
         } | null;
         createdBy: {
             email: string;
@@ -53,12 +53,12 @@ export declare class TransactionsController {
         } | null;
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         householdId: string;
         type: import(".prisma/client").$Enums.TransactionType;
-        categoryId: string | null;
+        createdAt: Date;
+        updatedAt: Date;
         accountId: string;
+        categoryId: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         description: string | null;
         date: Date;
@@ -76,6 +76,29 @@ export declare class TransactionsController {
         totalBalance: number;
         monthlyIncome: number;
         monthlyExpense: number;
+        todayExpense: number;
+        baseCurrency: string;
+        accountsCount: number;
+        isChildAccount: boolean;
+        parentalControls: import("../household/parental-control.helper").ParentalControlConfig;
+        safeToSpend: {
+            liquidBalance: number;
+            pendingCommitments: number;
+            safeToSpendMonth: number;
+            safeToSpendDaily: number;
+            daysRemaining: number;
+            daysInMonth: number;
+            healthStatus: string;
+            breakdown: {
+                pendingRemindersTotal: number;
+                pendingSubscriptionsTotal: number;
+                upcomingDebtsTotal: number;
+            };
+        };
+    } | {
+        totalBalance: number;
+        monthlyIncome: number;
+        monthlyExpense: number;
         baseCurrency: string;
         accountsCount: number;
         safeToSpend: {
@@ -85,21 +108,22 @@ export declare class TransactionsController {
             safeToSpendDaily: number;
             daysRemaining: number;
             daysInMonth: number;
-            healthStatus: "HEALTHY" | "MODERATE" | "CRITICAL";
+            healthStatus: "CRITICAL" | "HEALTHY" | "MODERATE";
             breakdown: {
                 pendingRemindersTotal: number;
                 pendingSubscriptionsTotal: number;
                 upcomingDebtsTotal: number;
             };
         };
+        todayExpense?: undefined;
+        isChildAccount?: undefined;
+        parentalControls?: undefined;
     }>;
     create(user: UserPayload, dto: CreateTransactionDto): Promise<{
         account: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
             householdId: string;
+            name: string;
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
@@ -109,21 +133,21 @@ export declare class TransactionsController {
             payrollDay2: number | null;
             payrollAutoDeposit: boolean;
             lastPayrollDeposit: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
         };
         category: {
             id: string;
-            createdAt: Date;
-            name: string;
             householdId: string | null;
+            name: string;
+            createdAt: Date;
             icon: string;
             color: string;
         } | null;
         destinationAccount: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
             householdId: string;
+            name: string;
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
@@ -133,6 +157,8 @@ export declare class TransactionsController {
             payrollDay2: number | null;
             payrollAutoDeposit: boolean;
             lastPayrollDeposit: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
         } | null;
         createdBy: {
             email: string;
@@ -142,12 +168,12 @@ export declare class TransactionsController {
         } | null;
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         householdId: string;
         type: import(".prisma/client").$Enums.TransactionType;
-        categoryId: string | null;
+        createdAt: Date;
+        updatedAt: Date;
         accountId: string;
+        categoryId: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         description: string | null;
         date: Date;
@@ -170,10 +196,8 @@ export declare class TransactionsController {
     }): Promise<{
         account: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
             householdId: string;
+            name: string;
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
@@ -183,21 +207,21 @@ export declare class TransactionsController {
             payrollDay2: number | null;
             payrollAutoDeposit: boolean;
             lastPayrollDeposit: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
         };
         category: {
             id: string;
-            createdAt: Date;
-            name: string;
             householdId: string | null;
+            name: string;
+            createdAt: Date;
             icon: string;
             color: string;
         } | null;
         destinationAccount: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
             householdId: string;
+            name: string;
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
@@ -207,15 +231,17 @@ export declare class TransactionsController {
             payrollDay2: number | null;
             payrollAutoDeposit: boolean;
             lastPayrollDeposit: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
         } | null;
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         householdId: string;
         type: import(".prisma/client").$Enums.TransactionType;
-        categoryId: string | null;
+        createdAt: Date;
+        updatedAt: Date;
         accountId: string;
+        categoryId: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         description: string | null;
         date: Date;
@@ -234,10 +260,8 @@ export declare class TransactionsController {
     }): Promise<{
         account: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
             householdId: string;
+            name: string;
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
@@ -247,21 +271,21 @@ export declare class TransactionsController {
             payrollDay2: number | null;
             payrollAutoDeposit: boolean;
             lastPayrollDeposit: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
         };
         category: {
             id: string;
-            createdAt: Date;
-            name: string;
             householdId: string | null;
+            name: string;
+            createdAt: Date;
             icon: string;
             color: string;
         } | null;
         destinationAccount: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
             householdId: string;
+            name: string;
             type: import(".prisma/client").$Enums.AccountType;
             balance: import("@prisma/client/runtime/library").Decimal;
             currency: string;
@@ -271,15 +295,17 @@ export declare class TransactionsController {
             payrollDay2: number | null;
             payrollAutoDeposit: boolean;
             lastPayrollDeposit: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
         } | null;
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         householdId: string;
         type: import(".prisma/client").$Enums.TransactionType;
-        categoryId: string | null;
+        createdAt: Date;
+        updatedAt: Date;
         accountId: string;
+        categoryId: string | null;
         amount: import("@prisma/client/runtime/library").Decimal;
         description: string | null;
         date: Date;

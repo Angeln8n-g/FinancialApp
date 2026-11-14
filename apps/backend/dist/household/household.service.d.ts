@@ -1,8 +1,9 @@
 import { PrismaService } from '../prisma/prisma.service';
-import { InviteMemberDto, UpdateRoleDto } from './household.dto';
+import { CreateChildAccountDto, InviteMemberDto, UpdateParentalControlDto, UpdateRoleDto } from './household.dto';
 export declare class HouseholdService {
     private prisma;
     constructor(prisma: PrismaService);
+    private hashPassword;
     getMembers(householdId: string): Promise<{
         id: string;
         userId: string;
@@ -12,6 +13,10 @@ export declare class HouseholdService {
         role: import(".prisma/client").$Enums.Role;
         customTitle: string | null;
         joinedAt: Date;
+        isChildAccount: boolean;
+        parentEmail: string | null;
+        childAccountId: string | null;
+        parentalControls: import("./parental-control.helper").ParentalControlConfig | null;
     }[]>;
     inviteMember(currentUserId: string, householdId: string, dto: InviteMemberDto): Promise<{
         member: {
@@ -19,28 +24,75 @@ export declare class HouseholdService {
                 email: string;
                 fullName: string | null;
                 id: string;
-                avatarUrl: string | null;
-                passwordHash: string | null;
                 createdAt: Date;
                 updatedAt: Date;
+                avatarUrl: string | null;
+                passwordHash: string | null;
                 pushToken: string | null;
             };
         } & {
             id: string;
-            joinedAt: Date;
             userId: string;
             householdId: string;
             role: import(".prisma/client").$Enums.Role;
             customTitle: string | null;
+            joinedAt: Date;
         };
         invitationCode: string;
         inviteLink: string;
     }>;
+    getParentalControls(householdId: string, requestingUserId?: string): Promise<{
+        account: {
+            id: string;
+            name: string;
+            balance: number;
+            currency: string;
+        } | null;
+        allowance: {
+            id: string;
+            title: string;
+            limitAmount: number;
+            spentAmount: number;
+            remainingAmount: number;
+            period: import(".prisma/client").$Enums.RecurrencePeriod;
+        } | null;
+        todaySpent: number;
+        pendingRequestsCount: number;
+        childUserId: string;
+        memberId: string;
+        childEmail: string;
+        childName: string;
+        parentEmail: string;
+        parentUserId: string;
+        householdId: string;
+        childAccountId: string;
+        maxDailySpend: number;
+        maxSingleTransaction: number;
+        requireApprovalAbove: number;
+        isFrozen: boolean;
+        allowSavingsGoals: boolean;
+        blockedCategories: string[];
+        updatedAt: string;
+    }[]>;
+    createChildAccount(currentUserId: string, householdId: string, dto: CreateChildAccountDto): Promise<{
+        message: string;
+        config: import("./parental-control.helper").ParentalControlConfig;
+        account: any;
+    }>;
+    updateParentalControl(currentUserId: string, householdId: string, childUserId: string, dto: UpdateParentalControlDto): Promise<import("./parental-control.helper").ParentalControlConfig>;
+    topUpChildAccount(currentUserId: string, householdId: string, childUserId: string, body: {
+        fromAccountId: string;
+        amount: number;
+        note?: string;
+    }): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     getInvitations(householdId: string): Promise<{
         email: string;
         id: string;
-        createdAt: Date;
         householdId: string;
+        createdAt: Date;
         role: import(".prisma/client").$Enums.Role;
         code: string;
         status: string;
@@ -63,38 +115,38 @@ export declare class HouseholdService {
             email: string;
             fullName: string | null;
             id: string;
-            avatarUrl: string | null;
-            passwordHash: string | null;
             createdAt: Date;
             updatedAt: Date;
+            avatarUrl: string | null;
+            passwordHash: string | null;
             pushToken: string | null;
         };
     } & {
         id: string;
-        joinedAt: Date;
         userId: string;
         householdId: string;
         role: import(".prisma/client").$Enums.Role;
         customTitle: string | null;
+        joinedAt: Date;
     }>;
     updateCustomTitle(currentUserId: string, householdId: string, memberId: string, customTitle: string): Promise<{
         user: {
             email: string;
             fullName: string | null;
             id: string;
-            avatarUrl: string | null;
-            passwordHash: string | null;
             createdAt: Date;
             updatedAt: Date;
+            avatarUrl: string | null;
+            passwordHash: string | null;
             pushToken: string | null;
         };
     } & {
         id: string;
-        joinedAt: Date;
         userId: string;
         householdId: string;
         role: import(".prisma/client").$Enums.Role;
         customTitle: string | null;
+        joinedAt: Date;
     }>;
     removeMember(currentUserId: string, householdId: string, memberId: string): Promise<{
         message: string;

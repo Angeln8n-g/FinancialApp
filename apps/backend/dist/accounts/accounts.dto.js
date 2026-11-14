@@ -17,6 +17,14 @@ class CreateAccountDto {
     type;
     balance;
     currency;
+    isChildAccount;
+    parentEmail;
+    childEmail;
+    childName;
+    childPassword;
+    maxDailySpend;
+    maxSingleTransaction;
+    requireApprovalAbove;
     payrollAmount;
     payrollFrequency;
     payrollDay1;
@@ -55,6 +63,50 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateAccountDto.prototype, "currency", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], CreateAccountDto.prototype, "isChildAccount", void 0);
+__decorate([
+    (0, class_validator_1.ValidateIf)((o) => o.isChildAccount === true),
+    (0, class_validator_1.IsEmail)({}, { message: 'Debes especificar un correo válido del padre o tutor para el control parental' }),
+    (0, class_validator_1.IsNotEmpty)({ message: 'El correo del padre o tutor es obligatorio para una cuenta de niño' }),
+    __metadata("design:type", String)
+], CreateAccountDto.prototype, "parentEmail", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEmail)({}, { message: 'El correo del niño debe ser válido' }),
+    __metadata("design:type", String)
+], CreateAccountDto.prototype, "childEmail", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateAccountDto.prototype, "childName", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateAccountDto.prototype, "childPassword", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], CreateAccountDto.prototype, "maxDailySpend", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], CreateAccountDto.prototype, "maxSingleTransaction", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], CreateAccountDto.prototype, "requireApprovalAbove", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)({}, { message: 'El monto de nómina debe ser un número válido' }),

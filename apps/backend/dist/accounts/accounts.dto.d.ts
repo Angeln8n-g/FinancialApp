@@ -4,6 +4,14 @@ export declare class CreateAccountDto {
     type: AccountType;
     balance?: number;
     currency?: string;
+    isChildAccount?: boolean;
+    parentEmail?: string;
+    childEmail?: string;
+    childName?: string;
+    childPassword?: string;
+    maxDailySpend?: number;
+    maxSingleTransaction?: number;
+    requireApprovalAbove?: number;
     payrollAmount?: number;
     payrollFrequency?: PayrollFrequency;
     payrollDay1?: number;

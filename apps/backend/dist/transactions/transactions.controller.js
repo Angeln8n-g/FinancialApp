@@ -24,10 +24,10 @@ let TransactionsController = class TransactionsController {
         this.transactionsService = transactionsService;
     }
     async findAll(user) {
-        return this.transactionsService.findAllByHousehold(user.householdId);
+        return this.transactionsService.findAllByHousehold(user.householdId, user.userId);
     }
     async getSummary(user, currency) {
-        return this.transactionsService.getSummary(user.householdId, currency);
+        return this.transactionsService.getSummary(user.householdId, currency, user.userId);
     }
     async create(user, dto) {
         return this.transactionsService.create(user.householdId, dto, user.userId);

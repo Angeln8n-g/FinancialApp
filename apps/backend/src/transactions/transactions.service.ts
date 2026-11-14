@@ -1,21 +1,38 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { CurrencyService } from '../currency/currency.service';
 import { CreateTransactionDto } from './transactions.dto';
 import { TransactionType } from '@prisma/client';
+import { ParentalControlHelper } from '../household/parental-control.helper';
 
 @Injectable()
 export class TransactionsService {
   constructor(
     private prisma: PrismaService,
     private eventsGateway: EventsGateway,
-    private currencyService: CurrencyService,
+    @Optional() private currencyService?: CurrencyService,
   ) {}
 
-  async findAllByHousehold(householdId: string) {
+  private convertAmount(amount: number, from: string, to: string): number {
+    if (!this.currencyService) return amount;
+    return this.currencyService.convert(amount, from, to);
+  }
+
+  async findAllByHousehold(householdId: string, userId?: string) {
+    const childConfig = await ParentalControlHelper.getChildConfigIfDependent(this.prisma, householdId, userId);
+
+    const whereClause: any = { householdId };
+    if (childConfig && childConfig.childAccountId) {
+      whereClause.OR = [
+        { accountId: childConfig.childAccountId },
+        { destinationAccountId: childConfig.childAccountId },
+        { createdById: userId },
+      ];
+    }
+
     return this.prisma.transaction.findMany({
-      where: { householdId },
+      where: whereClause,
       include: {
         account: true,
         destinationAccount: true,
@@ -42,6 +59,58 @@ export class TransactionsService {
 
     if (!sourceAccount) {
       throw new NotFoundException('Cuenta de origen no encontrada');
+    }
+
+    // 🛡️ Verificación de Control Parental si el usuario es un niño (DEPENDENT)
+    const childConfig = await ParentalControlHelper.getChildConfigIfDependent(this.prisma, householdId, currentUserId);
+    if (childConfig) {
+      if (
+        childConfig.childAccountId &&
+        sourceAccount.id !== childConfig.childAccountId &&
+        !sourceAccount.name.toLowerCase().includes(childConfig.childEmail.toLowerCase())
+      ) {
+        throw new ForbiddenException('Solo tienes acceso para operar con tu propia cuenta de niño.');
+      }
+
+      if (childConfig.isFrozen) {
+        throw new BadRequestException(
+          `🔒 Tu cuenta de niño está congelada temporalmente por control parental (${childConfig.parentEmail}). Consulta con tu padre/tutor.`,
+        );
+      }
+
+      if (type === TransactionType.EXPENSE) {
+        if (amount > Number(sourceAccount.balance)) {
+          throw new BadRequestException(
+            `No tienes saldo suficiente en tu cuenta de niño (Disponible: $${Number(sourceAccount.balance).toFixed(2)}).`,
+          );
+        }
+
+        if (childConfig.maxSingleTransaction > 0 && amount > childConfig.maxSingleTransaction) {
+          throw new BadRequestException(
+            `🛡️ Control Parental: Esta compra ($${amount.toFixed(2)}) supera tu límite máximo por gasto de $${childConfig.maxSingleTransaction.toFixed(2)} supervisado por ${childConfig.parentEmail}. Solicita permiso o dinero extra a tu padre/tutor.`,
+          );
+        }
+
+        if (childConfig.maxDailySpend > 0 && this.prisma.transaction?.findMany) {
+          const now = new Date();
+          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const todayTxs = await this.prisma.transaction.findMany({
+            where: {
+              householdId,
+              accountId: sourceAccount.id,
+              type: TransactionType.EXPENSE,
+              isVoided: false,
+              date: { gte: startOfDay },
+            },
+          });
+          const spentToday = (todayTxs || []).reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+          if (spentToday + amount > childConfig.maxDailySpend) {
+            throw new BadRequestException(
+              `🛡️ Control Parental: Con este gasto superarías tu límite diario de $${childConfig.maxDailySpend.toFixed(2)} (Gastado hoy: $${spentToday.toFixed(2)}).`,
+            );
+          }
+        }
+      }
     }
 
     if (type === TransactionType.TRANSFER) {
@@ -88,6 +157,30 @@ export class TransactionsService {
           where: { id: accountId },
           data: { balance: { decrement: amount } },
         });
+
+        // Si es gasto de una cuenta de niño, reflejar en su mesada y notificar al padre
+        if (childConfig && childConfig.memberId && tx.allowance?.findFirst && tx.allowance?.update) {
+          const childAllowance = await tx.allowance.findFirst({
+            where: { householdId, memberId: childConfig.memberId },
+          });
+          if (childAllowance) {
+            await tx.allowance.update({
+              where: { id: childAllowance.id },
+              data: { spentAmount: { increment: amount } },
+            });
+          }
+        }
+        if (childConfig && childConfig.parentUserId && tx.notification?.create) {
+          await tx.notification.create({
+            data: {
+              userId: childConfig.parentUserId,
+              householdId,
+              title: '🛍️ Compra en Cuenta de Niño',
+              body: `${childConfig.childName} registró un gasto de $${amount.toFixed(2)} (${description || 'Compra infantil'}).`,
+              type: 'PARENTAL_CONTROL',
+            },
+          });
+        }
       } else if (type === TransactionType.INCOME) {
         await tx.account.update({
           where: { id: accountId },
@@ -104,7 +197,7 @@ export class TransactionsService {
         });
       }
 
-      if (currentUserId) {
+      if (currentUserId && tx.auditLog?.create) {
         await tx.auditLog.create({
           data: {
             userId: currentUserId,
@@ -122,7 +215,6 @@ export class TransactionsService {
     return createdTx;
   }
 
-  // 📄 3. Importación Masiva de Extractos Bancarios (CSV/Excel/OFX con Detección de Duplicados)
   async importBankStatement(
     householdId: string,
     dto: {
@@ -156,7 +248,6 @@ export class TransactionsService {
       throw new NotFoundException('No hay una cuenta activa para importar el extracto');
     }
 
-    // A. Si viene la lista de transacciones previsualizadas y confirmadas desde el modal
     if (dto.transactions && Array.isArray(dto.transactions)) {
       const imported: any[] = [];
       let skippedCount = 0;
@@ -170,7 +261,6 @@ export class TransactionsService {
         const endOfDay = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate(), 23, 59, 59, 999);
         const itemAccountId = item.accountId || targetAccount.id;
 
-        // 🛡️ Detección de duplicados: misma cuenta, mismo día, mismo monto y descripción idéntica
         const duplicate = await this.prisma.transaction.findFirst({
           where: {
             householdId,
@@ -213,7 +303,6 @@ export class TransactionsService {
       };
     }
 
-    // B. Fallback para texto plano CSV en crudo si se envía rawContent
     if (dto.rawContent) {
       const lines = dto.rawContent.split(/\r?\n/).filter((line) => line.trim().length > 0);
       const imported: any[] = [];
@@ -255,17 +344,28 @@ export class TransactionsService {
     throw new BadRequestException('Se requieren transacciones estructuradas o rawContent');
   }
 
-  async getSummary(householdId: string, requestedCurrency?: string) {
-    const accounts = await this.prisma.account.findMany({
+  async getSummary(householdId: string, requestedCurrency?: string, userId?: string) {
+    const allAccounts = await this.prisma.account.findMany({
       where: { householdId },
     });
 
-    const baseCurrency = (requestedCurrency || accounts[0]?.currency || 'USD').toUpperCase();
-    await this.currencyService.refreshRates();
+    const childConfig = await ParentalControlHelper.getChildConfigIfDependent(this.prisma, householdId, userId);
 
-    // 💡 Consolidación de balance total convirtiendo cada cuenta a la moneda base
+    const accounts = childConfig
+      ? allAccounts.filter(
+          (a) =>
+            a.id === childConfig.childAccountId ||
+            a.name.toLowerCase().includes(childConfig.childEmail.toLowerCase()),
+        )
+      : allAccounts;
+
+    const baseCurrency = (requestedCurrency || accounts[0]?.currency || 'USD').toUpperCase();
+    if (this.currencyService) {
+      await this.currencyService.refreshRates();
+    }
+
     const totalBalance = accounts.reduce((acc, account) => {
-      const converted = this.currencyService.convert(
+      const converted = this.convertAmount(
         Number(account.balance),
         account.currency || 'USD',
         baseCurrency,
@@ -276,15 +376,24 @@ export class TransactionsService {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const daysInMonth = endOfMonth.getDate();
     const currentDay = now.getDate();
     const daysRemaining = Math.max(1, daysInMonth - currentDay + 1);
 
+    const txWhere: any = {
+      householdId,
+      date: { gte: startOfMonth },
+    };
+    if (childConfig && childConfig.childAccountId) {
+      txWhere.OR = [
+        { accountId: childConfig.childAccountId },
+        { destinationAccountId: childConfig.childAccountId },
+      ];
+    }
+
     const monthlyTransactions = await this.prisma.transaction.findMany({
-      where: {
-        householdId,
-        date: { gte: startOfMonth },
-      },
+      where: txWhere,
       include: {
         account: true,
       },
@@ -292,32 +401,61 @@ export class TransactionsService {
 
     let monthlyIncome = 0;
     let monthlyExpense = 0;
+    let todayExpense = 0;
 
     for (const t of monthlyTransactions) {
-      if (t.isVoided) continue; // 🚫 Ignorar transacciones anuladas del cálculo mensual
+      if (t.isVoided) continue;
       const txCurrency = t.account?.currency || baseCurrency;
-      const amountConverted = this.currencyService.convert(
+      const amountConverted = this.convertAmount(
         Number(t.amount),
         txCurrency,
         baseCurrency,
       );
-      if (t.type === TransactionType.INCOME) {
+      if (t.type === TransactionType.INCOME || (childConfig && t.destinationAccountId === childConfig.childAccountId)) {
         monthlyIncome += amountConverted;
       } else if (t.type === TransactionType.EXPENSE) {
         monthlyExpense += amountConverted;
+        if (new Date(t.date) >= startOfDay) {
+          todayExpense += amountConverted;
+        }
       }
     }
 
-    // 💡 CÁLCULO DE SAFE-TO-SPEND (Disponible Real Diario Libre de Culpa)
-    // 1. Saldo Líquido Disponible consolidado a moneda base
+    if (childConfig) {
+      const dailyRemaining = Math.max(0, (childConfig.maxDailySpend || 25) - todayExpense);
+      return {
+        totalBalance: Math.round(totalBalance * 100) / 100,
+        monthlyIncome: Math.round(monthlyIncome * 100) / 100,
+        monthlyExpense: Math.round(monthlyExpense * 100) / 100,
+        todayExpense: Math.round(todayExpense * 100) / 100,
+        baseCurrency,
+        accountsCount: accounts.length,
+        isChildAccount: true,
+        parentalControls: childConfig,
+        safeToSpend: {
+          liquidBalance: Math.round(totalBalance * 100) / 100,
+          pendingCommitments: 0,
+          safeToSpendMonth: Math.round(totalBalance * 100) / 100,
+          safeToSpendDaily: Math.round(Math.min(totalBalance, dailyRemaining) * 100) / 100,
+          daysRemaining,
+          daysInMonth,
+          healthStatus: childConfig.isFrozen ? 'CRITICAL' : 'HEALTHY',
+          breakdown: {
+            pendingRemindersTotal: 0,
+            pendingSubscriptionsTotal: 0,
+            upcomingDebtsTotal: 0,
+          },
+        },
+      };
+    }
+
     const liquidBalance = accounts
       .filter((a) => ['CASH', 'BANK_ACCOUNT', 'PAYROLL', 'SAVINGS'].includes(a.type))
       .reduce((acc, a) => {
         const bal = Math.max(0, Number(a.balance));
-        return acc + this.currencyService.convert(bal, a.currency || 'USD', baseCurrency);
+        return acc + this.convertAmount(bal, a.currency || 'USD', baseCurrency);
       }, 0);
 
-    // 2. Recordatorios de pago impagos del mes
     const pendingReminders = await this.prisma.reminder.findMany({
       where: {
         householdId,
@@ -327,7 +465,6 @@ export class TransactionsService {
     });
     const pendingRemindersTotal = pendingReminders.reduce((acc, r) => acc + Number(r.amount), 0);
 
-    // 3. Suscripciones activas pendientes para este mes
     const reminderSubIds = new Set(
       pendingReminders.filter((r) => r.subscriptionId).map((r) => r.subscriptionId),
     );
@@ -344,7 +481,7 @@ export class TransactionsService {
     const pendingSubscriptionsTotal = activeSubscriptions
       .filter((s) => !reminderSubIds.has(s.id))
       .reduce((acc, s) => {
-        const costConverted = this.currencyService.convert(
+        const costConverted = this.convertAmount(
           Number(s.cost),
           s.account?.currency || 'USD',
           baseCurrency,
@@ -352,7 +489,6 @@ export class TransactionsService {
         return acc + costConverted;
       }, 0);
 
-    // 4. Deudas por pagar con cuota o pago mínimo de este mes
     const reminderDebtIds = new Set(
       pendingReminders.filter((r) => r.debtId).map((r) => r.debtId),
     );
@@ -434,7 +570,6 @@ export class TransactionsService {
     const newAccountId = dto.accountId || oldAccountId;
 
     const updatedTx = await this.prisma.$transaction(async (tx) => {
-      // 1. Ajustar saldos de las cuentas por la diferencia o por cambio de cuenta
       if (existing.type === TransactionType.EXPENSE) {
         if (oldAccountId === newAccountId) {
           const diff = newAmount - oldAmount;
@@ -475,7 +610,6 @@ export class TransactionsService {
         }
       }
 
-      // 2. Marcar transacción como editada con la razón
       return tx.transaction.update({
         where: { id },
         data: {
@@ -516,7 +650,6 @@ export class TransactionsService {
     const amount = Number(existing.amount);
 
     const voidedTx = await this.prisma.$transaction(async (tx) => {
-      // Revertir el impacto financiero
       if (existing.type === TransactionType.EXPENSE) {
         await tx.account.update({
           where: { id: existing.accountId },

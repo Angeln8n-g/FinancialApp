@@ -11,7 +11,7 @@ export class TransactionsController {
 
   @Get()
   async findAll(@CurrentUser() user: UserPayload) {
-    return this.transactionsService.findAllByHousehold(user.householdId);
+    return this.transactionsService.findAllByHousehold(user.householdId, user.userId);
   }
 
   @Get('summary')
@@ -19,7 +19,7 @@ export class TransactionsController {
     @CurrentUser() user: UserPayload,
     @Query('currency') currency?: string,
   ) {
-    return this.transactionsService.getSummary(user.householdId, currency);
+    return this.transactionsService.getSummary(user.householdId, currency, user.userId);
   }
 
   @Post()

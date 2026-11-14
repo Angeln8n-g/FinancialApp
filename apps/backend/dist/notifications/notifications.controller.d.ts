@@ -5,11 +5,11 @@ export declare class NotificationsController {
     constructor(notificationsService: NotificationsService);
     getUserNotifications(user: UserPayload): Promise<{
         id: string;
-        createdAt: Date;
         userId: string;
         householdId: string;
-        title: string;
         type: string;
+        createdAt: Date;
+        title: string;
         body: string;
         isRead: boolean;
         metadata: string | null;
@@ -22,10 +22,10 @@ export declare class NotificationsController {
         email: string;
         fullName: string | null;
         id: string;
-        avatarUrl: string | null;
-        passwordHash: string | null;
         createdAt: Date;
         updatedAt: Date;
+        avatarUrl: string | null;
+        passwordHash: string | null;
         pushToken: string | null;
     }>;
 }

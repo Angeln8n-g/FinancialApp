@@ -1,0 +1,9 @@
+{
+  "assertions": [
+    { "kind": "appearsBy", "selector": "#scene2-headline", "bySec": 0.55 },
+    { "kind": "staysInFrame", "selector": ".express-card" },
+    { "kind": "staysInFrame", "selector": ".kpi-grid" },
+    { "kind": "before", "a": ".express-card", "b": ".ring-circle-fg" },
+    { "kind": "keepsMoving", "withinSelector": ".camera" }
+  ]
+}

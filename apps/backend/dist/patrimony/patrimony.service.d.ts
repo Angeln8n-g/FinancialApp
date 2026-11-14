@@ -66,11 +66,11 @@ export declare class PatrimonyService {
     }>;
     createAsset(householdId: string, data: CreateAssetDto): Promise<{
         id: string;
+        householdId: string;
+        name: string;
+        type: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
-        householdId: string;
-        type: string;
         notes: string | null;
         debtId: string | null;
         value: import("@prisma/client/runtime/library").Decimal;
@@ -79,11 +79,11 @@ export declare class PatrimonyService {
     }>;
     updateAsset(householdId: string, assetId: string, data: UpdateAssetDto): Promise<{
         id: string;
+        householdId: string;
+        name: string;
+        type: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
-        householdId: string;
-        type: string;
         notes: string | null;
         debtId: string | null;
         value: import("@prisma/client/runtime/library").Decimal;
@@ -93,11 +93,11 @@ export declare class PatrimonyService {
     updateAssetValuation(householdId: string, assetId: string, data: UpdateValuationDto): Promise<{
         asset: {
             id: string;
+            householdId: string;
+            name: string;
+            type: string;
             createdAt: Date;
             updatedAt: Date;
-            name: string;
-            householdId: string;
-            type: string;
             notes: string | null;
             debtId: string | null;
             value: import("@prisma/client/runtime/library").Decimal;
@@ -115,11 +115,11 @@ export declare class PatrimonyService {
     }>;
     deleteAsset(householdId: string, assetId: string): Promise<{
         id: string;
+        householdId: string;
+        name: string;
+        type: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
-        householdId: string;
-        type: string;
         notes: string | null;
         debtId: string | null;
         value: import("@prisma/client/runtime/library").Decimal;

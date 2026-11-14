@@ -24,22 +24,22 @@ let AccountsController = class AccountsController {
         this.accountsService = accountsService;
     }
     async findAll(user) {
-        return this.accountsService.findAllByHousehold(user.householdId);
+        return this.accountsService.findAllByHousehold(user.householdId, user.userId);
     }
     async findOne(user, id) {
-        return this.accountsService.findOne(user.householdId, id);
+        return this.accountsService.findOne(user.householdId, id, user.userId);
     }
     async create(user, dto) {
-        return this.accountsService.create(user.householdId, dto);
+        return this.accountsService.create(user.householdId, dto, user.userId);
     }
     async update(user, id, dto) {
-        return this.accountsService.update(user.householdId, id, dto);
+        return this.accountsService.update(user.householdId, id, dto, user.userId);
     }
     async manualPayrollDeposit(user, id) {
         return this.accountsService.manualPayrollDeposit(user.householdId, id, user.userId);
     }
     async delete(user, id) {
-        return this.accountsService.delete(user.householdId, id);
+        return this.accountsService.delete(user.householdId, id, user.userId);
     }
 };
 exports.AccountsController = AccountsController;

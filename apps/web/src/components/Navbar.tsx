@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   WifiOff,
   RefreshCw,
+  PiggyBank,
 } from 'lucide-react';
 import ThemeModal from './modals/ThemeModal';
 import UserProfileModal from './modals/UserProfileModal';
@@ -141,7 +142,7 @@ function NotificationBell() {
   );
 }
 
-function HouseholdSelector({ currentHousehold }: { currentHousehold?: any }) {
+function HouseholdSelector({ currentHousehold, isChildAccount, parentEmail }: { currentHousehold?: any; isChildAccount?: boolean; parentEmail?: string }) {
   const [availableHouseholds, setAvailableHouseholds] = useState<any[]>([]);
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('hogariq_token') : null;
@@ -157,6 +158,12 @@ function HouseholdSelector({ currentHousehold }: { currentHousehold?: any }) {
         if (res.ok) {
           const data = await res.json();
           if (data.availableHouseholds) setAvailableHouseholds(data.availableHouseholds);
+          if (data.household) {
+            localStorage.setItem('hogariq_household', JSON.stringify(data.household));
+          }
+          if (data.user) {
+            localStorage.setItem('hogariq_user', JSON.stringify(data.user));
+          }
         }
       } catch (e) {
         console.log('Error fetching available households:', e);
@@ -164,6 +171,15 @@ function HouseholdSelector({ currentHousehold }: { currentHousehold?: any }) {
     };
     fetchMe();
   }, []);
+
+  if (isChildAccount) {
+    return (
+      <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[11px] text-amber-300 font-semibold whitespace-nowrap shrink-0">
+        <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+        <span>Cuenta de Niño {parentEmail ? `• Tutor: ${parentEmail}` : '(Control Parental)'}</span>
+      </span>
+    );
+  }
 
   const handleSwitchHousehold = async (targetHouseholdId: string) => {
     const token = getToken();
@@ -220,7 +236,6 @@ function HouseholdSelector({ currentHousehold }: { currentHousehold?: any }) {
 export default function Navbar({
   user,
   household,
-  unreadNotifications = 0,
 }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -229,7 +244,24 @@ export default function Navbar({
   const [showProfileModal, setShowProfileModal] = useState(false);
   const { isOnline, pendingCount, isSyncing, syncNow } = useOfflineSync();
 
-  const navLinks = [
+  const isChildAccount =
+    household?.role === 'DEPENDENT' ||
+    Boolean(user?.isChildAccount) ||
+    Boolean(household?.isChildAccount);
+
+  const parentEmail = household?.parentEmail || user?.parentEmail || household?.parentalControls?.parentEmail;
+
+  // 🛡️ Restricción de rutas: si es una cuenta de niño, solo tiene acceso a su Cuenta de Niño (/dashboard) y Misiones/Familia (/dashboard/family)
+  useEffect(() => {
+    if (isChildAccount && pathname && pathname.startsWith('/dashboard/')) {
+      const allowedChildPaths = ['/dashboard', '/dashboard/family'];
+      if (!allowedChildPaths.includes(pathname)) {
+        router.replace('/dashboard');
+      }
+    }
+  }, [isChildAccount, pathname, router]);
+
+  const adultNavLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/dashboard/calendar', label: 'Calendario', icon: Calendar },
     { href: '/dashboard/budgets', label: 'Presupuestos', icon: Target },
@@ -238,6 +270,13 @@ export default function Navbar({
     { href: '/dashboard/family', label: 'Familia', icon: Users },
     { href: '/dashboard/reports', label: 'Reportes', icon: BarChart3 },
   ];
+
+  const childNavLinks = [
+    { href: '/dashboard', label: 'Mi Cuenta de Niño', icon: PiggyBank },
+    { href: '/dashboard/family', label: 'Misiones y Mesada', icon: Users },
+  ];
+
+  const navLinks = isChildAccount ? childNavLinks : adultNavLinks;
 
   const handleLogout = () => {
     localStorage.removeItem('hogariq_token');
@@ -254,7 +293,11 @@ export default function Navbar({
           <div className="flex items-center space-x-4 lg:space-x-6">
             <Link href="/dashboard" className="flex items-center space-x-2 shrink-0">
               <Logo size="md" showText={true} />
-              <HouseholdSelector currentHousehold={household} />
+              <HouseholdSelector
+                currentHousehold={household}
+                isChildAccount={isChildAccount}
+                parentEmail={parentEmail}
+              />
             </Link>
 
             {/* Desktop Navigation Links */}
@@ -328,7 +371,7 @@ export default function Navbar({
                     {user.fullName || user.email}
                   </p>
                   <span className="text-[10px] text-[var(--primary-text)] font-medium">
-                    {household?.role || 'Miembro'}
+                    {isChildAccount ? 'Cuenta Niño' : (household?.role || 'Miembro')}
                   </span>
                 </div>
               </button>
@@ -380,7 +423,6 @@ export default function Navbar({
               })}
             </div>
 
-            {/* Mobile User Profile & Privacy Option */}
             {user && (
               <div className="pt-2 border-t border-[#1E2B4D]">
                 <button
@@ -413,7 +455,7 @@ export default function Navbar({
               }`}
             >
               <Icon className="w-4 h-4" />
-              <span className="text-[10px] mt-1 tracking-tight truncate max-w-[60px] text-center">
+              <span className="text-[10px] mt-1 tracking-tight truncate max-w-[80px] text-center">
                 {link.label.split(' ')[0]}
               </span>
             </Link>

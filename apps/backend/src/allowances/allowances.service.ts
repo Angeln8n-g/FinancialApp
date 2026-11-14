@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { RecurrencePeriod, TransactionType } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import { ParentalControlHelper } from '../household/parental-control.helper';
 
 export interface FamilyMission {
   id: string;
@@ -106,12 +107,19 @@ export class AllowancesService {
 
     const disburseAmount = data.amount || Number(allowance.limitAmount);
 
+    const configs = await ParentalControlHelper.getHouseholdParentalControls(this.prisma, householdId);
+    const childCfg = configs.find(
+      (c) => c.memberId === allowance.memberId || c.childUserId === allowance.member?.userId,
+    );
+
     return this.prisma.$transaction(async (tx) => {
-      // 1. Crear movimiento de gasto en la cuenta del hogar
+      // 1. Crear movimiento de gasto / transferencia en la cuenta del hogar
       await tx.transaction.create({
         data: {
           householdId,
           accountId: account.id,
+          destinationAccountId:
+            childCfg?.childAccountId && childCfg.childAccountId !== account.id ? childCfg.childAccountId : null,
           type: TransactionType.EXPENSE,
           amount: disburseAmount,
           description: `Desembolso Mesada: ${allowance.title} (${allowance.member.user.fullName})`,
@@ -119,13 +127,26 @@ export class AllowancesService {
         },
       });
 
-      // 2. Descontar saldo de la cuenta
+      // 2. Descontar saldo de la cuenta origen
       await tx.account.update({
         where: { id: account.id },
         data: { balance: { decrement: disburseAmount } },
       });
 
-      return { success: true, message: `Desembolso de $${disburseAmount} realizado desde ${account.name}` };
+      // 3. Si es una cuenta de niño con cuenta infantil vinculada, acreditar el saldo a su cuenta
+      if (childCfg?.childAccountId && childCfg.childAccountId !== account.id) {
+        await tx.account.update({
+          where: { id: childCfg.childAccountId },
+          data: { balance: { increment: disburseAmount } },
+        });
+      }
+
+      return {
+        success: true,
+        message: `Desembolso de $${disburseAmount} realizado desde ${account.name}${
+          childCfg?.childAccountId ? ' y acreditado en la cuenta del niño' : ''
+        }`,
+      };
     });
   }
 
@@ -168,7 +189,7 @@ export class AllowancesService {
         data: {
           userId: admin.userId,
           householdId,
-          title: '🙋‍♂️ Solicitud de Dinero Extra',
+          title: '🙋‍♂️ Solicitud de Control Parental / Dinero Extra',
           body: `${requesterName} solicita $${amount} para: "${reason}"`,
           type: 'ALLOWANCE_REQUEST',
         },
@@ -192,6 +213,7 @@ export class AllowancesService {
   async respondRequest(householdId: string, requestId: string, status: 'APPROVED' | 'REJECTED') {
     const req = await this.prisma.allowanceRequest.findFirst({
       where: { id: requestId, householdId },
+      include: { member: true },
     });
     if (!req) throw new NotFoundException('Solicitud no encontrada');
 
@@ -201,11 +223,35 @@ export class AllowancesService {
     });
 
     if (status === 'APPROVED') {
-      // Incrementar límite de la mesada por el monto aprobado
       await this.prisma.allowance.update({
         where: { id: req.allowanceId },
         data: { limitAmount: { increment: req.amount } },
       });
+
+      // Si el niño tiene cuenta vinculada, acreditar también en su saldo disponible si existe cuenta
+      const configs = await ParentalControlHelper.getHouseholdParentalControls(this.prisma, householdId);
+      const childCfg = configs.find((c) => c.memberId === req.memberId);
+      if (childCfg?.childAccountId) {
+        await this.prisma.account.update({
+          where: { id: childCfg.childAccountId },
+          data: { balance: { increment: req.amount } },
+        }).catch(() => null);
+      }
+    }
+
+    if (req.member?.userId) {
+      await this.prisma.notification.create({
+        data: {
+          userId: req.member.userId,
+          householdId,
+          title: status === 'APPROVED' ? '🎉 Solicitud Aprobada por Papá/Mamá' : '❌ Solicitud No Aprobada',
+          body:
+            status === 'APPROVED'
+              ? `Tu solicitud de $${Number(req.amount).toFixed(2)} para "${req.reason}" fue aprobada.`
+              : `Tu solicitud de $${Number(req.amount).toFixed(2)} para "${req.reason}" fue rechazada.`,
+          type: 'ALLOWANCE_REQUEST',
+        },
+      }).catch(() => null);
     }
 
     return updated;
@@ -221,7 +267,6 @@ export class AllowancesService {
 
   async getMissions(householdId: string): Promise<FamilyMission[]> {
     if (!AllowancesService.missionsMap.has(householdId)) {
-      // Seed default sample missions for demonstration
       const members = await this.prisma.householdMember.findMany({
         where: { householdId },
         include: { user: true },
@@ -318,7 +363,6 @@ export class AllowancesService {
     mission.status = 'COMPLETED';
     mission.completedAt = new Date().toISOString();
 
-    // Notificar a administradores
     const admins = await this.prisma.householdMember.findMany({
       where: { householdId, role: 'ADMIN' },
     });
@@ -353,12 +397,16 @@ export class AllowancesService {
     });
     if (!account) throw new NotFoundException('Cuenta de desembolso no encontrada');
 
-    // 1. Descontar recompensa de la cuenta y crear transacción
+    const configs = await ParentalControlHelper.getHouseholdParentalControls(this.prisma, householdId);
+    const childCfg = configs.find((c) => c.memberId === mission.memberId);
+
     await this.prisma.$transaction(async (tx) => {
       await tx.transaction.create({
         data: {
           householdId,
           accountId: account.id,
+          destinationAccountId:
+            childCfg?.childAccountId && childCfg.childAccountId !== account.id ? childCfg.childAccountId : null,
           type: TransactionType.EXPENSE,
           amount: mission.rewardAmount,
           description: `🏆 Recompensa Misión: ${mission.title} (${mission.memberName})`,
@@ -371,6 +419,13 @@ export class AllowancesService {
         where: { id: account.id },
         data: { balance: { decrement: mission.rewardAmount } },
       });
+
+      if (childCfg?.childAccountId && childCfg.childAccountId !== account.id) {
+        await tx.account.update({
+          where: { id: childCfg.childAccountId },
+          data: { balance: { increment: mission.rewardAmount } },
+        });
+      }
     });
 
     mission.status = 'APPROVED_AND_PAID';
@@ -395,8 +450,8 @@ export class AllowancesService {
     if (!AllowancesService.matchingRulesMap.has(householdId)) {
       AllowancesService.matchingRulesMap.set(householdId, {
         householdId,
-        matchPercentage: 50, // 50% de aporte adicional de los padres
-        maxMonthlyBonus: 50,  // Hasta $50 al mes
+        matchPercentage: 50,
+        maxMonthlyBonus: 50,
         active: true,
         totalMatchedThisMonth: 15.0,
       });

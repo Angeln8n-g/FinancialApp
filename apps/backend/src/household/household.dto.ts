@@ -1,5 +1,5 @@
-import { Role } from '@prisma/client';
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { RecurrencePeriod, Role } from '@prisma/client';
+import { IsArray, IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class InviteMemberDto {
   @IsEmail({}, { message: 'El correo electrónico debe ser válido' })
@@ -9,9 +9,93 @@ export class InviteMemberDto {
   @IsOptional()
   @IsEnum(Role, { message: 'El rol debe ser válido' })
   role?: Role;
+
+  @IsOptional()
+  @IsEmail({}, { message: 'El correo del padre o tutor debe ser válido' })
+  parentEmail?: string;
 }
 
 export class UpdateRoleDto {
   @IsEnum(Role, { message: 'El rol debe ser válido' })
   role!: Role;
+}
+
+export class CreateChildAccountDto {
+  @IsString()
+  @IsNotEmpty({ message: 'El nombre del niño es requerido' })
+  childName!: string;
+
+  @IsEmail({}, { message: 'El correo electrónico del niño debe ser válido' })
+  @IsNotEmpty({ message: 'El correo del niño es requerido' })
+  childEmail!: string;
+
+  @IsOptional()
+  @IsString()
+  childPassword?: string;
+
+  @IsEmail({}, { message: 'El correo electrónico del padre o tutor debe ser válido' })
+  @IsNotEmpty({ message: 'El correo del padre o tutor con control parental es requerido' })
+  parentEmail!: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  initialBalance?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  maxDailySpend?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  maxSingleTransaction?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  requireApprovalAbove?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  allowanceAmount?: number;
+
+  @IsOptional()
+  @IsEnum(RecurrencePeriod)
+  allowancePeriod?: RecurrencePeriod;
+}
+
+export class UpdateParentalControlDto {
+  @IsOptional()
+  @IsEmail({}, { message: 'El correo del padre o tutor debe ser válido' })
+  parentEmail?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  maxDailySpend?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  maxSingleTransaction?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  requireApprovalAbove?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isFrozen?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowSavingsGoals?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  blockedCategories?: string[];
 }

@@ -1,0 +1,3327 @@
+{
+  "ok": false,
+  "strict": false,
+  "browserSkipped": false,
+  "lint": {
+    "ok": false,
+    "errorCount": 3,
+    "warningCount": 18,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "root_missing_dimensions",
+        "severity": "error",
+        "message": "Root composition is missing `data-width` or `data-height`.",
+        "selector": "#root",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Set numeric `data-width` and `data-height` on the entry composition root."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<div data-composition-id=\"split-hook\" data-start=\"0\" data-track-index=\"0\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id=\"split-hook\"]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<div data-composition-id=\"unified-dashboard\" data-start=\"10\" data-track-index=\"0\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id=\"unified-dashboard\"]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<div data-composition-id=\"family-split\" data-start=\"16.25\" data-track-index=\"0\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id=\"family-split\"]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<div data-composition-id=\"forecast-and-night\" data-start=\"23.75\" data-track-index=\"0\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id=\"forecast-and-night\"]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<div data-composition-id=\"end-card\" data-start=\"28.75\" data-track-index=\"0\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id=\"end-card\"]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<div data-composition-id=\"touch-indicator\" data-start=\"4.58\" data-track-index=\"1\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id=\"touch-indicator\"]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<div data-composition-id=\"press-ripple\" data-start=\"19.35\" data-track-index=\"1\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id=\"press-ripple\"]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<audio data-start=\"3.10\" data-track-index=\"3\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<audio data-start=\"4.60\" data-track-index=\"3\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<audio data-start=\"5.65\" data-track-index=\"3\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<audio data-start=\"9.87\" data-track-index=\"3\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<audio data-start=\"9.96\" data-track-index=\"4\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<audio data-start=\"11.26\" data-track-index=\"3\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<audio data-start=\"16.12\" data-track-index=\"3\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<audio data-start=\"20.20\" data-track-index=\"3\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<audio data-start=\"20.42\" data-track-index=\"4\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<audio data-start=\"25.87\" data-track-index=\"3\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "studio_missing_editable_id",
+        "severity": "warning",
+        "message": "<audio data-start=\"29.13\" data-track-index=\"3\"> has no id, so Studio cannot use a stable edit target for its timeline and canvas controls.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a stable, human-readable id such as id=\"hero-title\" or id=\"scene-1-card\" to every timeline-visible element you want agents or Studio to edit."
+      },
+      {
+        "code": "media_missing_id",
+        "severity": "error",
+        "message": "<audio> has data-start but no id attribute. The renderer requires id to discover media elements, so this audio will be SILENT in renders.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Add a unique id attribute: <audio id=\"my-audio\" ...>"
+      },
+      {
+        "code": "invalid_composition_variables_declaration",
+        "severity": "error",
+        "message": "data-composition-variables must be a JSON array of variable declarations.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Wrap declarations in [] and give each an id, type, label, and default: '[{\"id\":\"title\",\"type\":\"string\",\"label\":\"Title\",\"default\":\"Hello\"}]'."
+      }
+    ],
+    "filesScanned": 6
+  },
+  "runtime": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": []
+  },
+  "layout": {
+    "ok": false,
+    "errorCount": 3,
+    "warningCount": 0,
+    "infoCount": 40,
+    "findings": [
+      {
+        "code": "content_overlap",
+        "severity": "error",
+        "time": 27.083,
+        "selector": "#day-headline",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 104,
+          "top": 59.31,
+          "right": 515.19,
+          "bottom": 132.31,
+          "width": 411.19,
+          "height": 73
+        },
+        "containerSelector": "h1.scene4-headline.night-headline",
+        "text": "Tu futuro, claro día y noche.",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply. Decoration nobody needs to read can take data-layout-ignore.",
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 104,
+          "y": 59.31,
+          "width": 411.19,
+          "height": 73
+        },
+        "firstSeen": 26.508,
+        "lastSeen": 28.687,
+        "occurrences": 14,
+        "heldMs": 2179.000000000002,
+        "times": [
+          26.508,
+          26.69,
+          26.872,
+          27.053,
+          27.083,
+          27.235,
+          27.416,
+          27.598,
+          27.779,
+          27.961,
+          28.142,
+          28.324,
+          28.506,
+          28.687
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "error",
+        "time": 27.083,
+        "selector": "#day-headline > span:nth-of-type(1)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 515.19,
+          "top": 59.31,
+          "right": 824.53,
+          "bottom": 132.31,
+          "width": 309.34,
+          "height": 73
+        },
+        "containerSelector": "h1.scene4-headline.night-headline > span:nth-of-type(1)",
+        "text": "día y noche.",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply. Decoration nobody needs to read can take data-layout-ignore.",
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 515.19,
+          "y": 59.31,
+          "width": 309.34,
+          "height": 73
+        },
+        "firstSeen": 26.508,
+        "lastSeen": 28.687,
+        "occurrences": 14,
+        "heldMs": 2179.000000000002,
+        "times": [
+          26.508,
+          26.69,
+          26.872,
+          27.053,
+          27.083,
+          27.235,
+          27.416,
+          27.598,
+          27.779,
+          27.961,
+          28.142,
+          28.324,
+          28.506,
+          28.687
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "error",
+        "time": 27.083,
+        "selector": "div.theme-btn > span:nth-of-type(1)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 1591.14,
+          "top": 82.5,
+          "right": 1791,
+          "bottom": 109.5,
+          "width": 199.86,
+          "height": 27
+        },
+        "containerSelector": "div.theme-btn-mint > span:nth-of-type(2)",
+        "text": "Personalizar Temas",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply. Decoration nobody needs to read can take data-layout-ignore.",
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 1591.14,
+          "y": 82.5,
+          "width": 199.86,
+          "height": 27
+        },
+        "firstSeen": 26.145,
+        "lastSeen": 28.506,
+        "occurrences": 15,
+        "heldMs": 2361.0000000000005,
+        "times": [
+          26.145,
+          26.327,
+          26.508,
+          26.69,
+          26.872,
+          27.053,
+          27.083,
+          27.235,
+          27.416,
+          27.598,
+          27.779,
+          27.961,
+          28.142,
+          28.324,
+          28.506
+        ]
+      },
+      {
+        "code": "text_box_overflow",
+        "severity": "info",
+        "time": 16.25,
+        "selector": "#scene2-headline",
+        "message": "Text extends outside its nearest visual/container box.",
+        "rect": {
+          "left": -28.06,
+          "top": 149.67,
+          "right": 313.24,
+          "bottom": 201.17,
+          "width": 341.3,
+          "height": 51.5
+        },
+        "containerSelector": "[data-composition-id=\"unified-dashboard\"] > div:nth-of-type(1)",
+        "text": "Un mensaje.",
+        "fixHint": "Text is 341px x 52px inside 1920px x 1080px and overflows by up to 28px; widen the container to at least ~1948px, or allow wrapping with max-width/fitTextFontSize.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "overflow": {
+          "left": 28.06
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/02-unified-dashboard.html",
+        "bbox": {
+          "x": -28.06,
+          "y": 149.67,
+          "width": 341.3,
+          "height": 51.5
+        },
+        "firstSeen": 16.25,
+        "lastSeen": 16.25,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          16.25
+        ]
+      },
+      {
+        "code": "canvas_overflow",
+        "severity": "info",
+        "time": 16.25,
+        "selector": "#scene2-headline",
+        "message": "Text extends outside the composition canvas.",
+        "rect": {
+          "left": -28.06,
+          "top": 134.22,
+          "right": 313.24,
+          "bottom": 209.41,
+          "width": 341.3,
+          "height": 75.19
+        },
+        "containerSelector": "#root",
+        "text": "Un mensaje.",
+        "fixHint": "Move the text inward, reduce its size, or mark intentional off-canvas animation with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "overflow": {
+          "left": 28.06
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/02-unified-dashboard.html",
+        "bbox": {
+          "x": -28.06,
+          "y": 134.22,
+          "width": 341.3,
+          "height": 75.19
+        },
+        "firstSeen": 16.25,
+        "lastSeen": 16.25,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          16.25
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 20.517,
+        "selector": "div.balance-stack > div:nth-of-type(1)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 1273.33,
+          "top": 343.58,
+          "right": 1496.78,
+          "bottom": 416.58,
+          "width": 223.45,
+          "height": 73
+        },
+        "containerSelector": "div.balance-stack > div:nth-of-type(2)",
+        "text": "+$42.50",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply. Decoration nobody needs to read can take data-layout-ignore.",
+        "dataAttributes": {},
+        "sourceFile": "compositions/03-family-split.html",
+        "bbox": {
+          "x": 1273.33,
+          "y": 343.58,
+          "width": 223.45,
+          "height": 73
+        },
+        "firstSeen": 20.517,
+        "lastSeen": 20.517,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          20.517
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 20.517,
+        "selector": "span.pr-label",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 1457.28,
+          "top": 709.91,
+          "right": 1595.5,
+          "bottom": 726.46,
+          "width": 138.22,
+          "height": 16.55
+        },
+        "containerSelector": "span.pr-done-text",
+        "text": "1-Click Saldar ($42.50)",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply. Decoration nobody needs to read can take data-layout-ignore.",
+        "dataAttributes": {},
+        "sourceFile": "compositions/components/press-ripple.html",
+        "bbox": {
+          "x": 1457.28,
+          "y": 709.91,
+          "width": 138.22,
+          "height": 16.55
+        },
+        "firstSeen": 20.517,
+        "lastSeen": 20.517,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          20.517
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "#day-headline",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 104,
+          "top": 59.31,
+          "right": 515.19,
+          "bottom": 132.31,
+          "width": 411.19,
+          "height": 73
+        },
+        "containerSelector": "div.night-layer",
+        "text": "Tu futuro, claro",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 104,
+          "y": 59.31,
+          "width": 411.19,
+          "height": 73
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "#day-headline > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 515.19,
+          "top": 59.31,
+          "right": 824.53,
+          "bottom": 132.31,
+          "width": 309.34,
+          "height": 73
+        },
+        "containerSelector": "div.night-layer",
+        "text": "día y noche.",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 515.19,
+          "y": 59.31,
+          "width": 309.34,
+          "height": 73
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.theme-btn > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1591.14,
+          "top": 82.5,
+          "right": 1791,
+          "bottom": 109.5,
+          "width": 199.86,
+          "height": 27
+        },
+        "containerSelector": "div.night-layer",
+        "text": "Personalizar Temas",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 1591.14,
+          "y": 82.5,
+          "width": 199.86,
+          "height": 27
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "h2.fc-title",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 145,
+          "top": 205,
+          "right": 623.02,
+          "bottom": 246,
+          "width": 478.02,
+          "height": 41
+        },
+        "containerSelector": "div.browser-bar",
+        "text": "Evolución Proyectada (30 Días)",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 145,
+          "y": 205,
+          "width": 478.02,
+          "height": 41
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "p.fc-sub",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 145,
+          "top": 252,
+          "right": 699.88,
+          "bottom": 279,
+          "width": 554.88,
+          "height": 27
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "Saldo acumulado tras gastos fijos, súper y aporte 50/50",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 145,
+          "y": 252,
+          "width": 554.88,
+          "height": 27
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.whatif-pill > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 857.22,
+          "top": 218,
+          "right": 1135.11,
+          "bottom": 245,
+          "width": 277.89,
+          "height": 27
+        },
+        "containerSelector": "div.browser-bar",
+        "text": "What-If: +$12,739 mes libre",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 857.22,
+          "y": 218,
+          "width": 277.89,
+          "height": 27
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(1) > div:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 183.88,
+          "top": 688,
+          "right": 252.28,
+          "bottom": 713,
+          "width": 68.41,
+          "height": 25
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "$25.6k",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 183.88,
+          "y": 688,
+          "width": 68.41,
+          "height": 25
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_box_overflow",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(1) > div:nth-of-type(3)",
+        "message": "Text extends outside its nearest visual/container box.",
+        "rect": {
+          "left": 199.53,
+          "top": 907,
+          "right": 236.63,
+          "bottom": 933,
+          "width": 37.1,
+          "height": 26
+        },
+        "containerSelector": "#forecast-card",
+        "text": "Hoy",
+        "fixHint": "Text is 37px x 26px inside 1093px x 760px and overflows by up to 5px; increase the container height to at least ~765px, or allow wrapping with max-width/fitTextFontSize.",
+        "containerRect": {
+          "left": 104,
+          "top": 168,
+          "right": 1197.11,
+          "bottom": 928,
+          "width": 1093.11,
+          "height": 760
+        },
+        "overflow": {
+          "bottom": 5
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 199.53,
+          "y": 907,
+          "width": 37.1,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(1) > div:nth-of-type(3)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 199.53,
+          "top": 907,
+          "right": 236.63,
+          "bottom": 933,
+          "width": 37.09,
+          "height": 26
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "Hoy",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 199.53,
+          "y": 907,
+          "width": 37.09,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(2) > div:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 328.03,
+          "top": 653,
+          "right": 396.44,
+          "bottom": 678,
+          "width": 68.41,
+          "height": 25
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "$27.8k",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 328.03,
+          "y": 653,
+          "width": 68.41,
+          "height": 25
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_box_overflow",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(2) > div:nth-of-type(3)",
+        "message": "Text extends outside its nearest visual/container box.",
+        "rect": {
+          "left": 343.8,
+          "top": 907,
+          "right": 380.67,
+          "bottom": 933,
+          "width": 36.87,
+          "height": 26
+        },
+        "containerSelector": "#forecast-card",
+        "text": "+5d",
+        "fixHint": "Text is 37px x 26px inside 1093px x 760px and overflows by up to 5px; increase the container height to at least ~765px, or allow wrapping with max-width/fitTextFontSize.",
+        "containerRect": {
+          "left": 104,
+          "top": 168,
+          "right": 1197.11,
+          "bottom": 928,
+          "width": 1093.11,
+          "height": 760
+        },
+        "overflow": {
+          "bottom": 5
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 343.8,
+          "y": 907,
+          "width": 36.87,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(2) > div:nth-of-type(3)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 343.8,
+          "top": 907,
+          "right": 380.67,
+          "bottom": 933,
+          "width": 36.88,
+          "height": 26
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "+5d",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 343.8,
+          "y": 907,
+          "width": 36.88,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(3) > div:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 472.19,
+          "top": 618,
+          "right": 540.59,
+          "bottom": 643,
+          "width": 68.41,
+          "height": 25
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "$30.1k",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 472.19,
+          "y": 618,
+          "width": 68.41,
+          "height": 25
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_box_overflow",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(3) > div:nth-of-type(3)",
+        "message": "Text extends outside its nearest visual/container box.",
+        "rect": {
+          "left": 483.55,
+          "top": 907,
+          "right": 529.22,
+          "bottom": 933,
+          "width": 45.67,
+          "height": 26
+        },
+        "containerSelector": "#forecast-card",
+        "text": "+10d",
+        "fixHint": "Text is 46px x 26px inside 1093px x 760px and overflows by up to 5px; increase the container height to at least ~765px, or allow wrapping with max-width/fitTextFontSize.",
+        "containerRect": {
+          "left": 104,
+          "top": 168,
+          "right": 1197.11,
+          "bottom": 928,
+          "width": 1093.11,
+          "height": 760
+        },
+        "overflow": {
+          "bottom": 5
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 483.55,
+          "y": 907,
+          "width": 45.67,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(3) > div:nth-of-type(3)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 483.55,
+          "top": 907,
+          "right": 529.22,
+          "bottom": 933,
+          "width": 45.67,
+          "height": 26
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "+10d",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 483.55,
+          "y": 907,
+          "width": 45.67,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(4) > div:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 616.34,
+          "top": 584,
+          "right": 684.75,
+          "bottom": 609,
+          "width": 68.41,
+          "height": 25
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "$32.4k",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 616.34,
+          "y": 584,
+          "width": 68.41,
+          "height": 25
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_box_overflow",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(4) > div:nth-of-type(3)",
+        "message": "Text extends outside its nearest visual/container box.",
+        "rect": {
+          "left": 627.84,
+          "top": 907,
+          "right": 673.25,
+          "bottom": 933,
+          "width": 45.41,
+          "height": 26
+        },
+        "containerSelector": "#forecast-card",
+        "text": "+15d",
+        "fixHint": "Text is 45px x 26px inside 1093px x 760px and overflows by up to 5px; increase the container height to at least ~765px, or allow wrapping with max-width/fitTextFontSize.",
+        "containerRect": {
+          "left": 104,
+          "top": 168,
+          "right": 1197.11,
+          "bottom": 928,
+          "width": 1093.11,
+          "height": 760
+        },
+        "overflow": {
+          "bottom": 5
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 627.84,
+          "y": 907,
+          "width": 45.41,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(4) > div:nth-of-type(3)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 627.84,
+          "top": 907,
+          "right": 673.25,
+          "bottom": 933,
+          "width": 45.41,
+          "height": 26
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "+15d",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 627.84,
+          "y": 907,
+          "width": 45.41,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(5) > div:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 760.5,
+          "top": 548,
+          "right": 828.91,
+          "bottom": 573,
+          "width": 68.41,
+          "height": 25
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "$35.2k",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 760.5,
+          "y": 548,
+          "width": 68.41,
+          "height": 25
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_box_overflow",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(5) > div:nth-of-type(3)",
+        "message": "Text extends outside its nearest visual/container box.",
+        "rect": {
+          "left": 769.58,
+          "top": 907,
+          "right": 819.83,
+          "bottom": 933,
+          "width": 50.25,
+          "height": 26
+        },
+        "containerSelector": "#forecast-card",
+        "text": "+20d",
+        "fixHint": "Text is 50px x 26px inside 1093px x 760px and overflows by up to 5px; increase the container height to at least ~765px, or allow wrapping with max-width/fitTextFontSize.",
+        "containerRect": {
+          "left": 104,
+          "top": 168,
+          "right": 1197.11,
+          "bottom": 928,
+          "width": 1093.11,
+          "height": 760
+        },
+        "overflow": {
+          "bottom": 5
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 769.58,
+          "y": 907,
+          "width": 50.25,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(5) > div:nth-of-type(3)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 769.58,
+          "top": 907,
+          "right": 819.83,
+          "bottom": 933,
+          "width": 50.25,
+          "height": 26
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "+20d",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 769.58,
+          "y": 907,
+          "width": 50.25,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(6) > div:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 904.66,
+          "top": 514,
+          "right": 973.06,
+          "bottom": 539,
+          "width": 68.41,
+          "height": 25
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "$37.9k",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 904.66,
+          "y": 514,
+          "width": 68.41,
+          "height": 25
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_box_overflow",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(6) > div:nth-of-type(3)",
+        "message": "Text extends outside its nearest visual/container box.",
+        "rect": {
+          "left": 914,
+          "top": 907,
+          "right": 963.7,
+          "bottom": 933,
+          "width": 49.7,
+          "height": 26
+        },
+        "containerSelector": "#forecast-card",
+        "text": "+25d",
+        "fixHint": "Text is 50px x 26px inside 1093px x 760px and overflows by up to 5px; increase the container height to at least ~765px, or allow wrapping with max-width/fitTextFontSize.",
+        "containerRect": {
+          "left": 104,
+          "top": 168,
+          "right": 1197.11,
+          "bottom": 928,
+          "width": 1093.11,
+          "height": 760
+        },
+        "overflow": {
+          "bottom": 5
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 914,
+          "y": 907,
+          "width": 49.7,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bars-row > div:nth-of-type(6) > div:nth-of-type(3)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 914,
+          "top": 907,
+          "right": 963.7,
+          "bottom": 933,
+          "width": 49.7,
+          "height": 26
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "+25d",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 914,
+          "y": 907,
+          "width": 49.7,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bar-col.peak > div:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1043.42,
+          "top": 473,
+          "right": 1122.63,
+          "bottom": 501,
+          "width": 79.2,
+          "height": 28
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "$40.2k",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 1043.42,
+          "y": 473,
+          "width": 79.2,
+          "height": 28
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_box_overflow",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bar-col.peak > div:nth-of-type(3)",
+        "message": "Text extends outside its nearest visual/container box.",
+        "rect": {
+          "left": 1057.16,
+          "top": 907,
+          "right": 1108.89,
+          "bottom": 933,
+          "width": 51.73,
+          "height": 26
+        },
+        "containerSelector": "#forecast-card",
+        "text": "+30d",
+        "fixHint": "Text is 52px x 26px inside 1093px x 760px and overflows by up to 5px; increase the container height to at least ~765px, or allow wrapping with max-width/fitTextFontSize.",
+        "containerRect": {
+          "left": 104,
+          "top": 168,
+          "right": 1197.11,
+          "bottom": 928,
+          "width": 1093.11,
+          "height": 760
+        },
+        "overflow": {
+          "bottom": 5
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 1057.16,
+          "y": 907,
+          "width": 51.73,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.bar-col.peak > div:nth-of-type(3)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1057.16,
+          "top": 907,
+          "right": 1108.89,
+          "bottom": 933,
+          "width": 51.73,
+          "height": 26
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "+30d",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 1057.16,
+          "y": 907,
+          "width": 51.73,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.side-col > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1260.11,
+          "top": 205.5,
+          "right": 1431.03,
+          "bottom": 233.5,
+          "width": 170.92,
+          "height": 28
+        },
+        "containerSelector": "div.browser-bar",
+        "text": "Salud del Hogar",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 1260.11,
+          "y": 205.5,
+          "width": 170.92,
+          "height": 28
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "span.ai-badge",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1654.75,
+          "top": 208,
+          "right": 1767,
+          "bottom": 231,
+          "width": 112.25,
+          "height": 23
+        },
+        "containerSelector": "div.night-layer",
+        "text": "IA Predictiva",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 1654.75,
+          "y": 208,
+          "width": 112.25,
+          "height": 23
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "span.health-score.tabular-nums",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1299.3,
+          "top": 414.5,
+          "right": 1344.91,
+          "bottom": 463.5,
+          "width": 45.61,
+          "height": 49
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "84",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 1299.3,
+          "y": 414.5,
+          "width": 45.61,
+          "height": 49
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.health-meta-big",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1408.11,
+          "top": 405,
+          "right": 1544.22,
+          "bottom": 441,
+          "width": 136.11,
+          "height": 36
+        },
+        "containerSelector": "div.night-layer",
+        "text": "Saludable",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 1408.11,
+          "y": 405,
+          "width": 136.11,
+          "height": 36
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.health-meta-sub",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1408.11,
+          "top": 447,
+          "right": 1626.03,
+          "bottom": 473,
+          "width": 217.92,
+          "height": 26
+        },
+        "containerSelector": "div.night-layer",
+        "text": "16.5 meses de respaldo",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 1408.11,
+          "y": 447,
+          "width": 217.92,
+          "height": 26
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.side-col > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1260.11,
+          "top": 595,
+          "right": 1467.27,
+          "bottom": 623,
+          "width": 207.16,
+          "height": 28
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "Proyección Día +30",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 1260.11,
+          "y": 595,
+          "width": 207.16,
+          "height": 28
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.day30-big.tabular-nums",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1260.11,
+          "top": 706,
+          "right": 1602.13,
+          "bottom": 784,
+          "width": 342.02,
+          "height": 78
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "$40,287.00",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 1260.11,
+          "y": 706,
+          "width": 342.02,
+          "height": 78
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 27.083,
+        "selector": "div.day30-trend.tabular-nums",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1260.11,
+          "top": 867,
+          "right": 1616.52,
+          "bottom": 895,
+          "width": 356.41,
+          "height": 28
+        },
+        "containerSelector": "img.desktop-img",
+        "text": "+$1,510.82 / día disponible",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 1260.11,
+          "y": 867,
+          "width": 356.41,
+          "height": 28
+        },
+        "firstSeen": 27.083,
+        "lastSeen": 27.083,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          27.083
+        ]
+      },
+      {
+        "code": "container_overflow",
+        "severity": "info",
+        "time": 30.694,
+        "selector": "div.ambient-halo",
+        "message": "Element extends outside a clipping layout container.",
+        "rect": {
+          "left": 465.74,
+          "top": -19.08,
+          "right": 1454.26,
+          "bottom": 969.45,
+          "width": 988.53,
+          "height": 988.53
+        },
+        "containerSelector": "[data-composition-id=\"end-card\"] > div:nth-of-type(1)",
+        "fixHint": "Resize/reposition the child or container, or mark intentional overflow with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "overflow": {
+          "top": 19.08
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/05-end-card.html",
+        "bbox": {
+          "x": 465.74,
+          "y": -19.08,
+          "width": 988.53,
+          "height": 988.53
+        },
+        "firstSeen": 30.694,
+        "lastSeen": 30.694,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          30.694
+        ]
+      }
+    ],
+    "duration": 32.5,
+    "samples": [
+      1.806,
+      5.417,
+      9.028,
+      12.639,
+      16.25,
+      19.861,
+      23.472,
+      27.083,
+      30.694
+    ],
+    "transitionSamples": [],
+    "transitionSamplesDropped": 0,
+    "tolerance": 2,
+    "totalIssueCount": 43,
+    "truncated": false
+  },
+  "motion": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": false,
+    "samples": 0
+  },
+  "contrast": {
+    "ok": false,
+    "errorCount": 1,
+    "warningCount": 5,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "contrast_aa_failure",
+        "severity": "error",
+        "message": "Contrast is 3.96:1; WCAG AA requires 4.5:1.",
+        "text": "Saldo por confirmar",
+        "fg": "rgb(120,112,104)",
+        "bg": "rgb(237,231,221)",
+        "ratio": 3.96,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(111,103,96)",
+        "large": false,
+        "selector": "div > div:nth-of-type(1) > div > div > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "compositions/01-split-hook.html",
+        "bbox": {
+          "x": 123,
+          "y": 733,
+          "width": 208.6875,
+          "height": 28
+        },
+        "time": 1.806,
+        "times": [
+          1.806,
+          9.028
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 2.97:1; WCAG AA requires 3:1.",
+        "text": "Familia • Split 50/50",
+        "fg": "rgb(5,150,105)",
+        "bg": "rgb(217,232,220)",
+        "ratio": 2.97,
+        "requiredRatio": 3,
+        "suggestedColor": "rgb(5,149,104)",
+        "large": true,
+        "selector": "div > div:nth-of-type(3) > div > div > div:nth-of-type(1) > div",
+        "dataAttributes": {},
+        "sourceFile": "compositions/03-family-split.html",
+        "bbox": {
+          "x": 1542.46875,
+          "y": 60.85747528076172,
+          "width": 267.53125,
+          "height": 54
+        },
+        "time": 23.472,
+        "times": [
+          23.472
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.39:1; WCAG AA requires 4.5:1.",
+        "text": "Supermercado • Hoy",
+        "fg": "rgb(120,112,104)",
+        "bg": "rgb(246,243,236)",
+        "ratio": 4.39,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(118,110,102)",
+        "large": false,
+        "selector": "div > div:nth-of-type(3) > div > div > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(3)",
+        "dataAttributes": {},
+        "sourceFile": "compositions/03-family-split.html",
+        "bbox": {
+          "x": 184,
+          "y": 421.09185791015625,
+          "width": 462.65625,
+          "height": 26
+        },
+        "time": 23.472,
+        "times": [
+          23.472
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.39:1; WCAG AA requires 4.5:1.",
+        "text": "Dividido entre 2 adultos",
+        "fg": "rgb(120,112,104)",
+        "bg": "rgb(246,243,236)",
+        "ratio": 4.39,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(118,110,102)",
+        "large": false,
+        "selector": "div > div:nth-of-type(3) > div > div > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(3)",
+        "dataAttributes": {},
+        "sourceFile": "compositions/03-family-split.html",
+        "bbox": {
+          "x": 728.65625,
+          "y": 421.09185791015625,
+          "width": 462.671875,
+          "height": 26
+        },
+        "time": 23.472,
+        "times": [
+          23.472
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.39:1; WCAG AA requires 4.5:1.",
+        "text": "A favor (pendiente saldar)",
+        "fg": "rgb(120,112,104)",
+        "bg": "rgb(246,243,236)",
+        "ratio": 4.39,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(118,110,102)",
+        "large": false,
+        "selector": "#bal-status-before",
+        "dataAttributes": {},
+        "sourceFile": "compositions/03-family-split.html",
+        "bbox": {
+          "x": 1273.328125,
+          "y": 425.09185791015625,
+          "width": 462.671875,
+          "height": 26
+        },
+        "time": 23.472,
+        "times": [
+          23.472
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 2.89:1; WCAG AA requires 3:1.",
+        "text": "M",
+        "fg": "rgb(5,150,105)",
+        "bg": "rgb(212,230,218)",
+        "ratio": 2.89,
+        "requiredRatio": 3,
+        "suggestedColor": "rgb(5,147,103)",
+        "large": true,
+        "selector": "div > div:nth-of-type(3) > div > div > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "compositions/03-family-split.html",
+        "bbox": {
+          "x": 808,
+          "y": 536.0918579101562,
+          "width": 48,
+          "height": 48
+        },
+        "time": 23.472,
+        "times": [
+          23.472
+        ]
+      }
+    ],
+    "enabled": true,
+    "samples": [
+      1.806,
+      9.028,
+      16.25,
+      23.472,
+      30.694
+    ],
+    "checked": 108,
+    "passed": 101
+  },
+  "craft": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 7,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "text_below_floor",
+        "severity": "warning",
+        "message": "Type floor is 28 px (2.6% of the 1080 px short side, what a phone can read) and 15 text elements stay under it for 0.5 s or more, the smallest \"Cuenta A • Hojas y chats\" at 16 px: set reading text to at least 28 px, or put data-layout-ignore on text that is texture rather than reading; see references/look.md.",
+        "text": "Cuenta A • Hojas y chats",
+        "selector": "div.pane-left > div:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "compositions/01-split-hook.html",
+        "bbox": {
+          "x": 110,
+          "y": 75,
+          "width": 271.28,
+          "height": 23
+        },
+        "time": 0,
+        "times": [
+          0,
+          0,
+          3.25,
+          5.125,
+          5.125,
+          5.125,
+          5.125,
+          5.125,
+          5.125,
+          5.125,
+          5.125,
+          5.125,
+          5.875,
+          5.875,
+          5.875
+        ],
+        "fontPx": 15.7,
+        "floorPx": 28,
+        "seconds": 10,
+        "elements": [
+          {
+            "selector": "div.pane-left > div:nth-of-type(1)",
+            "text": "Cuenta A • Hojas y chats",
+            "fontPx": 15.7,
+            "time": 0,
+            "seconds": 10
+          },
+          {
+            "selector": "div.pane-right > div:nth-of-type(1)",
+            "text": "Cuenta B • @HogarIQBot",
+            "fontPx": 15.7,
+            "time": 0,
+            "seconds": 10
+          },
+          {
+            "selector": "div.bot-sub",
+            "text": "Bot de Telegram • IA Privada",
+            "fontPx": 15.7,
+            "time": 5.125,
+            "seconds": 4.875
+          },
+          {
+            "selector": "div.bot-live-pill",
+            "text": "Sincronizado",
+            "fontPx": 15.7,
+            "time": 5.125,
+            "seconds": 4.875
+          },
+          {
+            "selector": "div.card-ivory > div:nth-of-type(1) > span:nth-of-type(2)",
+            "text": "Sin dividir",
+            "fontPx": 16.58,
+            "time": 5.125,
+            "seconds": 4.875
+          },
+          {
+            "selector": "div.card-secondary > div:nth-of-type(1) > span:nth-of-type(2)",
+            "text": "91% uso",
+            "fontPx": 16.58,
+            "time": 5.125,
+            "seconds": 4.875
+          },
+          {
+            "selector": "div.card-ivory > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Chat familiar • Hace 2 días",
+            "fontPx": 17.45,
+            "time": 5.125,
+            "seconds": 4.875
+          },
+          {
+            "selector": "div.card-secondary > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Tarjeta compartida • Corte día 20",
+            "fontPx": 17.45,
+            "time": 5.125,
+            "seconds": 4.875
+          },
+          {
+            "selector": "div.msg-bot-title",
+            "text": "Registrado en Hogar Rivera",
+            "fontPx": 17.45,
+            "time": 5.875,
+            "seconds": 4.125
+          },
+          {
+            "selector": "span.bot-chip.chip-split",
+            "text": "Split 50/50 • $42.50 c/u",
+            "fontPx": 18.32,
+            "time": 5.875,
+            "seconds": 4.125
+          },
+          {
+            "selector": "span.bot-chip.chip-cat",
+            "text": "Categoría: Hogar",
+            "fontPx": 18.32,
+            "time": 5.875,
+            "seconds": 4.125
+          },
+          {
+            "selector": "div.card-ivory > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "Supermercado semanal",
+            "fontPx": 19.19,
+            "time": 5.125,
+            "seconds": 4.875
+          },
+          {
+            "selector": "div.card-secondary > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "Saldo por confirmar",
+            "fontPx": 19.19,
+            "time": 5.125,
+            "seconds": 4.875
+          },
+          {
+            "selector": "div.msg-out",
+            "text": "Supermercado 85 compartido",
+            "fontPx": 23.56,
+            "time": 5.125,
+            "seconds": 4.875
+          },
+          {
+            "selector": "span.tg-typed-text",
+            "text": "Supermercado 85 compartido",
+            "fontPx": 27,
+            "time": 3.25,
+            "seconds": 1.625
+          }
+        ]
+      },
+      {
+        "code": "text_below_floor",
+        "severity": "warning",
+        "message": "Type floor is 28 px (2.6% of the 1080 px short side, what a phone can read) and 25 text elements stay under it for 0.5 s or more, the smallest \"HOGAR\" at 14 px: set reading text to at least 28 px, or put data-layout-ignore on text that is texture rather than reading; see references/look.md.",
+        "text": "HOGAR",
+        "selector": "span.nav-hogar-tag",
+        "dataAttributes": {},
+        "sourceFile": "compositions/02-unified-dashboard.html",
+        "bbox": {
+          "x": 318.24,
+          "y": 82.57,
+          "width": 54.71,
+          "height": 17.7
+        },
+        "time": 11.75,
+        "times": [
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75,
+          11.75
+        ],
+        "fontPx": 13.77,
+        "floorPx": 28,
+        "seconds": 4.5,
+        "elements": [
+          {
+            "selector": "span.nav-hogar-tag",
+            "text": "HOGAR",
+            "fontPx": 13.77,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.nav-house-pill",
+            "text": "Hogar Rivera",
+            "fontPx": 17.7,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "span.badge-healthy",
+            "text": "Saludable",
+            "fontPx": 19,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.nav-tab.is-active",
+            "text": "Dashboard",
+            "fontPx": 19.67,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "nav.nav-tabs > div:nth-of-type(2)",
+            "text": "Calendario",
+            "fontPx": 19.67,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "nav.nav-tabs > div:nth-of-type(3)",
+            "text": "Presupuestos",
+            "fontPx": 19.67,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "nav.nav-tabs > div:nth-of-type(4)",
+            "text": "Compromisos",
+            "fontPx": 19.67,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.nav-tab.nav-tab-target",
+            "text": "Familia",
+            "fontPx": 19.67,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "span.express-pill-on",
+            "text": "Express (Lenguaje Natural)",
+            "fontPx": 19.97,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "span.express-pill-off",
+            "text": "Manual",
+            "fontPx": 19.97,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.express-badge-tg",
+            "text": "Split 50/50 activado",
+            "fontPx": 19.97,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "span.parsed-tag",
+            "text": "Hogar • $42.50 c/u",
+            "fontPx": 20.97,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.kpi-kicker > span:nth-of-type(1)",
+            "text": "Disponible Hoy",
+            "fontPx": 21,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.kpi-grid > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1)",
+            "text": "Balance Total",
+            "fontPx": 21,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.kpi-grid > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1)",
+            "text": "Salud Familiar",
+            "fontPx": 21,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.sub-sync-pill",
+            "text": "Sincronizado vía @HogarIQBot",
+            "fontPx": 21.63,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "span.parsed-ok",
+            "text": "✓ Registrado",
+            "fontPx": 21.97,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.kpi-card.hero-kpi > div:nth-of-type(3) > span:nth-of-type(1)",
+            "text": "Mes libre de culpa",
+            "fontPx": 23,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.kpi-card.hero-kpi > div:nth-of-type(3) > strong:nth-of-type(1)",
+            "text": "$25,683.97",
+            "fontPx": 23,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.kpi-grid > div:nth-of-type(2) > div:nth-of-type(3) > span:nth-of-type(1)",
+            "text": "Ahorro neto mes",
+            "fontPx": 23,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.kpi-grid > div:nth-of-type(2) > div:nth-of-type(3) > strong:nth-of-type(1)",
+            "text": "+$13,370.84",
+            "fontPx": 23,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.kpi-grid > div:nth-of-type(3) > div:nth-of-type(3) > span:nth-of-type(1)",
+            "text": "Runway del hogar",
+            "fontPx": 23,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.kpi-grid > div:nth-of-type(3) > div:nth-of-type(3) > strong:nth-of-type(1)",
+            "text": "16.5 meses",
+            "fontPx": 23,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.nav-wordmark",
+            "text": "Hogar",
+            "fontPx": 25.57,
+            "time": 11.75,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.nav-wordmark > span:nth-of-type(1)",
+            "text": "IQ",
+            "fontPx": 25.57,
+            "time": 11.75,
+            "seconds": 4.5
+          }
+        ]
+      },
+      {
+        "code": "text_below_floor",
+        "severity": "warning",
+        "message": "Type floor is 28 px (2.6% of the 1080 px short side, what a phone can read) and 15 text elements stay under it for 0.5 s or more, the smallest \"Total Gastado en Común\" at 18 px: set reading text to at least 28 px, or put data-layout-ignore on text that is texture rather than reading; see references/look.md.",
+        "text": "Total Gastado en Común",
+        "selector": "div.summary-grid > div:nth-of-type(1) > div:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "compositions/03-family-split.html",
+        "bbox": {
+          "x": 186.17,
+          "y": 324.37,
+          "width": 268.64,
+          "height": 23
+        },
+        "time": 16.5,
+        "times": [
+          16.375,
+          16.375,
+          16.5,
+          16.5,
+          16.625,
+          16.625,
+          16.625,
+          16.625,
+          16.75,
+          16.75,
+          16.75,
+          16.75,
+          16.75,
+          16.75,
+          21
+        ],
+        "fontPx": 18,
+        "floorPx": 28,
+        "seconds": 4.375,
+        "elements": [
+          {
+            "selector": "div.summary-grid > div:nth-of-type(1) > div:nth-of-type(1)",
+            "text": "Total Gastado en Común",
+            "fontPx": 18,
+            "time": 16.5,
+            "seconds": 4.375
+          },
+          {
+            "selector": "div.summary-grid > div:nth-of-type(2) > div:nth-of-type(1)",
+            "text": "Cuota Justa por Adulto",
+            "fontPx": 18,
+            "time": 16.625,
+            "seconds": 4.25
+          },
+          {
+            "selector": "div.summary-grid > div:nth-of-type(3) > div:nth-of-type(1)",
+            "text": "Tu Balance Personal",
+            "fontPx": 18,
+            "time": 16.625,
+            "seconds": 4.25
+          },
+          {
+            "selector": "div.members-list > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2)",
+            "text": "Pagó el súper",
+            "fontPx": 18,
+            "time": 16.75,
+            "seconds": 4.125
+          },
+          {
+            "selector": "div.members-list > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2)",
+            "text": "Aporte equilibrado",
+            "fontPx": 18,
+            "time": 16.75,
+            "seconds": 4.125
+          },
+          {
+            "selector": "div.summary-grid > div:nth-of-type(1) > div:nth-of-type(3)",
+            "text": "Supermercado • Hoy",
+            "fontPx": 20,
+            "time": 16.5,
+            "seconds": 4.375
+          },
+          {
+            "selector": "div.summary-grid > div:nth-of-type(2) > div:nth-of-type(3)",
+            "text": "Dividido entre 2 adultos",
+            "fontPx": 20,
+            "time": 16.625,
+            "seconds": 4.25
+          },
+          {
+            "selector": "#bal-status-before",
+            "text": "A favor (pendiente saldar)",
+            "fontPx": 20,
+            "time": 16.625,
+            "seconds": 4.25
+          },
+          {
+            "selector": "p.split-card-sub",
+            "text": "División automática y transparente para el presupuesto común del mes.",
+            "fontPx": 21,
+            "time": 16.375,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.tab-breadcrumb",
+            "text": "Familia • Split 50/50",
+            "fontPx": 22,
+            "time": 16.375,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.avatar-circle.av-a",
+            "text": "S",
+            "fontPx": 22,
+            "time": 16.75,
+            "seconds": 4.125
+          },
+          {
+            "selector": "div.avatar-circle.av-b",
+            "text": "M",
+            "fontPx": 22,
+            "time": 16.75,
+            "seconds": 4.125
+          },
+          {
+            "selector": "div.members-list > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1)",
+            "text": "Sofía Rivera",
+            "fontPx": 24,
+            "time": 16.75,
+            "seconds": 4.125
+          },
+          {
+            "selector": "div.members-list > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1)",
+            "text": "Mateo Rivera",
+            "fontPx": 24,
+            "time": 16.75,
+            "seconds": 4.125
+          },
+          {
+            "selector": "span.settled-text",
+            "text": "¡Cuentas totalmente equilibradas! Sin deudas comunes pendientes.",
+            "fontPx": 26.76,
+            "time": 21,
+            "seconds": 2.75
+          }
+        ]
+      },
+      {
+        "code": "line_unread",
+        "severity": "warning",
+        "message": "\"1-Click Saldar ($42.50)\" (5 words) is on screen 1.00 s (±0.01 s), under its 1.50 s floor: hold it about 0.5 s + 0.3 s a word (2.00 s here) before it leaves or changes; see references/motion.md.",
+        "text": "1-Click Saldar ($42.50)",
+        "selector": "span.pr-label",
+        "dataAttributes": {},
+        "sourceFile": "compositions/components/press-ripple.html",
+        "bbox": {
+          "x": 1384.45,
+          "y": 707.93,
+          "width": 283.8900000000001,
+          "height": 34
+        },
+        "time": 19.438,
+        "words": 5,
+        "seconds": 1,
+        "floorSeconds": 1.5,
+        "measured": [
+          {
+            "time": 19.125,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 19.25,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 19.375,
+            "opacity": 0.13,
+            "heightPx": 34
+          },
+          {
+            "time": 19.5,
+            "opacity": 0.76,
+            "heightPx": 34
+          },
+          {
+            "time": 19.625,
+            "opacity": 0.94,
+            "heightPx": 34
+          },
+          {
+            "time": 19.75,
+            "opacity": 1,
+            "heightPx": 34
+          },
+          {
+            "time": 19.875,
+            "opacity": 1,
+            "heightPx": 34
+          },
+          {
+            "time": 20,
+            "opacity": 1,
+            "heightPx": 34
+          },
+          {
+            "time": 20.125,
+            "opacity": 1,
+            "heightPx": 34
+          },
+          {
+            "time": 20.25,
+            "opacity": 1,
+            "heightPx": 34
+          },
+          {
+            "time": 20.375,
+            "opacity": 1,
+            "heightPx": 33
+          },
+          {
+            "time": 20.5,
+            "opacity": 0.29,
+            "heightPx": 17
+          },
+          {
+            "time": 20.625,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 20.75,
+            "opacity": null,
+            "heightPx": null
+          }
+        ]
+      },
+      {
+        "code": "text_below_floor",
+        "severity": "warning",
+        "message": "Type floor is 28 px (2.6% of the 1080 px short side, what a phone can read) and 2 text elements stay under it for 0.5 s or more, the smallest \"¡Saldado!\" at 20 px: set reading text to at least 28 px, or put data-layout-ignore on text that is texture rather than reading; see references/look.md.",
+        "text": "¡Saldado!",
+        "selector": "span.pr-done-text",
+        "dataAttributes": {},
+        "sourceFile": "compositions/components/press-ripple.html",
+        "bbox": {
+          "x": 1494.22,
+          "y": 705.05,
+          "width": 88.45,
+          "height": 26.28
+        },
+        "time": 21,
+        "times": [
+          19.5,
+          21
+        ],
+        "fontPx": 20.1,
+        "floorPx": 28,
+        "seconds": 0.75,
+        "elements": [
+          {
+            "selector": "span.pr-done-text",
+            "text": "¡Saldado!",
+            "fontPx": 20.1,
+            "time": 21,
+            "seconds": 0.75
+          },
+          {
+            "selector": "span.pr-label",
+            "text": "1-Click Saldar ($42.50)",
+            "fontPx": 25.44,
+            "time": 19.5,
+            "seconds": 1
+          }
+        ]
+      },
+      {
+        "code": "text_below_floor",
+        "severity": "warning",
+        "message": "Type floor is 28 px (2.6% of the 1080 px short side, what a phone can read) and 24 text elements stay under it for 0.5 s or more, the smallest \"hogariq.kasino21.com/dashboard\" at 15 px: set reading text to at least 28 px, or put data-layout-ignore on text that is texture rather than reading; see references/look.md.",
+        "text": "hogariq.kasino21.com/dashboard",
+        "selector": "div.url-pill",
+        "dataAttributes": {},
+        "sourceFile": "compositions/04-forecast-and-night.html",
+        "bbox": {
+          "x": 637.18,
+          "y": 206.98,
+          "width": 237.63,
+          "height": 18.9
+        },
+        "time": 26.375,
+        "times": [
+          23.875,
+          23.875,
+          23.875,
+          23.875,
+          23.875,
+          23.875,
+          23.875,
+          23.875,
+          23.875,
+          23.875,
+          23.875,
+          23.875,
+          23.875,
+          23.875,
+          23.875,
+          24.25,
+          24.25,
+          24.375,
+          24.375,
+          24.5,
+          24.5,
+          24.625,
+          26.125,
+          26.375
+        ],
+        "fontPx": 14.92,
+        "floorPx": 28,
+        "seconds": 2.375,
+        "elements": [
+          {
+            "selector": "div.url-pill",
+            "text": "hogariq.kasino21.com/dashboard",
+            "fontPx": 14.92,
+            "time": 26.375,
+            "seconds": 2.375
+          },
+          {
+            "selector": "span.ai-badge",
+            "text": "IA Predictiva",
+            "fontPx": 18,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.bars-row > div:nth-of-type(1) > div:nth-of-type(1)",
+            "text": "$25.6k",
+            "fontPx": 19,
+            "time": 24.25,
+            "seconds": 4.625
+          },
+          {
+            "selector": "div.bars-row > div:nth-of-type(2) > div:nth-of-type(1)",
+            "text": "$27.8k",
+            "fontPx": 19,
+            "time": 24.25,
+            "seconds": 4.625
+          },
+          {
+            "selector": "div.bars-row > div:nth-of-type(3) > div:nth-of-type(1)",
+            "text": "$30.1k",
+            "fontPx": 19,
+            "time": 24.375,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.bars-row > div:nth-of-type(4) > div:nth-of-type(1)",
+            "text": "$32.4k",
+            "fontPx": 19,
+            "time": 24.375,
+            "seconds": 4.5
+          },
+          {
+            "selector": "div.bars-row > div:nth-of-type(5) > div:nth-of-type(1)",
+            "text": "$35.2k",
+            "fontPx": 19,
+            "time": 24.5,
+            "seconds": 4.375
+          },
+          {
+            "selector": "div.bars-row > div:nth-of-type(6) > div:nth-of-type(1)",
+            "text": "$37.9k",
+            "fontPx": 19,
+            "time": 24.5,
+            "seconds": 4.375
+          },
+          {
+            "selector": "div.bars-row > div:nth-of-type(1) > div:nth-of-type(3)",
+            "text": "Hoy",
+            "fontPx": 20,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.bars-row > div:nth-of-type(2) > div:nth-of-type(3)",
+            "text": "+5d",
+            "fontPx": 20,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.bars-row > div:nth-of-type(3) > div:nth-of-type(3)",
+            "text": "+10d",
+            "fontPx": 20,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.bars-row > div:nth-of-type(4) > div:nth-of-type(3)",
+            "text": "+15d",
+            "fontPx": 20,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.bars-row > div:nth-of-type(5) > div:nth-of-type(3)",
+            "text": "+20d",
+            "fontPx": 20,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.bars-row > div:nth-of-type(6) > div:nth-of-type(3)",
+            "text": "+25d",
+            "fontPx": 20,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.bar-col.peak > div:nth-of-type(3)",
+            "text": "+30d",
+            "fontPx": 20,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.health-meta-sub",
+            "text": "16.5 meses de respaldo",
+            "fontPx": 20,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.theme-btn > span:nth-of-type(1)",
+            "text": "Personalizar Temas",
+            "fontPx": 20.35,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.theme-btn-mint > span:nth-of-type(2)",
+            "text": "Family Mint",
+            "fontPx": 20.71,
+            "time": 26.125,
+            "seconds": 2.625
+          },
+          {
+            "selector": "p.fc-sub",
+            "text": "Saldo acumulado tras gastos fijos, súper y aporte 50/50",
+            "fontPx": 21,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.whatif-pill > span:nth-of-type(1)",
+            "text": "What-If: +$12,739 mes libre",
+            "fontPx": 21,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.side-col > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Salud del Hogar",
+            "fontPx": 22,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.side-col > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Proyección Día +30",
+            "fontPx": 22,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.day30-trend.tabular-nums",
+            "text": "+$1,510.82 / día disponible",
+            "fontPx": 22,
+            "time": 23.875,
+            "seconds": 5
+          },
+          {
+            "selector": "div.bar-col.peak > div:nth-of-type(1)",
+            "text": "$40.2k",
+            "fontPx": 22,
+            "time": 24.625,
+            "seconds": 4.25
+          }
+        ]
+      },
+      {
+        "code": "text_below_floor",
+        "severity": "warning",
+        "message": "Type floor is 28 px (2.6% of the 1080 px short side, what a phone can read) and \"HOGAR\" renders at 20 px for 3.25 s: set reading text to at least 28 px, or put data-layout-ignore on text that is texture rather than reading; see references/look.md.",
+        "text": "HOGAR",
+        "selector": "span.hogar-pill",
+        "dataAttributes": {},
+        "sourceFile": "compositions/05-end-card.html",
+        "bbox": {
+          "x": 1048.16,
+          "y": 557.35,
+          "width": 85.48,
+          "height": 26
+        },
+        "time": 29.25,
+        "times": [
+          29.25
+        ],
+        "fontPx": 20,
+        "floorPx": 28,
+        "seconds": 3.25,
+        "elements": [
+          {
+            "selector": "span.hogar-pill",
+            "text": "HOGAR",
+            "fontPx": 20,
+            "time": 29.25,
+            "seconds": 3.25
+          }
+        ]
+      }
+    ],
+    "enabled": true,
+    "step": 0.125,
+    "samples": 260
+  },
+  "audio": {
+    "ok": false,
+    "errorCount": 12,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/bgm/track.wav cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#bgm",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "timeRange": [
+          0,
+          32.5
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/typing.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#hf-audio-0",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 3.1,
+        "timeRange": [
+          3.1,
+          4.15
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/key-press.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#hf-audio-1",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 4.6,
+        "timeRange": [
+          4.6,
+          4.989999999999999
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/notification.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#hf-audio-2",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 5.65,
+        "timeRange": [
+          5.65,
+          7.8500000000000005
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/whoosh.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#hf-audio-3",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 9.87,
+        "timeRange": [
+          9.87,
+          10.43
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/impact-bass-1.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#hf-audio-4",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 9.96,
+        "timeRange": [
+          9.96,
+          11.96
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/pop.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#hf-audio-5",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 11.26,
+        "timeRange": [
+          11.26,
+          11.959999999999999
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/whoosh-short.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#hf-audio-6",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 16.12,
+        "timeRange": [
+          16.12,
+          16.68
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/click-soft.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#hf-audio-7",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 20.2,
+        "timeRange": [
+          20.2,
+          20.55
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/sparkle.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#hf-audio-8",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 20.42,
+        "timeRange": [
+          20.42,
+          22.12
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/whoosh.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#hf-audio-9",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 25.87,
+        "timeRange": [
+          25.87,
+          26.43
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      },
+      {
+        "code": "audio_source_unreadable",
+        "severity": "error",
+        "message": "assets/sfx/click.mp3 cannot be read as audio ([FFmpeg] ffprobe not found. Please install FFmpeg.), so the render's audio mix fails and the render stops.",
+        "selector": "#hf-audio-10",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 29.13,
+        "timeRange": [
+          29.13,
+          29.48
+        ],
+        "fixHint": "Point src at a file with an audio track, or re-export this one."
+      }
+    ]
+  },
+  "hdr": {
+    "autoPromotion": null,
+    "inspection": "available"
+  },
+  "snapshots": {
+    "enabled": true,
+    "files": [
+      ".hyperframes\\artifacts\\snapshots\\befae57b-f0bc-4fee-ab56-e83765852fef\\frame-00-at-1.8s.png",
+      ".hyperframes\\artifacts\\snapshots\\befae57b-f0bc-4fee-ab56-e83765852fef\\frame-01-at-9.0s.png",
+      ".hyperframes\\artifacts\\snapshots\\befae57b-f0bc-4fee-ab56-e83765852fef\\frame-02-at-16.3s.png",
+      ".hyperframes\\artifacts\\snapshots\\befae57b-f0bc-4fee-ab56-e83765852fef\\frame-03-at-23.5s.png",
+      ".hyperframes\\artifacts\\snapshots\\befae57b-f0bc-4fee-ab56-e83765852fef\\frame-04-at-30.7s.png"
+    ],
+    "times": [
+      1.806,
+      9.028,
+      16.25,
+      23.472,
+      30.694
+    ],
+    "findingFiles": [
+      "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\.hyperframes\\artifacts\\snapshots\\befae57b-f0bc-4fee-ab56-e83765852fef\\finding-00-content_overlap.png",
+      "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\.hyperframes\\artifacts\\snapshots\\befae57b-f0bc-4fee-ab56-e83765852fef\\finding-01-content_overlap.png",
+      "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\.hyperframes\\artifacts\\snapshots\\befae57b-f0bc-4fee-ab56-e83765852fef\\finding-02-content_overlap.png",
+      "C:\\Users\\angel\\Desktop\\Develop\\Web all projects\\Financial App\\FinancialApp\\promo-video\\.hyperframes\\artifacts\\snapshots\\befae57b-f0bc-4fee-ab56-e83765852fef\\finding-03-contrast_aa_failure.png"
+    ]
+  }
+}

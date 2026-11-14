@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import {
@@ -11,6 +11,7 @@ import {
   BarChart3,
 } from 'lucide-react-native';
 import { FamilyMint } from '@/constants/Colors';
+import { getUser, getHousehold } from '@/constants/Api';
 
 interface TabBarIconProps {
   Icon: React.ComponentType<{ size: number; color: string; strokeWidth?: number }>;
@@ -30,6 +31,18 @@ function TabBarIcon({ Icon, focused }: TabBarIconProps) {
 }
 
 export default function TabLayout() {
+  const [isChildAccount, setIsChildAccount] = useState(false);
+
+  useEffect(() => {
+    Promise.all([getUser(), getHousehold()])
+      .then(([u, h]) => {
+        if (h?.role === 'DEPENDENT' || h?.isChildAccount || u?.isChildAccount) {
+          setIsChildAccount(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <Tabs
       screenOptions={{
@@ -53,7 +66,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Inicio',
+          title: isChildAccount ? 'Mi Cuenta' : 'Inicio',
           tabBarIcon: ({ focused }) => <TabBarIcon Icon={Home} focused={focused} />,
         }}
       />
@@ -61,6 +74,7 @@ export default function TabLayout() {
         name="calendar"
         options={{
           title: 'Calendario',
+          href: isChildAccount ? null : undefined,
           tabBarIcon: ({ focused }) => <TabBarIcon Icon={Calendar} focused={focused} />,
         }}
       />
@@ -68,6 +82,7 @@ export default function TabLayout() {
         name="budgets"
         options={{
           title: 'Presupuestos',
+          href: isChildAccount ? null : undefined,
           tabBarIcon: ({ focused }) => <TabBarIcon Icon={Target} focused={focused} />,
         }}
       />
@@ -75,6 +90,7 @@ export default function TabLayout() {
         name="commitments"
         options={{
           title: 'Compromisos',
+          href: isChildAccount ? null : undefined,
           tabBarIcon: ({ focused }) => <TabBarIcon Icon={CreditCard} focused={focused} />,
         }}
       />
@@ -82,13 +98,14 @@ export default function TabLayout() {
         name="patrimony"
         options={{
           title: 'Patrimonio',
+          href: isChildAccount ? null : undefined,
           tabBarIcon: ({ focused }) => <TabBarIcon Icon={Gem} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="family"
         options={{
-          title: 'Familia',
+          title: isChildAccount ? 'Misiones' : 'Familia',
           tabBarIcon: ({ focused }) => <TabBarIcon Icon={Users} focused={focused} />,
         }}
       />
@@ -96,6 +113,7 @@ export default function TabLayout() {
         name="reports"
         options={{
           title: 'Reportes',
+          href: isChildAccount ? null : undefined,
           tabBarIcon: ({ focused }) => <TabBarIcon Icon={BarChart3} focused={focused} />,
         }}
       />

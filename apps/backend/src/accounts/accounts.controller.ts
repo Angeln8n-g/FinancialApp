@@ -11,17 +11,17 @@ export class AccountsController {
 
   @Get()
   async findAll(@CurrentUser() user: UserPayload) {
-    return this.accountsService.findAllByHousehold(user.householdId);
+    return this.accountsService.findAllByHousehold(user.householdId, user.userId);
   }
 
   @Get(':id')
   async findOne(@CurrentUser() user: UserPayload, @Param('id') id: string) {
-    return this.accountsService.findOne(user.householdId, id);
+    return this.accountsService.findOne(user.householdId, id, user.userId);
   }
 
   @Post()
   async create(@CurrentUser() user: UserPayload, @Body() dto: CreateAccountDto) {
-    return this.accountsService.create(user.householdId, dto);
+    return this.accountsService.create(user.householdId, dto, user.userId);
   }
 
   @Put(':id')
@@ -30,7 +30,7 @@ export class AccountsController {
     @Param('id') id: string,
     @Body() dto: UpdateAccountDto,
   ) {
-    return this.accountsService.update(user.householdId, id, dto);
+    return this.accountsService.update(user.householdId, id, dto, user.userId);
   }
 
   @Post(':id/payroll/deposit')
@@ -43,6 +43,6 @@ export class AccountsController {
 
   @Delete(':id')
   async delete(@CurrentUser() user: UserPayload, @Param('id') id: string) {
-    return this.accountsService.delete(user.householdId, id);
+    return this.accountsService.delete(user.householdId, id, user.userId);
   }
 }

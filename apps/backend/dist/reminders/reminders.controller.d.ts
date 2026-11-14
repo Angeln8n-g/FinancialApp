@@ -6,10 +6,11 @@ export declare class RemindersController {
     findAll(user: UserPayload): Promise<({
         debt: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             householdId: string;
             type: import(".prisma/client").$Enums.DebtType;
+            createdAt: Date;
+            updatedAt: Date;
+            accountId: string | null;
             contactName: string;
             totalAmount: import("@prisma/client/runtime/library").Decimal;
             remainingAmount: import("@prisma/client/runtime/library").Decimal;
@@ -25,16 +26,15 @@ export declare class RemindersController {
             minimumPayment: import("@prisma/client/runtime/library").Decimal | null;
             alertDaysBefore: number | null;
             autoAlert: boolean;
-            accountId: string | null;
         } | null;
         subscription: {
             id: string;
-            createdAt: Date;
-            name: string;
             householdId: string;
+            name: string;
+            createdAt: Date;
             period: import(".prisma/client").$Enums.RecurrencePeriod;
-            categoryId: string | null;
             accountId: string | null;
+            categoryId: string | null;
             cost: import("@prisma/client/runtime/library").Decimal;
             nextBillingDate: Date;
             autoDeduct: boolean;
@@ -43,8 +43,8 @@ export declare class RemindersController {
         } | null;
     } & {
         id: string;
-        createdAt: Date;
         householdId: string;
+        createdAt: Date;
         title: string;
         dueDate: Date;
         amount: import("@prisma/client/runtime/library").Decimal;
@@ -60,8 +60,8 @@ export declare class RemindersController {
         debtId?: string;
     }): Promise<{
         id: string;
-        createdAt: Date;
         householdId: string;
+        createdAt: Date;
         title: string;
         dueDate: Date;
         amount: import("@prisma/client/runtime/library").Decimal;
@@ -73,8 +73,8 @@ export declare class RemindersController {
         accountId?: string;
     }): Promise<{
         id: string;
-        createdAt: Date;
         householdId: string;
+        createdAt: Date;
         title: string;
         dueDate: Date;
         amount: import("@prisma/client/runtime/library").Decimal;

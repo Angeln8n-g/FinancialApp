@@ -8,6 +8,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransactionsService = void 0;
 const common_1 = require("@nestjs/common");
@@ -15,6 +18,7 @@ const prisma_service_1 = require("../prisma/prisma.service");
 const events_gateway_1 = require("../events/events.gateway");
 const currency_service_1 = require("../currency/currency.service");
 const client_1 = require("@prisma/client");
+const parental_control_helper_1 = require("../household/parental-control.helper");
 let TransactionsService = class TransactionsService {
     prisma;
     eventsGateway;
@@ -24,9 +28,23 @@ let TransactionsService = class TransactionsService {
         this.eventsGateway = eventsGateway;
         this.currencyService = currencyService;
     }
-    async findAllByHousehold(householdId) {
+    convertAmount(amount, from, to) {
+        if (!this.currencyService)
+            return amount;
+        return this.currencyService.convert(amount, from, to);
+    }
+    async findAllByHousehold(householdId, userId) {
+        const childConfig = await parental_control_helper_1.ParentalControlHelper.getChildConfigIfDependent(this.prisma, householdId, userId);
+        const whereClause = { householdId };
+        if (childConfig && childConfig.childAccountId) {
+            whereClause.OR = [
+                { accountId: childConfig.childAccountId },
+                { destinationAccountId: childConfig.childAccountId },
+                { createdById: userId },
+            ];
+        }
         return this.prisma.transaction.findMany({
-            where: { householdId },
+            where: whereClause,
             include: {
                 account: true,
                 destinationAccount: true,
@@ -49,6 +67,42 @@ let TransactionsService = class TransactionsService {
         });
         if (!sourceAccount) {
             throw new common_1.NotFoundException('Cuenta de origen no encontrada');
+        }
+        const childConfig = await parental_control_helper_1.ParentalControlHelper.getChildConfigIfDependent(this.prisma, householdId, currentUserId);
+        if (childConfig) {
+            if (childConfig.childAccountId &&
+                sourceAccount.id !== childConfig.childAccountId &&
+                !sourceAccount.name.toLowerCase().includes(childConfig.childEmail.toLowerCase())) {
+                throw new common_1.ForbiddenException('Solo tienes acceso para operar con tu propia cuenta de niño.');
+            }
+            if (childConfig.isFrozen) {
+                throw new common_1.BadRequestException(`🔒 Tu cuenta de niño está congelada temporalmente por control parental (${childConfig.parentEmail}). Consulta con tu padre/tutor.`);
+            }
+            if (type === client_1.TransactionType.EXPENSE) {
+                if (amount > Number(sourceAccount.balance)) {
+                    throw new common_1.BadRequestException(`No tienes saldo suficiente en tu cuenta de niño (Disponible: $${Number(sourceAccount.balance).toFixed(2)}).`);
+                }
+                if (childConfig.maxSingleTransaction > 0 && amount > childConfig.maxSingleTransaction) {
+                    throw new common_1.BadRequestException(`🛡️ Control Parental: Esta compra ($${amount.toFixed(2)}) supera tu límite máximo por gasto de $${childConfig.maxSingleTransaction.toFixed(2)} supervisado por ${childConfig.parentEmail}. Solicita permiso o dinero extra a tu padre/tutor.`);
+                }
+                if (childConfig.maxDailySpend > 0 && this.prisma.transaction?.findMany) {
+                    const now = new Date();
+                    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    const todayTxs = await this.prisma.transaction.findMany({
+                        where: {
+                            householdId,
+                            accountId: sourceAccount.id,
+                            type: client_1.TransactionType.EXPENSE,
+                            isVoided: false,
+                            date: { gte: startOfDay },
+                        },
+                    });
+                    const spentToday = (todayTxs || []).reduce((sum, t) => sum + Number(t.amount), 0);
+                    if (spentToday + amount > childConfig.maxDailySpend) {
+                        throw new common_1.BadRequestException(`🛡️ Control Parental: Con este gasto superarías tu límite diario de $${childConfig.maxDailySpend.toFixed(2)} (Gastado hoy: $${spentToday.toFixed(2)}).`);
+                    }
+                }
+            }
         }
         if (type === client_1.TransactionType.TRANSFER) {
             if (!destinationAccountId) {
@@ -89,6 +143,28 @@ let TransactionsService = class TransactionsService {
                     where: { id: accountId },
                     data: { balance: { decrement: amount } },
                 });
+                if (childConfig && childConfig.memberId && tx.allowance?.findFirst && tx.allowance?.update) {
+                    const childAllowance = await tx.allowance.findFirst({
+                        where: { householdId, memberId: childConfig.memberId },
+                    });
+                    if (childAllowance) {
+                        await tx.allowance.update({
+                            where: { id: childAllowance.id },
+                            data: { spentAmount: { increment: amount } },
+                        });
+                    }
+                }
+                if (childConfig && childConfig.parentUserId && tx.notification?.create) {
+                    await tx.notification.create({
+                        data: {
+                            userId: childConfig.parentUserId,
+                            householdId,
+                            title: '🛍️ Compra en Cuenta de Niño',
+                            body: `${childConfig.childName} registró un gasto de $${amount.toFixed(2)} (${description || 'Compra infantil'}).`,
+                            type: 'PARENTAL_CONTROL',
+                        },
+                    });
+                }
             }
             else if (type === client_1.TransactionType.INCOME) {
                 await tx.account.update({
@@ -106,7 +182,7 @@ let TransactionsService = class TransactionsService {
                     data: { balance: { increment: amount } },
                 });
             }
-            if (currentUserId) {
+            if (currentUserId && tx.auditLog?.create) {
                 await tx.auditLog.create({
                     data: {
                         userId: currentUserId,
@@ -211,50 +287,96 @@ let TransactionsService = class TransactionsService {
         }
         throw new common_1.BadRequestException('Se requieren transacciones estructuradas o rawContent');
     }
-    async getSummary(householdId, requestedCurrency) {
-        const accounts = await this.prisma.account.findMany({
+    async getSummary(householdId, requestedCurrency, userId) {
+        const allAccounts = await this.prisma.account.findMany({
             where: { householdId },
         });
+        const childConfig = await parental_control_helper_1.ParentalControlHelper.getChildConfigIfDependent(this.prisma, householdId, userId);
+        const accounts = childConfig
+            ? allAccounts.filter((a) => a.id === childConfig.childAccountId ||
+                a.name.toLowerCase().includes(childConfig.childEmail.toLowerCase()))
+            : allAccounts;
         const baseCurrency = (requestedCurrency || accounts[0]?.currency || 'USD').toUpperCase();
-        await this.currencyService.refreshRates();
+        if (this.currencyService) {
+            await this.currencyService.refreshRates();
+        }
         const totalBalance = accounts.reduce((acc, account) => {
-            const converted = this.currencyService.convert(Number(account.balance), account.currency || 'USD', baseCurrency);
+            const converted = this.convertAmount(Number(account.balance), account.currency || 'USD', baseCurrency);
             return acc + converted;
         }, 0);
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const daysInMonth = endOfMonth.getDate();
         const currentDay = now.getDate();
         const daysRemaining = Math.max(1, daysInMonth - currentDay + 1);
+        const txWhere = {
+            householdId,
+            date: { gte: startOfMonth },
+        };
+        if (childConfig && childConfig.childAccountId) {
+            txWhere.OR = [
+                { accountId: childConfig.childAccountId },
+                { destinationAccountId: childConfig.childAccountId },
+            ];
+        }
         const monthlyTransactions = await this.prisma.transaction.findMany({
-            where: {
-                householdId,
-                date: { gte: startOfMonth },
-            },
+            where: txWhere,
             include: {
                 account: true,
             },
         });
         let monthlyIncome = 0;
         let monthlyExpense = 0;
+        let todayExpense = 0;
         for (const t of monthlyTransactions) {
             if (t.isVoided)
                 continue;
             const txCurrency = t.account?.currency || baseCurrency;
-            const amountConverted = this.currencyService.convert(Number(t.amount), txCurrency, baseCurrency);
-            if (t.type === client_1.TransactionType.INCOME) {
+            const amountConverted = this.convertAmount(Number(t.amount), txCurrency, baseCurrency);
+            if (t.type === client_1.TransactionType.INCOME || (childConfig && t.destinationAccountId === childConfig.childAccountId)) {
                 monthlyIncome += amountConverted;
             }
             else if (t.type === client_1.TransactionType.EXPENSE) {
                 monthlyExpense += amountConverted;
+                if (new Date(t.date) >= startOfDay) {
+                    todayExpense += amountConverted;
+                }
             }
+        }
+        if (childConfig) {
+            const dailyRemaining = Math.max(0, (childConfig.maxDailySpend || 25) - todayExpense);
+            return {
+                totalBalance: Math.round(totalBalance * 100) / 100,
+                monthlyIncome: Math.round(monthlyIncome * 100) / 100,
+                monthlyExpense: Math.round(monthlyExpense * 100) / 100,
+                todayExpense: Math.round(todayExpense * 100) / 100,
+                baseCurrency,
+                accountsCount: accounts.length,
+                isChildAccount: true,
+                parentalControls: childConfig,
+                safeToSpend: {
+                    liquidBalance: Math.round(totalBalance * 100) / 100,
+                    pendingCommitments: 0,
+                    safeToSpendMonth: Math.round(totalBalance * 100) / 100,
+                    safeToSpendDaily: Math.round(Math.min(totalBalance, dailyRemaining) * 100) / 100,
+                    daysRemaining,
+                    daysInMonth,
+                    healthStatus: childConfig.isFrozen ? 'CRITICAL' : 'HEALTHY',
+                    breakdown: {
+                        pendingRemindersTotal: 0,
+                        pendingSubscriptionsTotal: 0,
+                        upcomingDebtsTotal: 0,
+                    },
+                },
+            };
         }
         const liquidBalance = accounts
             .filter((a) => ['CASH', 'BANK_ACCOUNT', 'PAYROLL', 'SAVINGS'].includes(a.type))
             .reduce((acc, a) => {
             const bal = Math.max(0, Number(a.balance));
-            return acc + this.currencyService.convert(bal, a.currency || 'USD', baseCurrency);
+            return acc + this.convertAmount(bal, a.currency || 'USD', baseCurrency);
         }, 0);
         const pendingReminders = await this.prisma.reminder.findMany({
             where: {
@@ -278,7 +400,7 @@ let TransactionsService = class TransactionsService {
         const pendingSubscriptionsTotal = activeSubscriptions
             .filter((s) => !reminderSubIds.has(s.id))
             .reduce((acc, s) => {
-            const costConverted = this.currencyService.convert(Number(s.cost), s.account?.currency || 'USD', baseCurrency);
+            const costConverted = this.convertAmount(Number(s.cost), s.account?.currency || 'USD', baseCurrency);
             return acc + costConverted;
         }, 0);
         const reminderDebtIds = new Set(pendingReminders.filter((r) => r.debtId).map((r) => r.debtId));
@@ -464,6 +586,7 @@ let TransactionsService = class TransactionsService {
 exports.TransactionsService = TransactionsService;
 exports.TransactionsService = TransactionsService = __decorate([
     (0, common_1.Injectable)(),
+    __param(2, (0, common_1.Optional)()),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         events_gateway_1.EventsGateway,
         currency_service_1.CurrencyService])

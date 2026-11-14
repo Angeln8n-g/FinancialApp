@@ -35,15 +35,16 @@ import {
 import { fetchWithAuth, getUser, getHousehold } from '@/constants/Api';
 import { FamilyMint } from '@/constants/Colors';
 
-type ActiveSection = 'members' | 'split' | 'missions' | 'allowances' | 'requests' | 'invitations' | 'activity';
+type ActiveSection = 'parental' | 'members' | 'split' | 'missions' | 'allowances' | 'requests' | 'invitations' | 'activity';
 
 export default function MobileFamilyScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<ActiveSection>('members');
+  const [activeTab, setActiveTab] = useState<ActiveSection>('parental');
 
   // Datos
   const [members, setMembers] = useState<any[]>([]);
+  const [parentalChildren, setParentalChildren] = useState<any[]>([]);
   const [allowances, setAllowances] = useState<any[]>([]);
   const [allowanceRequests, setAllowanceRequests] = useState<any[]>([]);
   const [invitations, setInvitations] = useState<any[]>([]);
@@ -69,9 +70,19 @@ export default function MobileFamilyScreen() {
   // Formularios de Invitación & Unirse
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('MEMBER');
+  const [inviteParentEmail, setInviteParentEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [joinLoading, setJoinLoading] = useState(false);
+
+  // Crear Cuenta de Niño con Control Parental
+  const [showCreateChildModal, setShowCreateChildModal] = useState(false);
+  const [childFullName, setChildFullName] = useState('');
+  const [childEmail, setChildEmail] = useState('');
+  const [childParentEmail, setChildParentEmail] = useState('');
+  const [childMaxSingle, setChildMaxSingle] = useState('25');
+  const [childMaxDaily, setChildMaxDaily] = useState('50');
+  const [creatingChild, setCreatingChild] = useState(false);
 
   // Modales
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -97,9 +108,15 @@ export default function MobileFamilyScreen() {
 
   const loadData = async () => {
     try {
-      setCurrentUser(getUser());
-      const [resMem, resAllow, resReq, resInv, resAct, resAcc, resSplit, resMiss, resMatch] = await Promise.all([
+      const u = await getUser();
+      setCurrentUser(u);
+      if (u?.email) {
+        if (!inviteParentEmail) setInviteParentEmail(u.email);
+        if (!childParentEmail) setChildParentEmail(u.email);
+      }
+      const [resMem, resParental, resAllow, resReq, resInv, resAct, resAcc, resSplit, resMiss, resMatch] = await Promise.all([
         fetchWithAuth('/api/household/members'),
+        fetchWithAuth('/api/household/parental-controls'),
         fetchWithAuth('/api/allowances'),
         fetchWithAuth('/api/allowances/requests'),
         fetchWithAuth('/api/household/invitations'),
@@ -113,6 +130,10 @@ export default function MobileFamilyScreen() {
       if (resMem.ok) {
         const memData = await resMem.json();
         if (Array.isArray(memData)) setMembers(memData);
+      }
+      if (resParental.ok) {
+        const pData = await resParental.json();
+        if (Array.isArray(pData)) setParentalChildren(pData);
       }
       if (resAllow.ok) {
         const allowData = await resAllow.json();
@@ -170,11 +191,22 @@ export default function MobileFamilyScreen() {
       return;
     }
 
+    const isChild = inviteRole === 'CHILD' || inviteRole === 'DEPENDENT';
+    if (isChild && !inviteParentEmail.trim()) {
+      Alert.alert('Correo del Padre Requerido', 'Debes especificar el correo del padre o madre con control parental.');
+      return;
+    }
+
     setInviteLoading(true);
     try {
       const res = await fetchWithAuth('/api/household/invite', {
         method: 'POST',
-        body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
+        body: JSON.stringify({
+          email: inviteEmail.trim(),
+          role: isChild ? 'DEPENDENT' : inviteRole,
+          isChildAccount: isChild,
+          parentEmail: isChild ? inviteParentEmail.trim() : undefined,
+        }),
       });
       const data = await res.json();
 
@@ -201,7 +233,7 @@ export default function MobileFamilyScreen() {
             ]
           );
         } else {
-          Alert.alert('Éxito', `Invitación enviada a ${inviteEmail}`);
+          Alert.alert('Éxito', data.message || `Invitación enviada a ${inviteEmail}`);
         }
       } else {
         Alert.alert('Error', data.message || 'No se pudo enviar la invitación.');
@@ -210,6 +242,54 @@ export default function MobileFamilyScreen() {
       Alert.alert('Error', e.message || 'Error de conexión.');
     } finally {
       setInviteLoading(false);
+    }
+  };
+
+  const handleCreateChildMobile = async () => {
+    if (!childFullName.trim() || !childEmail.trim() || !childParentEmail.trim()) {
+      Alert.alert('Campos Requeridos', 'Ingresa el nombre del niño, correo del niño y correo del padre con control parental.');
+      return;
+    }
+    setCreatingChild(true);
+    try {
+      const res = await fetchWithAuth('/api/household/child-account', {
+        method: 'POST',
+        body: JSON.stringify({
+          childFullName: childFullName.trim(),
+          childEmail: childEmail.trim().toLowerCase(),
+          parentEmail: childParentEmail.trim().toLowerCase(),
+          maxSingleTransaction: parseFloat(childMaxSingle) || 25,
+          maxDailySpend: parseFloat(childMaxDaily) || 50,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowCreateChildModal(false);
+        setChildFullName('');
+        setChildEmail('');
+        Alert.alert('¡Cuenta de Niño Enlazada!', data.message || 'Cuenta creada con control parental.');
+        loadData();
+      } else {
+        Alert.alert('Error', data.message || 'No se pudo crear la cuenta de niño.');
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Error de conexión.');
+    } finally {
+      setCreatingChild(false);
+    }
+  };
+
+  const handleToggleFreezeChildMobile = async (child: any) => {
+    try {
+      const res = await fetchWithAuth(`/api/household/parental-controls/${child.childUserId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ isFrozen: !child.isFrozen }),
+      });
+      if (res.ok) {
+        loadData();
+      }
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo actualizar el estado de la cuenta del niño.');
     }
   };
 
@@ -572,6 +652,16 @@ export default function MobileFamilyScreen() {
       {/* Tabs de Navegación Interna */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll}>
         <TouchableOpacity
+          style={[styles.tabItem, activeTab === 'parental' && styles.tabItemActive]}
+          onPress={() => setActiveTab('parental')}
+        >
+          <Shield size={14} color={activeTab === 'parental' ? FamilyMint.primary : FamilyMint.foregroundSubtle} />
+          <Text style={[styles.tabText, activeTab === 'parental' && styles.tabTextActive]}>
+            Control Parental ({parentalChildren.length})
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.tabItem, activeTab === 'members' && styles.tabItemActive]}
           onPress={() => setActiveTab('members')}
         >
@@ -641,6 +731,80 @@ export default function MobileFamilyScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* SECCIÓN 0: CUENTAS DE NIÑOS CON CONTROL PARENTAL */}
+      {activeTab === 'parental' && (
+        <View style={styles.section}>
+          <View style={[styles.card, { borderColor: '#F59E0B', borderWidth: 1 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+              <Shield size={16} color="#F59E0B" />
+              <Text style={[styles.cardTitle, { color: '#F59E0B' }]}>
+                Cuentas de Niños con Control Parental
+              </Text>
+            </View>
+            <Text style={styles.cardSub}>
+              Cada cuenta para niño solo tiene acceso a su propio saldo y está enlazada automáticamente con el correo del padre o madre tutor.
+            </Text>
+
+            <TouchableOpacity
+              style={[styles.addBtn, { marginTop: 12, borderColor: '#F59E0B' }]}
+              onPress={() => setShowCreateChildModal(true)}
+            >
+              <Plus size={16} color="#F59E0B" />
+              <Text style={[styles.addBtnText, { color: '#F59E0B' }]}>
+                + Crear y Enlazar Cuenta para Niño
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {parentalChildren.length === 0 ? (
+            <Text style={styles.emptyText}>
+              No hay cuentas de niños con control parental configuradas aún.
+            </Text>
+          ) : (
+            parentalChildren.map((child) => (
+              <View key={child.childUserId} style={styles.card}>
+                <View style={styles.cardRow}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>👦</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.memberName}>{child.childName}</Text>
+                    <Text style={styles.memberEmail}>{child.childEmail}</Text>
+                    <Text style={[styles.roleLabel, { color: '#F59E0B', marginTop: 2 }]}>
+                      Tutor enlazado: {child.parentEmail}
+                    </Text>
+                    <Text style={styles.cardSub}>
+                      Máx compra: ${Number(child.maxSingleTransaction).toFixed(2)} • Diario: ${Number(child.maxDailySpend).toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                    <Text style={[styles.cardTitle, { color: FamilyMint.income }]}>
+                      ${Number(child.account?.balance ?? 0).toFixed(2)}
+                    </Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.actionBtn,
+                        { borderColor: child.isFrozen ? FamilyMint.primary : FamilyMint.expense },
+                      ]}
+                      onPress={() => handleToggleFreezeChildMobile(child)}
+                    >
+                      <Text
+                        style={[
+                          styles.actionBtnText,
+                          { color: child.isFrozen ? FamilyMint.primary : FamilyMint.expense },
+                        ]}
+                      >
+                        {child.isFrozen ? '🔓 Activar' : '🔒 Pausar'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+      )}
 
       {/* SECCIÓN 1: MIEMBROS */}
       {activeTab === 'members' && (
@@ -1308,11 +1472,28 @@ export default function MobileFamilyScreen() {
                   onPress={() => setInviteRole(r)}
                 >
                   <Text style={[styles.roleSelectText, inviteRole === r && styles.roleSelectTextActive]}>
-                    {r}
+                    {r === 'CHILD' ? '👦 NIÑO' : r}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
+
+            {inviteRole === 'CHILD' && (
+              <>
+                <Text style={[styles.label, { color: '#F59E0B' }]}>
+                  Correo del Padre / Madre con Control Parental *
+                </Text>
+                <TextInput
+                  style={[styles.input, { borderColor: '#F59E0B' }]}
+                  placeholder="padre@ejemplo.com"
+                  placeholderTextColor={FamilyMint.foregroundSubtle}
+                  value={inviteParentEmail}
+                  onChangeText={setInviteParentEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </>
+            )}
 
             <TouchableOpacity
               style={styles.modalSubmitBtn}
@@ -1322,7 +1503,89 @@ export default function MobileFamilyScreen() {
               {inviteLoading ? (
                 <ActivityIndicator size="small" color="#0A1128" />
               ) : (
-                <Text style={styles.modalSubmitText}>Generar e Invitar</Text>
+                <Text style={styles.modalSubmitText}>
+                  {inviteRole === 'CHILD' ? 'Enlazar Cuenta de Niño' : 'Generar e Invitar'}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL CREAR CUENTA DE NIÑO CON CONTROL PARENTAL */}
+      <Modal visible={showCreateChildModal} transparent animationType="slide">
+        <View style={styles.modalBg}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Nueva Cuenta para Niño</Text>
+              <TouchableOpacity onPress={() => setShowCreateChildModal(false)}>
+                <X size={20} color={FamilyMint.foregroundSubtle} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.label}>Nombre del Niño/a *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: Mateo Pérez"
+              placeholderTextColor={FamilyMint.foregroundSubtle}
+              value={childFullName}
+              onChangeText={setChildFullName}
+            />
+
+            <Text style={styles.label}>Correo de la Cuenta del Niño *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="mateo@ejemplo.com"
+              placeholderTextColor={FamilyMint.foregroundSubtle}
+              value={childEmail}
+              onChangeText={setChildEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <Text style={[styles.label, { color: '#F59E0B' }]}>
+              Correo del Padre / Madre con Control Parental *
+            </Text>
+            <TextInput
+              style={[styles.input, { borderColor: '#F59E0B' }]}
+              placeholder="padre@ejemplo.com"
+              placeholderTextColor={FamilyMint.foregroundSubtle}
+              value={childParentEmail}
+              onChangeText={setChildParentEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Máx por Compra ($)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={childMaxSingle}
+                  onChangeText={setChildMaxSingle}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Tope Diario ($)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={childMaxDaily}
+                  onChangeText={setChildMaxDaily}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalSubmitBtn}
+              disabled={creatingChild}
+              onPress={handleCreateChildMobile}
+            >
+              {creatingChild ? (
+                <ActivityIndicator size="small" color="#0A1128" />
+              ) : (
+                <Text style={styles.modalSubmitText}>Crear y Enlazar con Control Parental</Text>
               )}
             </TouchableOpacity>
           </View>

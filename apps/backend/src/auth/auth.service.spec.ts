@@ -67,4 +67,89 @@ describe('AuthService', () => {
       expect(isInvalid).toBe(false);
     });
   });
+
+  describe('Child Account Registration with Parental Control', () => {
+    it('should require parentEmail when isChildAccount is true', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
+
+      await expect(
+        service.register({
+          email: 'nino@familia.com',
+          password: 'password123',
+          fullName: 'Mateo Niño',
+          isChildAccount: true,
+        }),
+      ).rejects.toThrow('Debes ingresar el correo electrónico del padre o tutor para activar el control parental.');
+    });
+
+    it('should automatically link child account to parent email household and provision exclusive child account', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
+
+      mockPrismaService.$transaction.mockImplementation(async (cb: any) => {
+        const tx = {
+          user: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'parent-user-1',
+              email: 'padre@familia.com',
+              fullName: 'Papá Tutor',
+              memberships: [
+                {
+                  id: 'parent-member-1',
+                  role: 'ADMIN',
+                  household: { id: 'hh-1', name: 'Hogar de Papá', baseCurrency: 'USD' },
+                },
+              ],
+            }),
+            create: jest.fn().mockResolvedValue({
+              id: 'child-user-1',
+              email: 'nino@familia.com',
+              fullName: 'Mateo Niño',
+            }),
+          },
+          householdMember: {
+            findUnique: jest.fn().mockResolvedValue(null),
+            create: jest.fn().mockResolvedValue({
+              id: 'child-member-1',
+              userId: 'child-user-1',
+              householdId: 'hh-1',
+              role: 'DEPENDENT',
+            }),
+            update: jest.fn().mockResolvedValue({}),
+          },
+          account: {
+            create: jest.fn().mockResolvedValue({
+              id: 'child-acc-1',
+              name: 'Cuenta de Niño • Mateo Niño',
+              balance: 0,
+            }),
+          },
+          allowance: {
+            create: jest.fn().mockResolvedValue({ id: 'allow-1' }),
+          },
+          auditLog: {
+            create: jest.fn().mockResolvedValue({ id: 'audit-1' }),
+          },
+          notification: {
+            create: jest.fn().mockResolvedValue({ id: 'notif-1' }),
+          },
+        };
+        return cb(tx);
+      });
+
+      const res = await service.register({
+        email: 'nino@familia.com',
+        password: 'password123',
+        fullName: 'Mateo Niño',
+        isChildAccount: true,
+        parentEmail: 'padre@familia.com',
+      });
+
+      expect(res.user.isChildAccount).toBe(true);
+      expect(res.user.parentEmail).toBe('padre@familia.com');
+      expect(res.user.childAccountId).toBe('child-acc-1');
+      expect(res.household.role).toBe('DEPENDENT');
+      expect(res.household.isChildAccount).toBe(true);
+      expect(res.household.parentEmail).toBe('padre@familia.com');
+    });
+  });
 });

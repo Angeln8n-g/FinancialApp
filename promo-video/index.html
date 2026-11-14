@@ -1,0 +1,258 @@
+<!doctype html>
+<html
+  lang="es"
+  data-composition-variables='[
+    {"id":"ground","type":"color","label":"Ground","default":"#F6F3EC"},
+    {"id":"ink","type":"color","label":"Ink","default":"#1C1917"},
+    {"id":"accent","type":"color","label":"Accent","default":"#B45309"},
+    {"id":"font_display","type":"font","label":"Display Font","default":"Geist"},
+    {"id":"font_mono","type":"font","label":"Mono Font","default":"Geist Mono"}
+  ]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>HogarIQ — Dos cuentas, una sola calma</title>
+    <link rel="stylesheet" href="assets/fonts.css" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #F6F3EC;
+        font-family: "Geist", -apple-system, sans-serif;
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #F6F3EC;
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="32.5"
+      data-fps="30"
+      data-width="1920"
+      data-height="1080"
+      data-composition-variables='[
+        {"id":"ground","type":"color","label":"Ground","default":"#F6F3EC"},
+        {"id":"ink","type":"color","label":"Ink","default":"#1C1917"},
+        {"id":"accent","type":"color","label":"Accent","default":"#B45309"},
+        {"id":"font_display","type":"font","label":"Display Font","default":"Geist"},
+        {"id":"font_mono","type":"font","label":"Mono Font","default":"Geist Mono"}
+      ]'
+    >
+      <!-- Track 0: Core 5-Scene Continuous Film -->
+      <div
+        id="scene-1-split-hook"
+        class="clip"
+        data-composition-id="split-hook"
+        data-composition-src="compositions/01-split-hook.html"
+        data-start="0"
+        data-duration="10"
+        data-track-index="0"
+      ></div>
+      <div
+        id="scene-2-unified-dashboard"
+        class="clip"
+        data-composition-id="unified-dashboard"
+        data-composition-src="compositions/02-unified-dashboard.html"
+        data-start="10"
+        data-duration="6.25"
+        data-track-index="0"
+      ></div>
+      <div
+        id="scene-3-family-split"
+        class="clip"
+        data-composition-id="family-split"
+        data-composition-src="compositions/03-family-split.html"
+        data-start="16.25"
+        data-duration="7.5"
+        data-track-index="0"
+      ></div>
+      <div
+        id="scene-4-forecast-and-night"
+        class="clip"
+        data-composition-id="forecast-and-night"
+        data-composition-src="compositions/04-forecast-and-night.html"
+        data-start="23.75"
+        data-duration="5"
+        data-track-index="0"
+      ></div>
+      <div
+        id="scene-5-end-card"
+        class="clip"
+        data-composition-id="end-card"
+        data-composition-src="compositions/05-end-card.html"
+        data-start="28.75"
+        data-duration="3.75"
+        data-track-index="0"
+      ></div>
+
+      <!-- Track 1: Tactile Registry Overlays (Tap on Telegram + 1-Click Saldar) -->
+      <div
+        id="overlay-touch-indicator"
+        class="clip"
+        data-composition-id="touch-indicator"
+        data-composition-src="compositions/components/touch-indicator.html"
+        data-start="4.58"
+        data-duration="0.45"
+        data-track-index="1"
+        data-variable-values='{"gesture":"tap","polarity":"light","targetX":91.2,"targetY":43.5}'
+      ></div>
+      <div
+        id="overlay-press-ripple"
+        class="clip"
+        data-composition-id="press-ripple"
+        data-composition-src="compositions/components/press-ripple.html"
+        data-start="18.28"
+        data-duration="5.45"
+        data-track-index="1"
+        data-variable-values='{"label":"1-Click Saldar ($42.50)","done_label":"¡Saldado!","target_x":82.6,"target_y":51.9,"press_at":2.02,"cursor":"dark","accent":"green","exit":"fade"}'
+      ></div>
+
+      <!-- Track 2: Catalog BGM (96 BPM @ 30s..62.5s -> chorus lift hits 10.00s drop!) -->
+      <audio
+        id="bgm"
+        class="clip"
+        src="assets/bgm/track.wav"
+        data-media-start="30"
+        data-start="0"
+        data-duration="32.5"
+        data-volume="0.58"
+        data-fade-in="0.35"
+        data-fade-out="2.4"
+        data-track-index="2"
+      ></audio>
+
+      <!-- Track 3 & 4: Measured Foley & UI SFX (peak-aligned in OfflineAudioContext) -->
+      <audio
+        id="sfx-typing"
+        class="clip"
+        src="assets/sfx/typing.mp3"
+        data-media-start="0.42"
+        data-start="3.10"
+        data-duration="1.05"
+        data-volume="0.45"
+        data-track-index="3"
+      ></audio>
+      <audio
+        id="sfx-key-press"
+        class="clip"
+        src="assets/sfx/key-press.mp3"
+        data-start="4.60"
+        data-duration="0.39"
+        data-volume="0.50"
+        data-track-index="3"
+      ></audio>
+      <audio
+        id="sfx-notification"
+        class="clip"
+        src="assets/sfx/notification.mp3"
+        data-start="5.65"
+        data-duration="2.20"
+        data-volume="0.38"
+        data-track-index="3"
+      ></audio>
+      <audio
+        id="sfx-whoosh-collapse"
+        class="clip"
+        src="assets/sfx/whoosh.mp3"
+        data-start="9.87"
+        data-duration="0.56"
+        data-volume="0.42"
+        data-track-index="3"
+      ></audio>
+      <audio
+        id="sfx-impact-bass"
+        class="clip"
+        src="assets/sfx/impact-bass-1.mp3"
+        data-start="9.96"
+        data-duration="2.00"
+        data-volume="0.28"
+        data-track-index="4"
+      ></audio>
+      <audio
+        id="sfx-pop"
+        class="clip"
+        src="assets/sfx/pop.mp3"
+        data-start="11.26"
+        data-duration="0.70"
+        data-volume="0.45"
+        data-track-index="3"
+      ></audio>
+      <audio
+        id="sfx-whoosh-tab"
+        class="clip"
+        src="assets/sfx/whoosh-short.mp3"
+        data-start="16.12"
+        data-duration="0.56"
+        data-volume="0.38"
+        data-track-index="3"
+      ></audio>
+      <audio
+        id="sfx-click-soft"
+        class="clip"
+        src="assets/sfx/click-soft.mp3"
+        data-start="20.20"
+        data-duration="0.35"
+        data-volume="0.78"
+        data-track-index="3"
+      ></audio>
+      <audio
+        id="sfx-sparkle"
+        class="clip"
+        src="assets/sfx/sparkle.mp3"
+        data-start="20.42"
+        data-duration="1.70"
+        data-fade-out="0.6"
+        data-volume="0.32"
+        data-track-index="4"
+      ></audio>
+      <audio
+        id="sfx-whoosh-theme"
+        class="clip"
+        src="assets/sfx/whoosh.mp3"
+        data-start="25.87"
+        data-duration="0.56"
+        data-volume="0.40"
+        data-track-index="3"
+      ></audio>
+      <audio
+        id="sfx-click-end"
+        class="clip"
+        src="assets/sfx/click.mp3"
+        data-start="29.13"
+        data-duration="0.35"
+        data-volume="0.55"
+        data-track-index="3"
+      ></audio>
+    </div>
+
+    <script>
+      (function () {
+        const tl = gsap.timeline({ paused: true });
+        tl.seek(0);
+        window.__timelines = window.__timelines || {};
+        window.__timelines["main"] = tl;
+      })();
+    </script>
+  </body>
+</html>

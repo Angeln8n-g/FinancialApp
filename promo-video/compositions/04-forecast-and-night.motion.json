@@ -1,0 +1,8 @@
+{
+  "assertions": [
+    { "kind": "appearsBy", "selector": "#day-headline", "bySec": 0.55 },
+    { "kind": "staysInFrame", "selector": ".forecast-layout" },
+    { "kind": "before", "a": "#forecast-card", "b": ".phone-frame" },
+    { "kind": "keepsMoving", "withinSelector": "#root" }
+  ]
+}

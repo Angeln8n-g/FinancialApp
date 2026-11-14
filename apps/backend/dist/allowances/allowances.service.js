@@ -15,6 +15,7 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const client_1 = require("@prisma/client");
 const crypto_1 = require("crypto");
+const parental_control_helper_1 = require("../household/parental-control.helper");
 let AllowancesService = class AllowancesService {
     static { AllowancesService_1 = this; }
     prisma;
@@ -87,11 +88,14 @@ let AllowancesService = class AllowancesService {
         if (!account)
             throw new common_1.NotFoundException('Cuenta no encontrada');
         const disburseAmount = data.amount || Number(allowance.limitAmount);
+        const configs = await parental_control_helper_1.ParentalControlHelper.getHouseholdParentalControls(this.prisma, householdId);
+        const childCfg = configs.find((c) => c.memberId === allowance.memberId || c.childUserId === allowance.member?.userId);
         return this.prisma.$transaction(async (tx) => {
             await tx.transaction.create({
                 data: {
                     householdId,
                     accountId: account.id,
+                    destinationAccountId: childCfg?.childAccountId && childCfg.childAccountId !== account.id ? childCfg.childAccountId : null,
                     type: client_1.TransactionType.EXPENSE,
                     amount: disburseAmount,
                     description: `Desembolso Mesada: ${allowance.title} (${allowance.member.user.fullName})`,
@@ -102,7 +106,16 @@ let AllowancesService = class AllowancesService {
                 where: { id: account.id },
                 data: { balance: { decrement: disburseAmount } },
             });
-            return { success: true, message: `Desembolso de $${disburseAmount} realizado desde ${account.name}` };
+            if (childCfg?.childAccountId && childCfg.childAccountId !== account.id) {
+                await tx.account.update({
+                    where: { id: childCfg.childAccountId },
+                    data: { balance: { increment: disburseAmount } },
+                });
+            }
+            return {
+                success: true,
+                message: `Desembolso de $${disburseAmount} realizado desde ${account.name}${childCfg?.childAccountId ? ' y acreditado en la cuenta del niño' : ''}`,
+            };
         });
     }
     async reset(householdId, id) {
@@ -139,7 +152,7 @@ let AllowancesService = class AllowancesService {
                 data: {
                     userId: admin.userId,
                     householdId,
-                    title: '🙋‍♂️ Solicitud de Dinero Extra',
+                    title: '🙋‍♂️ Solicitud de Control Parental / Dinero Extra',
                     body: `${requesterName} solicita $${amount} para: "${reason}"`,
                     type: 'ALLOWANCE_REQUEST',
                 },
@@ -160,6 +173,7 @@ let AllowancesService = class AllowancesService {
     async respondRequest(householdId, requestId, status) {
         const req = await this.prisma.allowanceRequest.findFirst({
             where: { id: requestId, householdId },
+            include: { member: true },
         });
         if (!req)
             throw new common_1.NotFoundException('Solicitud no encontrada');
@@ -172,6 +186,27 @@ let AllowancesService = class AllowancesService {
                 where: { id: req.allowanceId },
                 data: { limitAmount: { increment: req.amount } },
             });
+            const configs = await parental_control_helper_1.ParentalControlHelper.getHouseholdParentalControls(this.prisma, householdId);
+            const childCfg = configs.find((c) => c.memberId === req.memberId);
+            if (childCfg?.childAccountId) {
+                await this.prisma.account.update({
+                    where: { id: childCfg.childAccountId },
+                    data: { balance: { increment: req.amount } },
+                }).catch(() => null);
+            }
+        }
+        if (req.member?.userId) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: req.member.userId,
+                    householdId,
+                    title: status === 'APPROVED' ? '🎉 Solicitud Aprobada por Papá/Mamá' : '❌ Solicitud No Aprobada',
+                    body: status === 'APPROVED'
+                        ? `Tu solicitud de $${Number(req.amount).toFixed(2)} para "${req.reason}" fue aprobada.`
+                        : `Tu solicitud de $${Number(req.amount).toFixed(2)} para "${req.reason}" fue rechazada.`,
+                    type: 'ALLOWANCE_REQUEST',
+                },
+            }).catch(() => null);
         }
         return updated;
     }
@@ -289,11 +324,14 @@ let AllowancesService = class AllowancesService {
         });
         if (!account)
             throw new common_1.NotFoundException('Cuenta de desembolso no encontrada');
+        const configs = await parental_control_helper_1.ParentalControlHelper.getHouseholdParentalControls(this.prisma, householdId);
+        const childCfg = configs.find((c) => c.memberId === mission.memberId);
         await this.prisma.$transaction(async (tx) => {
             await tx.transaction.create({
                 data: {
                     householdId,
                     accountId: account.id,
+                    destinationAccountId: childCfg?.childAccountId && childCfg.childAccountId !== account.id ? childCfg.childAccountId : null,
                     type: client_1.TransactionType.EXPENSE,
                     amount: mission.rewardAmount,
                     description: `🏆 Recompensa Misión: ${mission.title} (${mission.memberName})`,
@@ -305,6 +343,12 @@ let AllowancesService = class AllowancesService {
                 where: { id: account.id },
                 data: { balance: { decrement: mission.rewardAmount } },
             });
+            if (childCfg?.childAccountId && childCfg.childAccountId !== account.id) {
+                await tx.account.update({
+                    where: { id: childCfg.childAccountId },
+                    data: { balance: { increment: mission.rewardAmount } },
+                });
+            }
         });
         mission.status = 'APPROVED_AND_PAID';
         mission.approvedAt = new Date().toISOString();

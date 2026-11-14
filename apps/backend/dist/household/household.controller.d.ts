@@ -1,5 +1,5 @@
 import { HouseholdService } from './household.service';
-import { InviteMemberDto, UpdateRoleDto } from './household.dto';
+import { CreateChildAccountDto, InviteMemberDto, UpdateParentalControlDto, UpdateRoleDto } from './household.dto';
 import { UserPayload } from '../auth/get-user.decorator';
 export declare class HouseholdController {
     private readonly householdService;
@@ -13,6 +13,10 @@ export declare class HouseholdController {
         role: import(".prisma/client").$Enums.Role;
         customTitle: string | null;
         joinedAt: Date;
+        isChildAccount: boolean;
+        parentEmail: string | null;
+        childAccountId: string | null;
+        parentalControls: import("./parental-control.helper").ParentalControlConfig | null;
     }[]>;
     inviteMember(user: UserPayload, dto: InviteMemberDto): Promise<{
         member: {
@@ -20,19 +24,19 @@ export declare class HouseholdController {
                 email: string;
                 fullName: string | null;
                 id: string;
-                avatarUrl: string | null;
-                passwordHash: string | null;
                 createdAt: Date;
                 updatedAt: Date;
+                avatarUrl: string | null;
+                passwordHash: string | null;
                 pushToken: string | null;
             };
         } & {
             id: string;
-            joinedAt: Date;
             userId: string;
             householdId: string;
             role: import(".prisma/client").$Enums.Role;
             customTitle: string | null;
+            joinedAt: Date;
         };
         invitationCode: string;
         inviteLink: string;
@@ -40,8 +44,8 @@ export declare class HouseholdController {
     getInvitations(user: UserPayload): Promise<{
         email: string;
         id: string;
-        createdAt: Date;
         householdId: string;
+        createdAt: Date;
         role: import(".prisma/client").$Enums.Role;
         code: string;
         status: string;
@@ -64,19 +68,19 @@ export declare class HouseholdController {
             email: string;
             fullName: string | null;
             id: string;
-            avatarUrl: string | null;
-            passwordHash: string | null;
             createdAt: Date;
             updatedAt: Date;
+            avatarUrl: string | null;
+            passwordHash: string | null;
             pushToken: string | null;
         };
     } & {
         id: string;
-        joinedAt: Date;
         userId: string;
         householdId: string;
         role: import(".prisma/client").$Enums.Role;
         customTitle: string | null;
+        joinedAt: Date;
     }>;
     updateCustomTitle(user: UserPayload, memberId: string, body: {
         customTitle: string;
@@ -85,19 +89,19 @@ export declare class HouseholdController {
             email: string;
             fullName: string | null;
             id: string;
-            avatarUrl: string | null;
-            passwordHash: string | null;
             createdAt: Date;
             updatedAt: Date;
+            avatarUrl: string | null;
+            passwordHash: string | null;
             pushToken: string | null;
         };
     } & {
         id: string;
-        joinedAt: Date;
         userId: string;
         householdId: string;
         role: import(".prisma/client").$Enums.Role;
         customTitle: string | null;
+        joinedAt: Date;
     }>;
     removeMember(user: UserPayload, memberId: string): Promise<{
         message: string;
@@ -141,5 +145,52 @@ export declare class HouseholdController {
         success: boolean;
         message: string;
         settledAt: Date;
+    }>;
+    getParentalControls(user: UserPayload): Promise<{
+        account: {
+            id: string;
+            name: string;
+            balance: number;
+            currency: string;
+        } | null;
+        allowance: {
+            id: string;
+            title: string;
+            limitAmount: number;
+            spentAmount: number;
+            remainingAmount: number;
+            period: import(".prisma/client").$Enums.RecurrencePeriod;
+        } | null;
+        todaySpent: number;
+        pendingRequestsCount: number;
+        childUserId: string;
+        memberId: string;
+        childEmail: string;
+        childName: string;
+        parentEmail: string;
+        parentUserId: string;
+        householdId: string;
+        childAccountId: string;
+        maxDailySpend: number;
+        maxSingleTransaction: number;
+        requireApprovalAbove: number;
+        isFrozen: boolean;
+        allowSavingsGoals: boolean;
+        blockedCategories: string[];
+        updatedAt: string;
+    }[]>;
+    createChildAccount(user: UserPayload, dto: CreateChildAccountDto): Promise<{
+        message: string;
+        config: import("./parental-control.helper").ParentalControlConfig;
+        account: any;
+    }>;
+    updateParentalControl(user: UserPayload, childUserId: string, dto: UpdateParentalControlDto): Promise<import("./parental-control.helper").ParentalControlConfig>;
+    topUpChildAccount(user: UserPayload, childUserId: string, body: {
+        fromAccountId: string;
+        amount: number;
+        note?: string;
+    }): Promise<{
+        success: boolean;
+        message: string;
     }>;
 }

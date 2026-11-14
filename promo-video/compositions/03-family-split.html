@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="stylesheet" href="../assets/fonts.css" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+  </head>
+  <body>
+    <template>
+      <style>
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          font-family: "Geist", -apple-system, sans-serif;
+          background: #F6F3EC;
+          color: #1C1917;
+        }
+        .camera {
+          position: absolute;
+          inset: 0;
+          padding: 58px 110px 64px;
+          will-change: transform, opacity;
+        }
+        .head-strip {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 30px;
+        }
+        #scene3-headline {
+          font-size: 56px;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          color: #1C1917;
+          line-height: 1.08;
+        }
+        #scene3-headline span {
+          color: #059669;
+        }
+        .tab-breadcrumb {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 22px;
+          border-radius: 14px;
+          background: rgba(5, 150, 105, 0.12);
+          border: 1.5px solid rgba(5, 150, 105, 0.30);
+          color: #047857;
+          font-size: 22px;
+          font-weight: 700;
+        }
+
+        /* Main Family Split 50/50 Card */
+        .split-card {
+          background: #FFFFFF;
+          border: 1.5px solid #DCD3C3;
+          border-radius: 28px;
+          padding: 40px 44px;
+          box-shadow: 0 20px 48px -14px rgba(60, 45, 30, 0.12);
+        }
+        .split-card-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 30px;
+        }
+        .split-card-title {
+          font-size: 32px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          color: #1C1917;
+        }
+        .split-card-sub {
+          font-size: 21px;
+          font-weight: 500;
+          color: #544E48;
+          margin-top: 6px;
+        }
+
+        /* 3 Metric Summary Boxes */
+        .summary-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+          margin-bottom: 34px;
+        }
+        .metric-box {
+          background: #F6F3EC;
+          border: 1.5px solid #DCD3C3;
+          border-radius: 20px;
+          padding: 26px 28px;
+        }
+        .metric-label {
+          font-size: 18px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          color: #544E48;
+          margin-bottom: 12px;
+        }
+        .metric-val {
+          font-family: "Geist Mono", monospace;
+          font-variant-numeric: tabular-nums;
+          font-size: 56px;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          color: #1C1917;
+          line-height: 1;
+          margin-bottom: 10px;
+        }
+        .metric-sub {
+          font-size: 24px;
+          font-weight: 600;
+          color: #544E48;
+        }
+        .balance-stack {
+          position: relative;
+          height: 60px;
+          margin-bottom: 10px;
+        }
+        .bal-before {
+          position: absolute;
+          left: 0;
+          top: 0;
+          color: #B45309;
+        }
+        .bal-after {
+          position: absolute;
+          left: 0;
+          top: 0;
+          color: #059669;
+          opacity: 0;
+        }
+
+        /* Member bars + slot space on right at (72%, 62%) for press-ripple */
+        .members-action-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 36px;
+          margin-bottom: 28px;
+        }
+        .members-list {
+          flex: 1;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 22px;
+        }
+        .member-row {
+          background: #F6F3EC;
+          border: 1.5px solid #DCD3C3;
+          border-radius: 18px;
+          padding: 20px 24px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .member-id {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+        .avatar-circle {
+          width: 48px;
+          height: 48px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 22px;
+          font-weight: 800;
+        }
+        .av-a {
+          background: rgba(180, 83, 9, 0.14);
+          color: #92400E;
+        }
+        .av-b {
+          background: rgba(5, 150, 105, 0.14);
+          color: #047857;
+        }
+        .member-name {
+          font-size: 28px;
+          font-weight: 700;
+          color: #1C1917;
+        }
+        .member-role {
+          font-size: 19px;
+          font-weight: 500;
+          color: #544E48;
+        }
+        .member-paid {
+          font-family: "Geist Mono", monospace;
+          font-variant-numeric: tabular-nums;
+          font-size: 28px;
+          font-weight: 800;
+          color: #1C1917;
+          position: relative;
+          min-width: 120px;
+          text-align: right;
+        }
+        .mateo-paid-before, .mateo-paid-after {
+          display: inline-block;
+        }
+        .mateo-paid-after {
+          position: absolute;
+          right: 0;
+          top: 0;
+          color: #059669;
+          opacity: 0;
+        }
+        /* Reserved transparent slot aligned directly beneath press-ripple (target_x: 82.6%, target_y: 51.9%) */
+        .cta-slot-guide {
+          width: 360px;
+          height: 72px;
+          border-radius: 16px;
+          border: none;
+          background: transparent;
+          flex-shrink: 0;
+        }
+
+        /* Settled confirmation banner + Success Check SVG */
+        .settled-banner {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          padding: 22px 28px;
+          border-radius: 20px;
+          background: rgba(5, 150, 105, 0.10);
+          border: 2px solid #059669;
+          color: #047857;
+          opacity: 0;
+          will-change: transform, opacity;
+        }
+        .check-circle {
+          width: 52px;
+          height: 52px;
+          border-radius: 999px;
+          background: #059669;
+          color: #FFFFFF;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .check-path {
+          stroke-dasharray: 36;
+          stroke-dashoffset: 36;
+        }
+        .settled-text {
+          font-size: 28px;
+          font-weight: 800;
+          letter-spacing: -0.015em;
+          color: #065F46;
+        }
+      </style>
+
+      <div id="root" data-composition-id="family-split" data-duration="7.5" data-fps="30">
+        <div class="camera">
+          <div class="head-strip">
+            <h1 id="scene3-headline">Gastos en común, <span>mitad y mitad.</span></h1>
+            <div class="tab-breadcrumb" data-layout-ignore>Familia • Split 50/50</div>
+          </div>
+
+          <div class="split-card">
+            <div class="split-card-head">
+              <div>
+                <h2 class="split-card-title">Gastos Compartidos en Pareja / Hogar (Split 50/50)</h2>
+                <p class="split-card-sub" data-layout-ignore>División automática y transparente para el presupuesto común del mes.</p>
+              </div>
+            </div>
+
+            <div class="summary-grid">
+              <div class="metric-box">
+                <div class="metric-label" data-layout-ignore>Total Gastado en Común</div>
+                <div class="metric-val tabular-nums">$85.00</div>
+                <div class="metric-sub" data-layout-ignore>Supermercado • Hoy</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-label" data-layout-ignore>Cuota Justa por Adulto</div>
+                <div class="metric-val tabular-nums" style="color:#059669;">$42.50</div>
+                <div class="metric-sub" data-layout-ignore>Dividido entre 2 adultos</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-label" data-layout-ignore>Tu Balance Personal</div>
+                <div class="balance-stack">
+                  <div class="metric-val tabular-nums bal-before">+$42.50</div>
+                  <div class="metric-val tabular-nums bal-after">$0.00</div>
+                </div>
+                <div style="position:relative; height:32px;">
+                  <div class="metric-sub" id="bal-status-before" data-layout-ignore>A favor (pendiente saldar)</div>
+                  <div class="metric-sub" id="bal-status-after" data-layout-ignore style="color:#047857; opacity:0; position:absolute; left:0; top:0;">Liquidado • Balance en cero</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="members-action-row">
+              <div class="members-list">
+                <div class="member-row">
+                  <div class="member-id">
+                    <div class="avatar-circle av-a" data-layout-ignore>S</div>
+                    <div>
+                      <div class="member-name">Sofía Rivera</div>
+                      <div class="member-role" data-layout-ignore>Pagó el súper</div>
+                    </div>
+                  </div>
+                  <div class="member-paid tabular-nums">$85.00</div>
+                </div>
+                <div class="member-row">
+                  <div class="member-id">
+                    <div class="avatar-circle av-b" data-layout-ignore>M</div>
+                    <div>
+                      <div class="member-name">Mateo Rivera</div>
+                      <div class="member-role" data-layout-ignore>Aporte equilibrado</div>
+                    </div>
+                  </div>
+                  <div class="member-paid tabular-nums">
+                    <span class="mateo-paid-before" style="color:#B45309;">$0.00</span>
+                    <span class="mateo-paid-after">$42.50</span>
+                  </div>
+                </div>
+              </div>
+              <div class="cta-slot-guide" aria-hidden="true"></div>
+            </div>
+
+            <div class="settled-banner">
+              <div class="check-circle">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <path class="check-path" d="M20 6 9 17l-5-5"/>
+                </svg>
+              </div>
+              <span class="settled-text">¡Cuentas totalmente equilibradas! Sin deudas comunes pendientes.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+
+          // Horizontal push arrival from Scene 2 Familia tab click (0.00s..0.34s, solid opacity from frame 0!)
+          tl.fromTo(".camera", { x: 36, opacity: 1 }, { x: 0, opacity: 1, duration: 0.34, ease: "expo.out" }, 0);
+          tl.fromTo("#scene3-headline", { y: 12, opacity: 0.9 }, { y: 0, opacity: 1, duration: 0.32, ease: "expo.out" }, 0);
+          tl.fromTo(".metric-box", { y: 20, opacity: 0.85 }, { y: 0, opacity: 1, duration: 0.38, stagger: 0.06, ease: "expo.out" }, 0.06);
+          tl.fromTo(".member-row", { x: -14, opacity: 0.85 }, { x: 0, opacity: 1, duration: 0.34, stagger: 0.06, ease: "expo.out" }, 0.16);
+
+          // Exact sequential non-overlapping swap when press-ripple confirms @ 4.17s local (20.42s global):
+          tl.fromTo(".bal-before", { opacity: 1, y: 0 }, { opacity: 0, y: -12, duration: 0.12, ease: "power2.in", immediateRender: false }, 4.12);
+          tl.fromTo(".bal-after", { opacity: 0, y: 14, scale: 0.92 }, { opacity: 1, y: 0, scale: 1, duration: 0.28, ease: "back.out(1.6)", immediateRender: false }, 4.24);
+          tl.fromTo("#bal-status-before", { opacity: 1 }, { opacity: 0, duration: 0.11, immediateRender: false }, 4.12);
+          tl.fromTo("#bal-status-after", { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.24, ease: "expo.out", immediateRender: false }, 4.24);
+
+          tl.fromTo(".mateo-paid-before", { opacity: 1 }, { opacity: 0, duration: 0.11, immediateRender: false }, 4.12);
+          tl.fromTo(".mateo-paid-after", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.26, ease: "expo.out", immediateRender: false }, 4.24);
+
+          // Bottom green confirmation banner pops & draws checkmark
+          tl.fromTo(".settled-banner", { opacity: 0, y: 22, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "expo.out", immediateRender: false }, 4.18);
+          tl.fromTo(".check-path", { strokeDashoffset: 36 }, { strokeDashoffset: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 4.24);
+
+          // Quick crisp glide exit at seam tail (7.22..7.50s) avoiding empty white frames
+          tl.fromTo(".camera", { y: 0, opacity: 1 }, { y: -28, opacity: 0.35, duration: 0.28, ease: "power3.in", immediateRender: false }, 7.22);
+
+          tl.seek(0);
+          window.__timelines = window.__timelines || {};
+          window.__timelines["family-split"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

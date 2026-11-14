@@ -21,6 +21,8 @@ export default function MobileLoginScreen() {
   const router = useRouter();
 
   const [isRegister, setIsRegister] = useState(false);
+  const [isChildAccount, setIsChildAccount] = useState(false);
+  const [parentEmail, setParentEmail] = useState('');
   const [apiUrlInput, setApiUrlInput] = useState(getApiUrl());
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -48,10 +50,20 @@ export default function MobileLoginScreen() {
       return;
     }
 
+    if (isRegister && isChildAccount) {
+      if (!parentEmail.trim() || !parentEmail.includes('@')) {
+        Alert.alert('Control Parental Requerido', 'Debes ingresar el correo del padre o tutor para enlazar la cuenta de niño.');
+        return;
+      }
+      if (parentEmail.trim().toLowerCase() === email.trim().toLowerCase()) {
+        Alert.alert('Correo Inválido', 'El correo del padre o tutor debe ser distinto al correo de la cuenta de niño.');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
-      // 1. Guardar primero la URL del servidor ingresada
       let cleanUrl = apiUrlInput.trim();
       if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
         cleanUrl = `https://${cleanUrl}`;
@@ -59,7 +71,15 @@ export default function MobileLoginScreen() {
       setApiUrl(cleanUrl);
 
       const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
-      const payload = isRegister ? { email, password, fullName } : { email, password };
+      const payload = isRegister
+        ? {
+            email: email.trim(),
+            password,
+            fullName: fullName.trim(),
+            isChildAccount,
+            ...(isChildAccount ? { parentEmail: parentEmail.trim().toLowerCase() } : {}),
+          }
+        : { email: email.trim(), password };
 
       const response = await fetch(`${cleanUrl}${endpoint}`, {
         method: 'POST',
@@ -70,17 +90,21 @@ export default function MobileLoginScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Error al autenticar');
+        const msg = Array.isArray(data.message) ? data.message[0] : data.message;
+        throw new Error(msg || 'Error al autenticar');
       }
 
-      // 2. Guardar sesión
       setAuthToken(data.accessToken);
       setUser(data.user);
       setHousehold(data.household);
 
       Alert.alert(
         '¡Bienvenido!',
-        isRegister ? 'Cuenta creada exitosamente.' : `Sesión iniciada como ${data.user?.fullName || email}`
+        isRegister
+          ? isChildAccount
+            ? `Cuenta de niño creada y enlazada al control parental de ${parentEmail}`
+            : 'Cuenta creada exitosamente.'
+          : `Sesión iniciada como ${data.user?.fullName || email}`
       );
 
       router.replace('/(tabs)');
@@ -105,28 +129,87 @@ export default function MobileLoginScreen() {
           <View style={styles.brandHeader}>
             <Logo size="lg" showText={true} />
             <Text style={styles.subtext}>
-              {isRegister ? 'Crea la cuenta para tu hogar' : 'Asistente Financiero Familiar con IA'}
+              {isRegister
+                ? isChildAccount
+                  ? 'Cuenta de Niño con Control Parental'
+                  : 'Crea la cuenta para tu hogar'
+                : 'Asistente Financiero Familiar con IA'}
             </Text>
           </View>
 
           {/* Formulario */}
           <View style={styles.formGroup}>
             {isRegister && (
-              <View style={styles.field}>
-                <Text style={styles.label}>Nombre Completo</Text>
-                <TextInput
-                  style={styles.input}
-                  value={fullName}
-                  onChangeText={setFullName}
-                  placeholder="Ej. Angela Fraga"
-                  placeholderTextColor="#64748B"
-                  autoCapitalize="words"
-                />
-              </View>
+              <>
+                <View style={styles.field}>
+                  <Text style={styles.label}>¿Qué tipo de cuenta deseas crear?</Text>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity
+                      onPress={() => setIsChildAccount(false)}
+                      style={[
+                        styles.accountTypeBtn,
+                        !isChildAccount && styles.accountTypeBtnActive,
+                      ]}
+                    >
+                      <Text style={[styles.accountTypeTitle, !isChildAccount && { color: FamilyMint.primary }]}>
+                        Cuenta Adulto
+                      </Text>
+                      <Text style={styles.accountTypeSub}>Control del hogar</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => setIsChildAccount(true)}
+                      style={[
+                        styles.accountTypeBtn,
+                        isChildAccount && styles.accountTypeBtnChildActive,
+                      ]}
+                    >
+                      <Text style={[styles.accountTypeTitle, isChildAccount && { color: '#FBBF24' }]}>
+                        Cuenta Niño
+                      </Text>
+                      <Text style={styles.accountTypeSub}>Control parental</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {isChildAccount && (
+                  <View style={styles.childBox}>
+                    <Text style={styles.childBoxInfo}>
+                      Esta cuenta tendrá acceso exclusivo a la Cuenta de Niño y se enlazará automáticamente al padre/tutor.
+                    </Text>
+                    <Text style={[styles.label, { color: '#FBBF24', marginTop: 8 }]}>
+                      Correo del Padre / Tutor (Control Parental) *
+                    </Text>
+                    <TextInput
+                      style={[styles.input, { borderColor: '#F59E0B', marginTop: 4 }]}
+                      value={parentEmail}
+                      onChangeText={setParentEmail}
+                      placeholder="padre.tutor@ejemplo.com"
+                      placeholderTextColor="#64748B"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                  </View>
+                )}
+
+                <View style={styles.field}>
+                  <Text style={styles.label}>{isChildAccount ? 'Nombre del Niño(a)' : 'Nombre Completo'}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={fullName}
+                    onChangeText={setFullName}
+                    placeholder={isChildAccount ? 'Ej. Mateo Fraga' : 'Ej. Angela Fraga'}
+                    placeholderTextColor="#64748B"
+                    autoCapitalize="words"
+                  />
+                </View>
+              </>
             )}
 
             <View style={styles.field}>
-              <Text style={styles.label}>Correo Electrónico</Text>
+              <Text style={styles.label}>
+                {isRegister && isChildAccount ? 'Correo de la Cuenta del Niño' : 'Correo Electrónico'}
+              </Text>
               <TextInput
                 style={styles.input}
                 value={email}
@@ -196,17 +279,31 @@ export default function MobileLoginScreen() {
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity style={styles.btnSubmit} onPress={handleAuth} disabled={loading}>
+            <TouchableOpacity
+              style={[styles.btnSubmit, isRegister && isChildAccount && { backgroundColor: '#D97706' }]}
+              onPress={handleAuth}
+              disabled={loading}
+            >
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.btnSubmitText}>
-                  {isRegister ? 'Crear Cuenta' : 'Iniciar Sesión'}
+                  {isRegister
+                    ? isChildAccount
+                      ? 'Crear Cuenta Niño y Enlazar Padre'
+                      : 'Crear Cuenta'
+                    : 'Iniciar Sesión'}
                 </Text>
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => setIsRegister(!isRegister)} style={styles.toggleAuth}>
+            <TouchableOpacity
+              onPress={() => {
+                setIsRegister(!isRegister);
+                setIsChildAccount(false);
+              }}
+              style={styles.toggleAuth}
+            >
               <Text style={styles.toggleAuthText}>
                 {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate gratis'}
               </Text>
@@ -269,6 +366,44 @@ const styles = StyleSheet.create({
     color: '#F8FAFC',
     borderWidth: 1,
     borderColor: FamilyMint.border,
+  },
+  accountTypeBtn: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: FamilyMint.border,
+    backgroundColor: FamilyMint.surfaceElevated,
+  },
+  accountTypeBtnActive: {
+    borderColor: FamilyMint.primary,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+  },
+  accountTypeBtnChildActive: {
+    borderColor: '#F59E0B',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+  },
+  accountTypeTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#F8FAFC',
+  },
+  accountTypeSub: {
+    fontSize: 10,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  childBox: {
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+  },
+  childBoxInfo: {
+    fontSize: 11,
+    color: '#FDE68A',
+    lineHeight: 16,
   },
   hint: {
     fontSize: 11,

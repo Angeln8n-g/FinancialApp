@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { HouseholdService } from './household.service';
-import { InviteMemberDto, UpdateRoleDto } from './household.dto';
+import { CreateChildAccountDto, InviteMemberDto, UpdateParentalControlDto, UpdateRoleDto } from './household.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, UserPayload } from '../auth/get-user.decorator';
 
@@ -68,5 +68,35 @@ export class HouseholdController {
     @Body() body?: { note?: string },
   ) {
     return this.householdService.settleSplit(user.householdId, user.userId, body?.note);
+  }
+
+  // 🛡️ ENDPOINTS DE CUENTAS DE NIÑOS & CONTROL PARENTAL
+
+  @Get('parental-controls')
+  async getParentalControls(@CurrentUser() user: UserPayload) {
+    return this.householdService.getParentalControls(user.householdId, user.userId);
+  }
+
+  @Post('child-account')
+  async createChildAccount(@CurrentUser() user: UserPayload, @Body() dto: CreateChildAccountDto) {
+    return this.householdService.createChildAccount(user.userId, user.householdId, dto);
+  }
+
+  @Put('parental-controls/:childUserId')
+  async updateParentalControl(
+    @CurrentUser() user: UserPayload,
+    @Param('childUserId') childUserId: string,
+    @Body() dto: UpdateParentalControlDto,
+  ) {
+    return this.householdService.updateParentalControl(user.userId, user.householdId, childUserId, dto);
+  }
+
+  @Post('parental-controls/:childUserId/topup')
+  async topUpChildAccount(
+    @CurrentUser() user: UserPayload,
+    @Param('childUserId') childUserId: string,
+    @Body() body: { fromAccountId: string; amount: number; note?: string },
+  ) {
+    return this.householdService.topUpChildAccount(user.userId, user.householdId, childUserId, body);
   }
 }

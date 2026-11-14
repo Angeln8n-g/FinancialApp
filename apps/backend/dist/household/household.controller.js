@@ -53,6 +53,18 @@ let HouseholdController = class HouseholdController {
     async settleSplit(user, body) {
         return this.householdService.settleSplit(user.householdId, user.userId, body?.note);
     }
+    async getParentalControls(user) {
+        return this.householdService.getParentalControls(user.householdId, user.userId);
+    }
+    async createChildAccount(user, dto) {
+        return this.householdService.createChildAccount(user.userId, user.householdId, dto);
+    }
+    async updateParentalControl(user, childUserId, dto) {
+        return this.householdService.updateParentalControl(user.userId, user.householdId, childUserId, dto);
+    }
+    async topUpChildAccount(user, childUserId, body) {
+        return this.householdService.topUpChildAccount(user.userId, user.householdId, childUserId, body);
+    }
 };
 exports.HouseholdController = HouseholdController;
 __decorate([
@@ -133,6 +145,39 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
     __metadata("design:returntype", Promise)
 ], HouseholdController.prototype, "settleSplit", null);
+__decorate([
+    (0, common_1.Get)('parental-controls'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
+    __metadata("design:returntype", Promise)
+], HouseholdController.prototype, "getParentalControls", null);
+__decorate([
+    (0, common_1.Post)('child-account'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, household_dto_1.CreateChildAccountDto]),
+    __metadata("design:returntype", Promise)
+], HouseholdController.prototype, "createChildAccount", null);
+__decorate([
+    (0, common_1.Put)('parental-controls/:childUserId'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('childUserId')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, household_dto_1.UpdateParentalControlDto]),
+    __metadata("design:returntype", Promise)
+], HouseholdController.prototype, "updateParentalControl", null);
+__decorate([
+    (0, common_1.Post)('parental-controls/:childUserId/topup'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('childUserId')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
+    __metadata("design:returntype", Promise)
+], HouseholdController.prototype, "topUpChildAccount", null);
 exports.HouseholdController = HouseholdController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('api/household'),

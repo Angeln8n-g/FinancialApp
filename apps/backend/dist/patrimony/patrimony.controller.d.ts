@@ -66,11 +66,11 @@ export declare class PatrimonyController {
     }>;
     createAsset(user: UserPayload, body: CreateAssetDto): Promise<{
         id: string;
+        householdId: string;
+        name: string;
+        type: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
-        householdId: string;
-        type: string;
         notes: string | null;
         debtId: string | null;
         value: import("@prisma/client/runtime/library").Decimal;
@@ -79,11 +79,11 @@ export declare class PatrimonyController {
     }>;
     updateAsset(user: UserPayload, id: string, body: UpdateAssetDto): Promise<{
         id: string;
+        householdId: string;
+        name: string;
+        type: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
-        householdId: string;
-        type: string;
         notes: string | null;
         debtId: string | null;
         value: import("@prisma/client/runtime/library").Decimal;
@@ -93,11 +93,11 @@ export declare class PatrimonyController {
     updateAssetValuation(user: UserPayload, id: string, body: UpdateValuationDto): Promise<{
         asset: {
             id: string;
+            householdId: string;
+            name: string;
+            type: string;
             createdAt: Date;
             updatedAt: Date;
-            name: string;
-            householdId: string;
-            type: string;
             notes: string | null;
             debtId: string | null;
             value: import("@prisma/client/runtime/library").Decimal;
@@ -115,11 +115,11 @@ export declare class PatrimonyController {
     }>;
     deleteAsset(user: UserPayload, id: string): Promise<{
         id: string;
+        householdId: string;
+        name: string;
+        type: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
-        householdId: string;
-        type: string;
         notes: string | null;
         debtId: string | null;
         value: import("@prisma/client/runtime/library").Decimal;

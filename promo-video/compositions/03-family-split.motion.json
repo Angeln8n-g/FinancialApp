@@ -1,0 +1,8 @@
+{
+  "assertions": [
+    { "kind": "appearsBy", "selector": "#scene3-headline", "bySec": 0.55 },
+    { "kind": "staysInFrame", "selector": ".split-card" },
+    { "kind": "before", "a": ".bal-before", "b": ".settled-banner" },
+    { "kind": "keepsMoving", "withinSelector": ".camera" }
+  ]
+}

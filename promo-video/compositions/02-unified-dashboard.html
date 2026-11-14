@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="stylesheet" href="../assets/fonts.css" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+  </head>
+  <body>
+    <template>
+      <style>
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          font-family: "Geist", -apple-system, sans-serif;
+          background: #F6F3EC;
+          color: #1C1917;
+        }
+        .camera {
+          position: absolute;
+          inset: 0;
+          padding: 52px 96px 64px;
+          transform-origin: 50% 42%;
+          will-change: transform, opacity;
+        }
+        /* Real HogarIQ Top Navbar Chrome */
+        .app-nav {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #FFFFFF;
+          border: 1.5px solid #DCD3C3;
+          border-radius: 20px;
+          padding: 14px 24px;
+          box-shadow: 0 4px 20px -4px rgba(60, 45, 30, 0.08);
+          margin-bottom: 38px;
+          will-change: transform, opacity;
+        }
+        .nav-brand {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+        .nav-logo-box {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: #101A36;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 4px;
+        }
+        .nav-wordmark {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 26px;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          color: #1C1917;
+        }
+        .nav-wordmark span {
+          color: #B45309;
+        }
+        .nav-hogar-tag {
+          padding: 4px 10px;
+          border-radius: 8px;
+          background: rgba(180, 83, 9, 0.10);
+          border: 1px solid rgba(180, 83, 9, 0.25);
+          color: #B45309;
+          font-size: 14px;
+          font-weight: 800;
+          letter-spacing: 0.06em;
+        }
+        .nav-house-pill {
+          margin-left: 8px;
+          padding: 7px 14px;
+          border-radius: 10px;
+          background: #EDE7DC;
+          border: 1px solid #DCD3C3;
+          color: #544E48;
+          font-size: 18px;
+          font-weight: 600;
+        }
+        .nav-tabs {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .nav-tab {
+          padding: 10px 20px;
+          border-radius: 12px;
+          font-size: 20px;
+          font-weight: 600;
+          color: #544E48;
+          border: 1.5px solid transparent;
+        }
+        .nav-tab.is-active {
+          background: rgba(180, 83, 9, 0.12);
+          border-color: rgba(180, 83, 9, 0.28);
+          color: #92400E;
+          font-weight: 700;
+        }
+        .nav-tab-target {
+          position: relative;
+        }
+        .tab-highlight {
+          position: absolute;
+          inset: 0;
+          border-radius: 12px;
+          background: rgba(5, 150, 105, 0.15);
+          border: 2px solid #059669;
+          opacity: 0;
+        }
+
+        /* Editorial Section Headline (dead still once landed) */
+        .hero-head-row {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          margin-bottom: 30px;
+        }
+        #scene2-headline {
+          font-size: 56px;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          color: #1C1917;
+          line-height: 1.08;
+        }
+        #scene2-headline span {
+          color: #059669;
+        }
+        .sub-sync-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 20px;
+          border-radius: 999px;
+          background: rgba(5, 150, 105, 0.10);
+          border: 1.5px solid rgba(5, 150, 105, 0.28);
+          color: #059669;
+          font-size: 22px;
+          font-weight: 700;
+        }
+
+        /* Express Natural Language Bar (real UI) */
+        .express-card {
+          background: #FFFFFF;
+          border: 1.5px solid #DCD3C3;
+          border-radius: 24px;
+          padding: 26px 32px;
+          box-shadow: 0 10px 30px -8px rgba(60, 45, 30, 0.09);
+          margin-bottom: 30px;
+          will-change: transform, opacity;
+        }
+        .express-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 18px;
+        }
+        .express-toggle {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          background: #EDE7DC;
+          padding: 6px;
+          border-radius: 14px;
+        }
+        .express-pill-on {
+          padding: 9px 18px;
+          border-radius: 10px;
+          background: #B45309;
+          color: #FFFFFF;
+          font-size: 20px;
+          font-weight: 700;
+        }
+        .express-pill-off {
+          padding: 9px 16px;
+          font-size: 20px;
+          font-weight: 600;
+          color: #544E48;
+        }
+        .express-badge-tg {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 18px;
+          border-radius: 12px;
+          background: rgba(5, 150, 105, 0.10);
+          border: 1.5px solid rgba(5, 150, 105, 0.30);
+          color: #059669;
+          font-size: 20px;
+          font-weight: 700;
+        }
+        .express-input-line {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #F6F3EC;
+          border: 1.5px solid #DCD3C3;
+          border-radius: 16px;
+          padding: 18px 20px 18px 28px;
+        }
+        .express-value {
+          font-size: 30px;
+          font-weight: 700;
+          color: #1C1917;
+          letter-spacing: -0.015em;
+        }
+        .express-parsed {
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .parsed-tag {
+          padding: 9px 16px;
+          border-radius: 12px;
+          background: #FFFFFF;
+          border: 1.5px solid #DCD3C3;
+          color: #544E48;
+          font-size: 21px;
+          font-weight: 700;
+        }
+        .parsed-ok {
+          padding: 11px 22px;
+          border-radius: 12px;
+          background: #059669;
+          color: #FFFFFF;
+          font-size: 22px;
+          font-weight: 700;
+        }
+
+        /* Focal KPI Grid (large high-contrast financial readability) */
+        .kpi-grid {
+          display: grid;
+          grid-template-columns: 1.28fr 1fr 0.92fr;
+          gap: 28px;
+          will-change: transform, opacity;
+        }
+        .kpi-card {
+          background: #FFFFFF;
+          border: 1.5px solid #DCD3C3;
+          border-radius: 26px;
+          padding: 36px 38px;
+          box-shadow: 0 14px 36px -10px rgba(60, 45, 30, 0.10);
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          min-height: 350px;
+        }
+        .kpi-card.hero-kpi {
+          border-color: rgba(5, 150, 105, 0.40);
+          box-shadow: 0 22px 48px -12px rgba(5, 150, 105, 0.18);
+        }
+        .kpi-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 22px;
+        }
+        .kpi-kicker {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-size: 21px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          color: #544E48;
+        }
+        .badge-healthy {
+          padding: 7px 16px;
+          border-radius: 999px;
+          background: rgba(5, 150, 105, 0.12);
+          border: 1px solid rgba(5, 150, 105, 0.30);
+          color: #059669;
+          font-size: 19px;
+          font-weight: 700;
+          text-transform: none;
+          letter-spacing: 0;
+        }
+        .kpi-icon-pill {
+          width: 52px;
+          height: 52px;
+          border-radius: 15px;
+          background: rgba(5, 150, 105, 0.10);
+          border: 1.5px solid rgba(5, 150, 105, 0.25);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #059669;
+        }
+        .kpi-number-row {
+          display: flex;
+          align-items: baseline;
+          gap: 8px;
+        }
+        .kpi-currency {
+          font-family: "Geist Mono", monospace;
+          font-size: 46px;
+          font-weight: 800;
+          color: #787068;
+        }
+        .kpi-digits {
+          display: inline-flex;
+          align-items: baseline;
+          font-family: "Geist Mono", monospace;
+          font-variant-numeric: tabular-nums;
+          font-size: 80px;
+          font-weight: 800;
+          letter-spacing: -0.04em;
+          color: #1C1917;
+          line-height: 1;
+        }
+        .kpi-digits .digit {
+          display: inline-block;
+          will-change: transform, opacity, filter;
+        }
+        .kpi-unit {
+          font-size: 28px;
+          font-weight: 700;
+          color: #787068;
+          margin-left: 6px;
+        }
+        .kpi-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 22px;
+          border-top: 1.5px solid #EDE7DC;
+          font-size: 23px;
+          font-weight: 600;
+          color: #544E48;
+        }
+        .kpi-footer strong {
+          font-family: "Geist Mono", monospace;
+          font-variant-numeric: tabular-nums;
+          color: #059669;
+          font-weight: 700;
+        }
+
+        /* Card 3: Health Ring */
+        .ring-wrap {
+          display: flex;
+          align-items: center;
+          gap: 28px;
+          margin: 8px 0;
+        }
+        .ring-score {
+          font-family: "Geist Mono", monospace;
+          font-variant-numeric: tabular-nums;
+          font-size: 74px;
+          font-weight: 800;
+          letter-spacing: -0.04em;
+          color: #059669;
+        }
+        .ring-score span {
+          font-size: 32px;
+          color: #787068;
+        }
+        .ring-circle-bg {
+          fill: none;
+          stroke: #EDE7DC;
+          stroke-width: 12;
+        }
+        .ring-circle-fg {
+          fill: none;
+          stroke: #059669;
+          stroke-width: 12;
+          stroke-linecap: round;
+          stroke-dasharray: 314;
+          stroke-dashoffset: 314;
+          transform: rotate(-90deg);
+          transform-origin: 62px 62px;
+        }
+      </style>
+
+      <div id="root" data-composition-id="unified-dashboard" data-duration="6.25" data-fps="30">
+        <div class="camera">
+          <header class="app-nav">
+            <div class="nav-brand">
+              <div class="nav-logo-box">
+                <img src="assets/hogariq-icon.svg" width="34" height="34" alt="HogarIQ" />
+              </div>
+              <div class="nav-wordmark" data-layout-ignore>
+                Hogar<span data-layout-ignore>IQ</span>
+                <span class="nav-hogar-tag" data-layout-ignore>HOGAR</span>
+              </div>
+              <div class="nav-house-pill" data-layout-ignore>Hogar Rivera</div>
+            </div>
+            <nav class="nav-tabs" data-layout-ignore>
+              <div class="nav-tab is-active" data-layout-ignore>Dashboard</div>
+              <div class="nav-tab" data-layout-ignore>Calendario</div>
+              <div class="nav-tab" data-layout-ignore>Presupuestos</div>
+              <div class="nav-tab" data-layout-ignore>Compromisos</div>
+              <div class="nav-tab nav-tab-target" data-layout-ignore>
+                <span class="tab-highlight"></span>
+                Familia
+              </div>
+            </nav>
+          </header>
+
+          <div class="hero-head-row">
+            <h1 id="scene2-headline">Un mensaje. <span>Todo claro.</span></h1>
+            <div class="sub-sync-pill" data-layout-ignore>Sincronizado vía @HogarIQBot</div>
+          </div>
+
+          <div class="express-card">
+            <div class="express-top">
+              <div class="express-toggle" data-layout-ignore>
+                <span class="express-pill-on" data-layout-ignore>Express (Lenguaje Natural)</span>
+                <span class="express-pill-off" data-layout-ignore>Manual</span>
+              </div>
+              <div class="express-badge-tg" data-layout-ignore>Split 50/50 activado</div>
+            </div>
+            <div class="express-input-line">
+              <span class="express-value">Supermercado 85 compartido</span>
+              <div class="express-parsed">
+                <span class="parsed-tag" data-layout-ignore>Hogar • $42.50 c/u</span>
+                <span class="parsed-ok" data-layout-ignore>✓ Registrado</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-grid">
+            <div class="kpi-card hero-kpi">
+              <div class="kpi-top">
+                <div class="kpi-kicker" data-layout-ignore>
+                  <span data-layout-ignore>Disponible Hoy</span>
+                  <span class="badge-healthy" data-layout-ignore>Saludable</span>
+                </div>
+                <div class="kpi-icon-pill">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="kpi-number-row">
+                <span class="kpi-currency">$</span>
+                <span class="kpi-digits" id="kpi-main">
+                  <span class="digit">1</span><span class="digit">,</span><span class="digit">5</span><span class="digit">1</span><span class="digit">0</span><span class="digit">.</span><span class="digit">8</span><span class="digit">2</span>
+                </span>
+                <span class="kpi-unit">/ día</span>
+              </div>
+              <div class="kpi-footer" data-layout-ignore>
+                <span data-layout-ignore>Mes libre de culpa</span>
+                <strong data-layout-ignore>$25,683.97</strong>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div class="kpi-kicker" data-layout-ignore>Balance Total</div>
+                <div class="kpi-icon-pill" style="background:rgba(180,83,9,0.10); border-color:rgba(180,83,9,0.25); color:#B45309;">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="kpi-number-row">
+                <span class="kpi-currency">$</span>
+                <span class="kpi-digits" style="font-size:66px;">26,916.01</span>
+              </div>
+              <div class="kpi-footer" data-layout-ignore>
+                <span data-layout-ignore>Ahorro neto mes</span>
+                <strong data-layout-ignore>+$13,370.84</strong>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div class="kpi-kicker" data-layout-ignore>Salud Familiar</div>
+              </div>
+              <div class="ring-wrap">
+                <div class="ring-score tabular-nums">84<span>/100</span></div>
+                <svg width="124" height="124" viewBox="0 0 124 124">
+                  <circle class="ring-circle-bg" cx="62" cy="62" r="50"></circle>
+                  <circle class="ring-circle-fg" cx="62" cy="62" r="50"></circle>
+                </svg>
+              </div>
+              <div class="kpi-footer" data-layout-ignore>
+                <span data-layout-ignore>Runway del hogar</span>
+                <strong data-layout-ignore>16.5 meses</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+
+          // Unified workspace snaps in cleanly from 10.00s collapse (crisp & opaque at t=0 -> 10.05s sharp!)
+          tl.fromTo(".camera", { scale: 0.955, opacity: 1 }, { scale: 1, opacity: 1, duration: 0.40, ease: "expo.out" }, 0);
+          tl.fromTo(".app-nav", { y: -10, opacity: 0.9 }, { y: 0, opacity: 1, duration: 0.34, ease: "expo.out" }, 0);
+          tl.fromTo("#scene2-headline", { y: 12, opacity: 0.9 }, { y: 0, opacity: 1, duration: 0.36, ease: "expo.out" }, 0);
+          tl.fromTo(".express-card", { y: 16, opacity: 0.85 }, { y: 0, opacity: 1, duration: 0.42, ease: "expo.out" }, 0.04);
+          tl.fromTo(".kpi-card", { y: 24, opacity: 0.65 }, { y: 0, opacity: 1, duration: 0.45, stagger: 0.07, ease: "expo.out" }, 0.08);
+
+          // Registered confirmation pop at 1.25s (t_global = 11.25s)
+          tl.fromTo(".parsed-ok", { scale: 0.85 }, { scale: 1.04, duration: 0.16, ease: "power2.out", immediateRender: false }, 1.25);
+          tl.to(".parsed-ok", { scale: 1, duration: 0.22, ease: "back.out(1.7)" }, 1.41);
+
+          // Staggered digits pop-in on Disponible Hoy + health ring draw
+          tl.fromTo("#kpi-main .digit", { y: 18, opacity: 0, filter: "blur(5px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.38, stagger: 0.035, ease: "power4.out", immediateRender: false }, 1.32);
+          tl.fromTo(".ring-circle-fg", { strokeDashoffset: 314 }, { strokeDashoffset: 50, duration: 0.95, ease: "expo.out", immediateRender: false }, 1.45);
+
+          // Gentle focal push on KPI grid without exceeding root bounds
+          tl.fromTo(".kpi-grid", { scale: 1, y: 0 }, { scale: 1.018, y: -10, duration: 2.2, ease: "power2.inOut", immediateRender: false }, 2.1);
+
+          // Nav Tab Highlight "Familia" -> clean solid transition on beat into Scene 3 (no whitewash fade)
+          tl.fromTo(".tab-highlight", { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.26, ease: "back.out(1.6)", immediateRender: false }, 5.35);
+          tl.fromTo(".nav-tab-target", { scale: 1 }, { scale: 0.96, duration: 0.12, ease: "power2.in", immediateRender: false }, 5.95);
+          tl.fromTo(".nav-tab-target", { scale: 0.96 }, { scale: 1, duration: 0.18, ease: "back.out(1.6)", immediateRender: false }, 6.07);
+
+          tl.seek(0);
+          window.__timelines = window.__timelines || {};
+          window.__timelines["unified-dashboard"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

@@ -11,10 +11,8 @@ export declare class QuickEntryController {
         transaction: {
             account: {
                 id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                name: string;
                 householdId: string;
+                name: string;
                 type: import(".prisma/client").$Enums.AccountType;
                 balance: import("@prisma/client/runtime/library").Decimal;
                 currency: string;
@@ -24,21 +22,21 @@ export declare class QuickEntryController {
                 payrollDay2: number | null;
                 payrollAutoDeposit: boolean;
                 lastPayrollDeposit: Date | null;
+                createdAt: Date;
+                updatedAt: Date;
             };
             category: {
                 id: string;
-                createdAt: Date;
-                name: string;
                 householdId: string | null;
+                name: string;
+                createdAt: Date;
                 icon: string;
                 color: string;
             } | null;
             destinationAccount: {
                 id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                name: string;
                 householdId: string;
+                name: string;
                 type: import(".prisma/client").$Enums.AccountType;
                 balance: import("@prisma/client/runtime/library").Decimal;
                 currency: string;
@@ -48,6 +46,8 @@ export declare class QuickEntryController {
                 payrollDay2: number | null;
                 payrollAutoDeposit: boolean;
                 lastPayrollDeposit: Date | null;
+                createdAt: Date;
+                updatedAt: Date;
             } | null;
             createdBy: {
                 email: string;
@@ -57,12 +57,12 @@ export declare class QuickEntryController {
             } | null;
         } & {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             householdId: string;
             type: import(".prisma/client").$Enums.TransactionType;
-            categoryId: string | null;
+            createdAt: Date;
+            updatedAt: Date;
             accountId: string;
+            categoryId: string | null;
             amount: import("@prisma/client/runtime/library").Decimal;
             description: string | null;
             date: Date;

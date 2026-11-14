@@ -14,24 +14,24 @@ export declare class AllowancesController {
                 email: string;
                 fullName: string | null;
                 id: string;
-                avatarUrl: string | null;
-                passwordHash: string | null;
                 createdAt: Date;
                 updatedAt: Date;
+                avatarUrl: string | null;
+                passwordHash: string | null;
                 pushToken: string | null;
             };
         } & {
             id: string;
-            joinedAt: Date;
             userId: string;
             householdId: string;
             role: import(".prisma/client").$Enums.Role;
             customTitle: string | null;
+            joinedAt: Date;
         };
         id: string;
-        createdAt: Date;
         householdId: string;
         memberId: string;
+        createdAt: Date;
         title: string;
         period: import(".prisma/client").$Enums.RecurrencePeriod;
     }[]>;
@@ -42,9 +42,9 @@ export declare class AllowancesController {
         period?: RecurrencePeriod;
     }): Promise<{
         id: string;
-        createdAt: Date;
         householdId: string;
         memberId: string;
+        createdAt: Date;
         title: string;
         limitAmount: import("@prisma/client/runtime/library").Decimal;
         spentAmount: import("@prisma/client/runtime/library").Decimal;
@@ -54,9 +54,9 @@ export declare class AllowancesController {
         amount: number;
     }): Promise<{
         id: string;
-        createdAt: Date;
         householdId: string;
         memberId: string;
+        createdAt: Date;
         title: string;
         limitAmount: import("@prisma/client/runtime/library").Decimal;
         spentAmount: import("@prisma/client/runtime/library").Decimal;
@@ -71,9 +71,9 @@ export declare class AllowancesController {
     }>;
     reset(user: UserPayload, id: string): Promise<{
         id: string;
-        createdAt: Date;
         householdId: string;
         memberId: string;
+        createdAt: Date;
         title: string;
         limitAmount: import("@prisma/client/runtime/library").Decimal;
         spentAmount: import("@prisma/client/runtime/library").Decimal;
@@ -82,9 +82,9 @@ export declare class AllowancesController {
     getRequests(user: UserPayload): Promise<({
         allowance: {
             id: string;
-            createdAt: Date;
             householdId: string;
             memberId: string;
+            createdAt: Date;
             title: string;
             limitAmount: import("@prisma/client/runtime/library").Decimal;
             spentAmount: import("@prisma/client/runtime/library").Decimal;
@@ -95,29 +95,29 @@ export declare class AllowancesController {
                 email: string;
                 fullName: string | null;
                 id: string;
-                avatarUrl: string | null;
-                passwordHash: string | null;
                 createdAt: Date;
                 updatedAt: Date;
+                avatarUrl: string | null;
+                passwordHash: string | null;
                 pushToken: string | null;
             };
         } & {
             id: string;
-            joinedAt: Date;
             userId: string;
             householdId: string;
             role: import(".prisma/client").$Enums.Role;
             customTitle: string | null;
+            joinedAt: Date;
         };
     } & {
         id: string;
-        createdAt: Date;
         householdId: string;
         memberId: string;
+        createdAt: Date;
         amount: import("@prisma/client/runtime/library").Decimal;
         status: string;
-        reason: string;
         allowanceId: string;
+        reason: string;
     })[]>;
     createRequest(user: UserPayload, allowanceId: string, body: {
         memberId: string;
@@ -129,41 +129,41 @@ export declare class AllowancesController {
                 email: string;
                 fullName: string | null;
                 id: string;
-                avatarUrl: string | null;
-                passwordHash: string | null;
                 createdAt: Date;
                 updatedAt: Date;
+                avatarUrl: string | null;
+                passwordHash: string | null;
                 pushToken: string | null;
             };
         } & {
             id: string;
-            joinedAt: Date;
             userId: string;
             householdId: string;
             role: import(".prisma/client").$Enums.Role;
             customTitle: string | null;
+            joinedAt: Date;
         };
     } & {
         id: string;
-        createdAt: Date;
         householdId: string;
         memberId: string;
+        createdAt: Date;
         amount: import("@prisma/client/runtime/library").Decimal;
         status: string;
-        reason: string;
         allowanceId: string;
+        reason: string;
     }>;
     respondRequest(user: UserPayload, requestId: string, body: {
         status: 'APPROVED' | 'REJECTED';
     }): Promise<{
         id: string;
-        createdAt: Date;
         householdId: string;
         memberId: string;
+        createdAt: Date;
         amount: import("@prisma/client/runtime/library").Decimal;
         status: string;
-        reason: string;
         allowanceId: string;
+        reason: string;
     }>;
     remove(user: UserPayload, id: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
     getMissions(user: UserPayload): Promise<import("./allowances.service").FamilyMission[]>;

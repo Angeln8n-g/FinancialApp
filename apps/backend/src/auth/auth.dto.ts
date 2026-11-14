@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, MinLength, ValidateIf } from 'class-validator';
 
 export class LoginDto {
   @IsEmail({}, { message: 'El correo electrónico debe ser válido' })
@@ -22,4 +22,13 @@ export class RegisterDto {
   @IsString({ message: 'El nombre completo debe ser una cadena de texto' })
   @IsNotEmpty({ message: 'El nombre completo es requerido' })
   fullName!: string;
+
+  @IsOptional()
+  @IsBoolean({ message: 'El indicador de cuenta para niño debe ser booleano' })
+  isChildAccount?: boolean;
+
+  @ValidateIf((o) => o.isChildAccount === true)
+  @IsEmail({}, { message: 'Debes ingresar un correo electrónico válido del padre o tutor para el control parental' })
+  @IsNotEmpty({ message: 'El correo del padre o tutor es obligatorio para cuentas de niño' })
+  parentEmail?: string;
 }

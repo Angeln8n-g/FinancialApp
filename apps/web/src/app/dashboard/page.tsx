@@ -41,6 +41,10 @@ import {
   Receipt,
   FileSpreadsheet,
   Camera,
+  ShieldCheck,
+  Lock,
+  Sparkles,
+  Wallet,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -293,10 +297,234 @@ export default function DashboardPage() {
     }
   };
 
+  const isChildAccount = Boolean(
+    household?.role === 'DEPENDENT' ||
+      household?.isChildAccount ||
+      user?.isChildAccount ||
+      summary?.isChildAccount,
+  );
+  const childAccount = accounts[0] || null;
+  const parentalControls =
+    summary?.parentalControls ||
+    childAccount?.parentalControls ||
+    household?.parentalControls ||
+    user?.parentalControls ||
+    null;
+  const linkedParentEmail =
+    summary?.parentEmail ||
+    parentalControls?.parentEmail ||
+    household?.parentEmail ||
+    user?.parentEmail ||
+    null;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0A1128] text-slate-100 flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-3 border-emerald-500 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (isChildAccount) {
+    const isFrozen = Boolean(parentalControls?.isFrozen);
+    const maxSingle = Number(parentalControls?.maxSingleTransaction || 25);
+    const maxDaily = Number(parentalControls?.maxDailySpend || 50);
+    const todayExpense = Number(summary?.todayExpense || 0);
+    const dailyPct = maxDaily > 0 ? Math.min(100, Math.round((todayExpense / maxDaily) * 100)) : 0;
+
+    return (
+      <div className="min-h-screen bg-[#0A1128] text-slate-100 pb-20 lg:pb-12">
+        <Navbar user={user} household={household} unreadNotifications={0} />
+
+        <main className="max-w-4xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+          {/* Tarjeta Principal de Cuenta de Niño con Control Parental */}
+          <section className="mint-card p-6 sm:p-7 border border-amber-500/30 bg-gradient-to-br from-[#101A36] via-[#132046] to-amber-950/20 relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-300 text-[11px] font-bold flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                    Cuenta de Niño • Control Parental Activo
+                  </span>
+                  {isFrozen ? (
+                    <span className="px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[11px] font-bold flex items-center gap-1">
+                      <Lock className="w-3 h-3" />
+                      Cuenta Congelada por tu Tutor
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold">
+                      Activa para usar
+                    </span>
+                  )}
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100 tracking-tight">
+                  ¡Hola, {user?.fullName || 'Campeón'}!
+                </h1>
+                <p className="text-xs text-slate-300">
+                  Esta es tu cuenta personal exclusiva. Enlazada automáticamente con el control parental de{' '}
+                  <strong className="text-amber-300">{linkedParentEmail || 'tu padre/tutor'}</strong>.
+                </p>
+              </div>
+
+              <div className="bg-[#0A1128]/80 border border-[#1E2B4D] rounded-2xl p-4 sm:min-w-[230px] text-right">
+                <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+                  Mi Saldo Disponible
+                </p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-emerald-400 tabular-nums mt-0.5">
+                  ${Number(childAccount?.balance ?? summary?.totalBalance ?? 0).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                  })}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {childAccount?.name || 'Mi Cuenta de Niño'} ({childAccount?.currency || 'USD'})
+                </p>
+              </div>
+            </div>
+
+            {/* Reglas de Control Parental y Barra de Gasto Diario */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-5 border-t border-[#1E2B4D]/80">
+              <div className="p-3.5 rounded-xl bg-[#0A1128]/60 border border-[#1E2B4D]">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                  Máximo por Compra
+                </p>
+                <p className="text-base font-bold text-slate-100 tabular-nums mt-0.5">
+                  ${maxSingle.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Compras mayores requieren permiso
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#0A1128]/60 border border-[#1E2B4D]">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                  Límite Diario
+                </p>
+                <p className="text-base font-bold text-slate-100 tabular-nums mt-0.5">
+                  ${maxDaily.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Usado hoy: ${todayExpense.toFixed(2)} ({dailyPct}%)
+                </p>
+                <div className="w-full h-1.5 rounded-full bg-[#162347] overflow-hidden mt-1.5">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      dailyPct >= 90 ? 'bg-rose-500' : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${dailyPct}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#0A1128]/60 border border-[#1E2B4D] flex flex-col justify-between">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                    Correo del Padre / Tutor
+                  </p>
+                  <p className="text-xs font-bold text-amber-300 truncate mt-1">
+                    {linkedParentEmail || 'Tutor familiar enlazado'}
+                  </p>
+                </div>
+                <p className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3" /> Enlace parental verificado
+                </p>
+              </div>
+            </div>
+
+            {/* Botones de Acción para el Niño */}
+            <div className="flex flex-wrap items-center gap-3 mt-5">
+              <button
+                disabled={isFrozen}
+                onClick={() => {
+                  setTxInitialType('EXPENSE');
+                  setShowTxModal(true);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 disabled:opacity-50 text-rose-200 border border-rose-500/30 font-semibold text-xs transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <ArrowDownRight className="w-4 h-4 text-rose-400" />
+                <span>Registrar Compra / Gasto</span>
+              </button>
+
+              <Link
+                href="/dashboard/family"
+                className="px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 border border-amber-500/30 font-semibold text-xs transition-all flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>Ver Misiones y Pedir Permiso / Mesada</span>
+              </Link>
+            </div>
+          </section>
+
+          {/* Movimientos de la Cuenta del Niño */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-emerald-400" />
+                <h2 className="text-sm font-semibold text-slate-100">
+                  Movimientos de Mi Cuenta de Niño
+                </h2>
+              </div>
+              <span className="text-xs text-slate-400 tabular-nums">
+                {transactions.length} movimientos
+              </span>
+            </div>
+
+            {transactions.length === 0 ? (
+              <div className="mint-card p-8 text-center text-slate-400 text-xs">
+                Aún no tienes movimientos registrados en tu cuenta de niño.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {transactions.map((tx) => (
+                  <div
+                    key={tx.id}
+                    className="mint-card p-3.5 flex items-center justify-between border border-[#1E2B4D]"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
+                          tx.type === 'INCOME'
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                            : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                        }`}
+                      >
+                        {tx.type === 'INCOME' ? (
+                          <ArrowUpRight className="w-4 h-4" />
+                        ) : (
+                          <ArrowDownRight className="w-4 h-4" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-100">
+                          {tx.description || (tx.type === 'INCOME' ? 'Recarga / Mesada' : 'Compra')}
+                        </p>
+                        <p className="text-[10px] text-slate-400 tabular-nums">
+                          {new Date(tx.date).toLocaleDateString()} • {tx.category?.name || 'Mi Cuenta'}
+                        </p>
+                      </div>
+                    </div>
+                    <p
+                      className={`text-xs font-bold tabular-nums ${
+                        tx.type === 'INCOME' ? 'text-emerald-400' : 'text-rose-400'
+                      }`}
+                    >
+                      {tx.type === 'INCOME' ? '+' : '-'}$
+                      {Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </main>
+
+        <TransactionModal
+          isOpen={showTxModal}
+          onClose={() => setShowTxModal(false)}
+          accounts={accounts}
+          categories={categories}
+          initialType={txInitialType}
+          onSubmit={handleCreateTransaction}
+        />
       </div>
     );
   }
@@ -544,9 +772,17 @@ export default function DashboardPage() {
                                 Tarjeta • Deuda Vinculada
                               </span>
                             )}
+                            {acc.isChildAccount && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                <ShieldCheck className="w-2.5 h-2.5" />
+                                Cuenta de Niño • {acc.parentalControls?.isFrozen ? 'Pausada' : 'Control Parental'}
+                              </span>
+                            )}
                           </div>
                           <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">
-                            {isPayroll
+                            {acc.isChildAccount
+                              ? `Niño: ${acc.childName || 'Hijo/a'} • Tutor: ${acc.parentEmail || ''}`
+                              : isPayroll
                               ? 'Cuenta de Nómina'
                               : isCreditCard
                               ? 'Tarjeta de Crédito'
