@@ -9,74 +9,7 @@ export declare class TransactionsService {
     private currencyService?;
     constructor(prisma: PrismaService, eventsGateway: EventsGateway, currencyService?: CurrencyService | undefined);
     private convertAmount;
-    findAllByHousehold(householdId: string, userId?: string): Promise<({
-        account: {
-            id: string;
-            householdId: string;
-            name: string;
-            type: import(".prisma/client").$Enums.AccountType;
-            balance: import("@prisma/client/runtime/library").Decimal;
-            currency: string;
-            payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
-            payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
-            payrollDay1: number | null;
-            payrollDay2: number | null;
-            payrollAutoDeposit: boolean;
-            lastPayrollDeposit: Date | null;
-            createdAt: Date;
-            updatedAt: Date;
-        };
-        category: {
-            id: string;
-            householdId: string | null;
-            name: string;
-            createdAt: Date;
-            icon: string;
-            color: string;
-        } | null;
-        destinationAccount: {
-            id: string;
-            householdId: string;
-            name: string;
-            type: import(".prisma/client").$Enums.AccountType;
-            balance: import("@prisma/client/runtime/library").Decimal;
-            currency: string;
-            payrollAmount: import("@prisma/client/runtime/library").Decimal | null;
-            payrollFrequency: import(".prisma/client").$Enums.PayrollFrequency | null;
-            payrollDay1: number | null;
-            payrollDay2: number | null;
-            payrollAutoDeposit: boolean;
-            lastPayrollDeposit: Date | null;
-            createdAt: Date;
-            updatedAt: Date;
-        } | null;
-        createdBy: {
-            email: string;
-            fullName: string | null;
-            id: string;
-            avatarUrl: string | null;
-        } | null;
-    } & {
-        id: string;
-        householdId: string;
-        type: import(".prisma/client").$Enums.TransactionType;
-        createdAt: Date;
-        updatedAt: Date;
-        accountId: string;
-        categoryId: string | null;
-        amount: import("@prisma/client/runtime/library").Decimal;
-        description: string | null;
-        date: Date;
-        isCleared: boolean;
-        isEdited: boolean;
-        editReason: string | null;
-        editedAt: Date | null;
-        isVoided: boolean;
-        voidReason: string | null;
-        voidedAt: Date | null;
-        destinationAccountId: string | null;
-        createdById: string | null;
-    })[]>;
+    findAllByHousehold(householdId: string, userId?: string): Promise<any[]>;
     create(householdId: string, dto: CreateTransactionDto, currentUserId?: string): Promise<{
         account: {
             id: string;
@@ -166,6 +99,8 @@ export declare class TransactionsService {
         totalBalance: number;
         monthlyIncome: number;
         monthlyExpense: number;
+        monthlySavings: number;
+        piggyBankTotal: number;
         todayExpense: number;
         baseCurrency: string;
         accountsCount: number;
@@ -205,6 +140,8 @@ export declare class TransactionsService {
                 upcomingDebtsTotal: number;
             };
         };
+        monthlySavings?: undefined;
+        piggyBankTotal?: undefined;
         todayExpense?: undefined;
         isChildAccount?: undefined;
         parentalControls?: undefined;

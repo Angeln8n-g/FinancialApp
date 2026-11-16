@@ -120,7 +120,7 @@ export declare class AllowancesController {
         reason: string;
     })[]>;
     createRequest(user: UserPayload, allowanceId: string, body: {
-        memberId: string;
+        memberId?: string;
         amount: number;
         reason: string;
     }): Promise<{

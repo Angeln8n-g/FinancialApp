@@ -21,6 +21,7 @@ interface TransactionModalProps {
   accounts: any[];
   categories: any[];
   initialType?: 'EXPENSE' | 'INCOME' | 'TRANSFER';
+  isChildMode?: boolean;
   onSubmit: (data: {
     accountId: string;
     destinationAccountId?: string;
@@ -38,9 +39,10 @@ export default function TransactionModal({
   accounts,
   categories,
   initialType = 'EXPENSE',
+  isChildMode = false,
   onSubmit,
 }: TransactionModalProps) {
-  const [type, setType] = useState<'EXPENSE' | 'INCOME' | 'TRANSFER'>(initialType);
+  const [type, setType] = useState<'EXPENSE' | 'INCOME' | 'TRANSFER'>(isChildMode ? 'EXPENSE' : initialType);
   const [amount, setAmount] = useState('');
   const [accountId, setAccountId] = useState(accounts[0]?.id || '');
   const [destinationAccountId, setDestinationAccountId] = useState('');
@@ -52,6 +54,7 @@ export default function TransactionModal({
   const [categorySearch, setCategorySearch] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const [autoSuggestedLabel, setAutoSuggestedLabel] = useState<string | null>(null);
   const [manualCategoryChosen, setManualCategoryChosen] = useState(false);
 
@@ -59,19 +62,20 @@ export default function TransactionModal({
 
   useEffect(() => {
     if (isOpen) {
-      setType(initialType);
+      setType(isChildMode ? 'EXPENSE' : initialType);
       if (accounts.length > 0 && !accountId) setAccountId(accounts[0].id);
       if (accounts.length > 1 && !destinationAccountId) {
         setDestinationAccountId(accounts.find((a) => a.id !== accounts[0]?.id)?.id || '');
       }
       if (categories.length > 0 && !categoryId) setCategoryId(categories[0].id);
       setSuccessToast('');
+      setErrorMsg('');
       setAutoSuggestedLabel(null);
       setManualCategoryChosen(false);
       // Autofoco inmediato en el monto
       setTimeout(() => amountInputRef.current?.focus(), 50);
     }
-  }, [isOpen, initialType, accounts, categories]);
+  }, [isOpen, initialType, isChildMode, accounts, categories]);
 
   // Manejador de atajos de teclado dentro del modal
   useEffect(() => {
@@ -112,27 +116,30 @@ export default function TransactionModal({
     }
 
     setSubmitting(true);
+    setErrorMsg('');
     try {
+      const effectiveType = isChildMode ? 'EXPENSE' : type;
+      const effectiveAccountId = accountId || accounts[0]?.id;
       const finalDesc =
-        isSplit && type === 'EXPENSE'
+        !isChildMode && isSplit && effectiveType === 'EXPENSE'
           ? `${description.trim() || 'Gasto Común'} [🤝 Compartido 50/50]`
           : description.trim();
 
       await onSubmit({
-        accountId,
-        destinationAccountId: type === 'TRANSFER' ? destinationAccountId : undefined,
-        categoryId: type !== 'TRANSFER' ? (categoryId || undefined) : undefined,
-        type,
+        accountId: effectiveAccountId,
+        destinationAccountId: effectiveType === 'TRANSFER' ? destinationAccountId : undefined,
+        categoryId: effectiveType !== 'TRANSFER' ? (categoryId || undefined) : undefined,
+        type: effectiveType,
         amount: numAmount,
         description: finalDesc,
-        date: getComputedDate(),
+        date: isChildMode ? new Date().toISOString() : getComputedDate(),
       });
 
       if (keepOpen) {
         setAmount('');
         setDescription('');
         setIsSplit(false);
-        setSuccessToast(`¡${type === 'INCOME' ? 'Ingreso' : type === 'TRANSFER' ? 'Transferencia' : 'Gasto'} de $${numAmount.toFixed(2)} guardado! Listo para el siguiente.`);
+        setSuccessToast(`¡${effectiveType === 'INCOME' ? 'Ingreso' : effectiveType === 'TRANSFER' ? 'Transferencia' : 'Gasto'} de $${numAmount.toFixed(2)} guardado! Listo para el siguiente.`);
         setTimeout(() => setSuccessToast(''), 3500);
         setTimeout(() => amountInputRef.current?.focus(), 50);
       } else {
@@ -141,6 +148,8 @@ export default function TransactionModal({
         setIsSplit(false);
         onClose();
       }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'No se pudo registrar la compra. Verifica tu límite o saldo.');
     } finally {
       setSubmitting(false);
     }
@@ -169,6 +178,153 @@ export default function TransactionModal({
   );
 
   const selectedCategoryObj = categories.find((c) => c.id === categoryId);
+
+  if (isChildMode) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+        style={{ backgroundColor: 'rgba(14, 116, 144, 0.35)', backdropFilter: 'blur(6px)' }}
+      >
+        <div className="kids-hero-card w-full max-w-md p-6 sm:p-7 relative my-auto">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-xl font-extrabold text-[#1E1B4B]">
+              Anotar una compra
+            </h3>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-amber-100 hover:bg-amber-200 text-[#1E1B4B] font-bold flex items-center justify-center cursor-pointer"
+              aria-label="Cerrar"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {errorMsg && (
+            <div className="mb-4 p-3 rounded-2xl bg-rose-50 border-2 border-rose-200 text-rose-700 text-sm font-semibold">
+              {errorMsg}
+            </div>
+          )}
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSave(false);
+            }}
+            className="space-y-4"
+          >
+            {/* ¿Cuánto costó? */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-bold text-[#1E1B4B]">
+                  ¿Cuánto costó? ($)
+                </label>
+                <div className="flex items-center gap-1.5">
+                  {[1, 2, 5, 10].map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => handleAddAmount(val)}
+                      className="px-2.5 py-1 rounded-xl bg-sky-100 hover:bg-sky-200 text-[#0369A1] text-xs font-extrabold cursor-pointer tabular-nums"
+                    >
+                      +${val}
+                    </button>
+                  ))}
+                  {amount && (
+                    <button
+                      type="button"
+                      onClick={() => setAmount('')}
+                      className="px-2 py-1 text-xs font-bold text-rose-600 hover:text-rose-700 cursor-pointer"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="relative">
+                <span className="absolute left-4 top-2.5 text-2xl font-extrabold text-emerald-700 pointer-events-none">$</span>
+                <input
+                  ref={amountInputRef}
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-white border-2 border-sky-200 text-2xl font-extrabold text-[#1E1B4B] focus:outline-none focus:border-sky-400 tabular-nums"
+                />
+              </div>
+            </div>
+
+            {/* ¿Qué compraste? */}
+            <div>
+              <label className="block text-sm font-bold text-[#1E1B4B] mb-1.5">
+                ¿Qué compraste?
+              </label>
+              <input
+                type="text"
+                required
+                value={description}
+                onChange={(e) => handleDescriptionChange(e.target.value)}
+                placeholder="Ej. Helado, cuaderno, juguete..."
+                className="w-full px-4 py-3 rounded-2xl bg-white border-2 border-sky-200 text-sm font-semibold text-[#1E1B4B] focus:outline-none focus:border-sky-400"
+              />
+            </div>
+
+            {/* Categoría simple con botones amigables */}
+            {categories.length > 0 && (
+              <div>
+                <label className="block text-sm font-bold text-[#1E1B4B] mb-2">
+                  Categoría
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {categories.slice(0, 6).map((cat) => {
+                    const isSelected = categoryId === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          setCategoryId(cat.id);
+                          setManualCategoryChosen(true);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'bg-sky-600 text-white border-sky-700'
+                            : 'bg-white text-[#1E1B4B] border-sky-200 hover:bg-sky-50'
+                        }`}
+                      >
+                        {cat.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm font-bold text-slate-700 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || !amount || parseFloat(amount) <= 0}
+                className="kids-btn-coral flex-1 py-3 font-extrabold text-sm cursor-pointer disabled:opacity-50"
+              >
+                {submitting ? 'Guardando...' : 'Guardar compra'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-[#0A1128]/85 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">

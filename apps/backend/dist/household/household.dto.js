@@ -43,6 +43,7 @@ __decorate([
 ], UpdateRoleDto.prototype, "role", void 0);
 class CreateChildAccountDto {
     childName;
+    childFullName;
     childEmail;
     childPassword;
     parentEmail;
@@ -55,10 +56,17 @@ class CreateChildAccountDto {
 }
 exports.CreateChildAccountDto = CreateChildAccountDto;
 __decorate([
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.ValidateIf)((o) => !o.childFullName),
+    (0, class_validator_1.IsString)({ message: 'El nombre del niño debe ser una cadena de texto' }),
     (0, class_validator_1.IsNotEmpty)({ message: 'El nombre del niño es requerido' }),
     __metadata("design:type", String)
 ], CreateChildAccountDto.prototype, "childName", void 0);
+__decorate([
+    (0, class_validator_1.ValidateIf)((o) => !o.childName),
+    (0, class_validator_1.IsString)({ message: 'El nombre del niño debe ser una cadena de texto' }),
+    (0, class_validator_1.IsNotEmpty)({ message: 'El nombre del niño es requerido' }),
+    __metadata("design:type", String)
+], CreateChildAccountDto.prototype, "childFullName", void 0);
 __decorate([
     (0, class_validator_1.IsEmail)({}, { message: 'El correo electrónico del niño debe ser válido' }),
     (0, class_validator_1.IsNotEmpty)({ message: 'El correo del niño es requerido' }),

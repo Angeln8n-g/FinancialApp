@@ -1,5 +1,16 @@
 import { RecurrencePeriod, Role } from '@prisma/client';
-import { IsArray, IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateIf,
+} from 'class-validator';
 
 export class InviteMemberDto {
   @IsEmail({}, { message: 'El correo electrónico debe ser válido' })
@@ -21,9 +32,15 @@ export class UpdateRoleDto {
 }
 
 export class CreateChildAccountDto {
-  @IsString()
+  @ValidateIf((o) => !o.childFullName)
+  @IsString({ message: 'El nombre del niño debe ser una cadena de texto' })
   @IsNotEmpty({ message: 'El nombre del niño es requerido' })
-  childName!: string;
+  childName?: string;
+
+  @ValidateIf((o) => !o.childName)
+  @IsString({ message: 'El nombre del niño debe ser una cadena de texto' })
+  @IsNotEmpty({ message: 'El nombre del niño es requerido' })
+  childFullName?: string;
 
   @IsEmail({}, { message: 'El correo electrónico del niño debe ser válido' })
   @IsNotEmpty({ message: 'El correo del niño es requerido' })

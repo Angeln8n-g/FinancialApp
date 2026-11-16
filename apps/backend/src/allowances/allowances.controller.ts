@@ -54,9 +54,16 @@ export class AllowancesController {
   async createRequest(
     @CurrentUser() user: UserPayload,
     @Param('id') allowanceId: string,
-    @Body() body: { memberId: string; amount: number; reason: string },
+    @Body() body: { memberId?: string; amount: number; reason: string },
   ) {
-    return this.allowancesService.createRequest(user.householdId, body.memberId, allowanceId, body.amount, body.reason);
+    return this.allowancesService.createRequest(
+      user.householdId,
+      user.userId,
+      body.memberId,
+      allowanceId,
+      body.amount,
+      body.reason,
+    );
   }
 
   @Put('requests/:id')

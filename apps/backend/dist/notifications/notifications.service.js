@@ -20,11 +20,15 @@ let NotificationsService = class NotificationsService {
         this.prisma = prisma;
         this.eventsGateway = eventsGateway;
     }
-    async getUserNotifications(userId) {
+    async getUserNotifications(userId, householdId, unreadOnly = false) {
         return this.prisma.notification.findMany({
-            where: { userId },
+            where: {
+                userId,
+                ...(householdId ? { householdId } : {}),
+                ...(unreadOnly ? { isRead: false } : {}),
+            },
             orderBy: { createdAt: 'desc' },
-            take: 30,
+            take: 40,
         });
     }
     async createNotification(data) {
@@ -64,10 +68,36 @@ let NotificationsService = class NotificationsService {
             data: { isRead: true },
         });
     }
-    async markAllAsRead(userId) {
+    async markAllAsRead(userId, householdId) {
         return this.prisma.notification.updateMany({
-            where: { userId, isRead: false },
+            where: {
+                userId,
+                isRead: false,
+                ...(householdId ? { householdId } : {}),
+            },
             data: { isRead: true },
+        });
+    }
+    async deleteNotification(id, userId) {
+        return this.prisma.notification.deleteMany({
+            where: { id, userId },
+        });
+    }
+    async clearReadNotifications(userId, householdId) {
+        return this.prisma.notification.deleteMany({
+            where: {
+                userId,
+                isRead: true,
+                ...(householdId ? { householdId } : {}),
+            },
+        });
+    }
+    async clearAllNotifications(userId, householdId) {
+        return this.prisma.notification.deleteMany({
+            where: {
+                userId,
+                ...(householdId ? { householdId } : {}),
+            },
         });
     }
     async registerPushToken(userId, pushToken) {

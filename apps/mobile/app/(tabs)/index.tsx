@@ -37,6 +37,12 @@ import {
   CloudOff,
   RefreshCw,
   Bot,
+  PiggyBank,
+  Trophy,
+  Gift,
+  Coins,
+  ShoppingBag,
+  X,
 } from 'lucide-react-native';
 import {
   API_URL,
@@ -73,9 +79,23 @@ export default function MobileDashboardScreen() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [myAllowance, setMyAllowance] = useState<any>(null);
+  const [parentalControls, setParentalControls] = useState<any>(null);
   const [userRole, setUserRole] = useState<string>('COLLABORATOR');
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifFilter, setNotifFilter] = useState<'all' | 'unread'>('all');
   const [depositingAccId, setDepositingAccId] = useState<string | null>(null);
+  const [piggyBank, setPiggyBank] = useState<any>(null);
+  const [kidTxFilter, setKidTxFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE' | 'SAVINGS'>('ALL');
+  const [showNewGoalModal, setShowNewGoalModal] = useState(false);
+  const [newGoalName, setNewGoalName] = useState('');
+  const [newGoalTarget, setNewGoalTarget] = useState('50');
+  const [newGoalEmoji, setNewGoalEmoji] = useState('🚲');
+  const [creatingGoal, setCreatingGoal] = useState(false);
+  const [showSaveGoalModal, setShowSaveGoalModal] = useState(false);
+  const [selectedGoalForSave, setSelectedGoalForSave] = useState<any>(null);
+  const [saveGoalAmount, setSaveGoalAmount] = useState('5');
+  const [saveGoalNote, setSaveGoalNote] = useState('');
+  const [savingToGoal, setSavingToGoal] = useState(false);
 
   // Modales Principales
   const [showHouseholdModal, setShowHouseholdModal] = useState(false);
@@ -223,15 +243,17 @@ export default function MobileDashboardScreen() {
       setUserState(u);
       setHouseholdState(h);
 
-      const [resSum, resTx, resRem, resMem, resAllow, resAcc, resNotif, resCat] = await Promise.all([
+      const [resSum, resTx, resRem, resMem, resAllow, resAcc, resNotif, resCat, resParental, resPiggy] = await Promise.all([
         fetchWithAuth(`/api/transactions/summary?currency=${curr}`),
-        fetchWithAuth('/api/transactions?limit=10'),
+        fetchWithAuth('/api/transactions?limit=25'),
         fetchWithAuth('/api/reminders'),
         fetchWithAuth('/api/household/members'),
         fetchWithAuth('/api/allowances'),
         fetchWithAuth('/api/accounts'),
         fetchWithAuth('/api/notifications'),
         fetchWithAuth('/api/categories'),
+        fetchWithAuth('/api/household/parental-controls'),
+        fetchWithAuth('/api/goals/piggy-bank'),
       ]);
 
       if (resSum.ok) setSummary(await resSum.json());
@@ -269,6 +291,18 @@ export default function MobileDashboardScreen() {
         const catData = await resCat.json();
         if (Array.isArray(catData)) setCategories(catData);
       }
+      if (resParental.ok) {
+        const pData = await resParental.json();
+        if (Array.isArray(pData)) {
+          const mine = pData.find((c: any) => c.childUserId === u?.id);
+          if (mine) setParentalControls(mine);
+        } else if (pData && typeof pData === 'object') {
+          setParentalControls(pData);
+        }
+      }
+      if (resPiggy.ok) {
+        setPiggyBank(await resPiggy.json());
+      }
     } catch (err) {
       console.log('Error conectando con la API:', err);
     } finally {
@@ -286,6 +320,69 @@ export default function MobileDashboardScreen() {
       unsub();
     };
   }, []);
+
+  const handleCreateKidGoal = async () => {
+    if (!newGoalName.trim() || !newGoalTarget) {
+      Alert.alert('Campos requeridos', 'Ingresa el nombre y el monto objetivo.');
+      return;
+    }
+    setCreatingGoal(true);
+    try {
+      const res = await fetchWithAuth('/api/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newGoalName.trim(),
+          targetAmount: parseFloat(newGoalTarget),
+          emoji: newGoalEmoji,
+        }),
+      });
+      if (res.ok) {
+        setShowNewGoalModal(false);
+        setNewGoalName('');
+        setNewGoalTarget('50');
+        Alert.alert('¡Meta creada!', 'Tu nuevo objetivo ya está en tu alcancía.');
+        loadData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        Alert.alert('No se pudo crear', err.message || 'Intenta nuevamente.');
+      }
+    } catch {
+      Alert.alert('Error', 'Error de conexión.');
+    } finally {
+      setCreatingGoal(false);
+    }
+  };
+
+  const handleSaveToKidGoal = async () => {
+    if (!selectedGoalForSave || !saveGoalAmount) return;
+    setSavingToGoal(true);
+    try {
+      const res = await fetchWithAuth(`/api/goals/${selectedGoalForSave.id}/contribute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: parseFloat(saveGoalAmount),
+          notes: saveGoalNote.trim() || undefined,
+        }),
+      });
+      if (res.ok) {
+        setShowSaveGoalModal(false);
+        setSelectedGoalForSave(null);
+        setSaveGoalAmount('5');
+        setSaveGoalNote('');
+        Alert.alert('¡Ahorro guardado!', 'Tu dinero ya está protegido en tu alcancía.');
+        loadData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        Alert.alert('No se pudo guardar', err.message || 'Revisa tu saldo disponible.');
+      }
+    } catch {
+      Alert.alert('Error', 'Error de conexión.');
+    } finally {
+      setSavingToGoal(false);
+    }
+  };
 
   const handleSyncOffline = async () => {
     setSyncingOffline(true);
@@ -443,6 +540,248 @@ export default function MobileDashboardScreen() {
   const pendingCount = reminders.filter((r) => !r.isPaid).length;
   const unreadNotifsCount = notifications.filter((n) => !n.isRead).length;
 
+  const handleMarkNotifRead = async (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    try {
+      await fetchWithAuth(`/api/notifications/${id}/read`, { method: 'PUT' });
+    } catch (e) {}
+  };
+
+  const handleMarkAllNotifsRead = async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    try {
+      await fetchWithAuth('/api/notifications/read-all', { method: 'PUT' });
+    } catch (e) {}
+  };
+
+  const handleDeleteNotif = async (id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    try {
+      await fetchWithAuth(`/api/notifications/${id}`, { method: 'DELETE' });
+    } catch (e) {}
+  };
+
+  const handleClearReadNotifs = async () => {
+    setNotifications((prev) => prev.filter((n) => !n.isRead));
+    try {
+      await fetchWithAuth('/api/notifications/clear-read', { method: 'DELETE' });
+    } catch (e) {}
+  };
+
+  const handlePressNotif = async (n: any, isKidsTheme: boolean) => {
+    if (!n.isRead) {
+      await handleMarkNotifRead(n.id);
+    }
+    setShowNotifModal(false);
+    if (
+      n.type === 'ALLOWANCE_REQUEST' ||
+      n.type === 'PARENTAL_CONTROL' ||
+      n.type === 'MISSION_COMPLETED' ||
+      n.type === 'MEMBER_JOINED' ||
+      (n.title && n.title.toLowerCase().includes('misión'))
+    ) {
+      router.push('/(tabs)/family' as any);
+    } else if (n.type === 'REMINDER_DUE' && !isKidsTheme) {
+      router.push('/(tabs)/commitments' as any);
+    }
+  };
+
+  const renderNotificationModal = (isKidsTheme: boolean) => {
+    const readCount = notifications.length - unreadNotifsCount;
+    const filtered = notifFilter === 'unread' ? notifications.filter((n) => !n.isRead) : notifications;
+
+    return (
+      <Modal visible={showNotifModal} transparent animationType="slide" onRequestClose={() => setShowNotifModal(false)}>
+        <View style={styles.modalBg}>
+          <View
+            style={[
+              styles.modalContent,
+              isKidsTheme && { backgroundColor: '#FFFFFF', borderColor: '#BAE6FD', borderWidth: 2 },
+            ]}
+          >
+            <View style={styles.modalHeaderRow}>
+              <Text style={[styles.modalTitle, isKidsTheme && { color: '#1E1B4B', fontWeight: '900' }]}>
+                Notificaciones
+              </Text>
+              <TouchableOpacity onPress={() => setShowNotifModal(false)}>
+                <Text style={{ color: isKidsTheme ? '#475569' : FamilyMint.foregroundSubtle, fontSize: 18, fontWeight: '700' }}>
+                  ✕
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Acciones masivas y filtro */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                <TouchableOpacity
+                  onPress={() => setNotifFilter('all')}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 10,
+                    backgroundColor:
+                      notifFilter === 'all'
+                        ? isKidsTheme
+                          ? '#0284C7'
+                          : FamilyMint.primaryMuted
+                        : isKidsTheme
+                        ? '#F0F9FF'
+                        : FamilyMint.surfaceElevated,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: '700',
+                      color:
+                        notifFilter === 'all'
+                          ? isKidsTheme
+                            ? '#FFFFFF'
+                            : FamilyMint.primary
+                          : isKidsTheme
+                          ? '#475569'
+                          : FamilyMint.foregroundMuted,
+                    }}
+                  >
+                    Todas ({notifications.length})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setNotifFilter('unread')}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 10,
+                    backgroundColor:
+                      notifFilter === 'unread'
+                        ? isKidsTheme
+                          ? '#0284C7'
+                          : FamilyMint.primaryMuted
+                        : isKidsTheme
+                        ? '#F0F9FF'
+                        : FamilyMint.surfaceElevated,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: '700',
+                      color:
+                        notifFilter === 'unread'
+                          ? isKidsTheme
+                            ? '#FFFFFF'
+                            : FamilyMint.primary
+                          : isKidsTheme
+                          ? '#475569'
+                          : FamilyMint.foregroundMuted,
+                    }}
+                  >
+                    Sin leer ({unreadNotifsCount})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {unreadNotifsCount > 0 && (
+                  <TouchableOpacity onPress={handleMarkAllNotifsRead}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: isKidsTheme ? '#0284C7' : FamilyMint.primary }}>
+                      Marcar leídas
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                {readCount > 0 && (
+                  <TouchableOpacity onPress={handleClearReadNotifs}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: isKidsTheme ? '#BE123C' : FamilyMint.expense }}>
+                      Limpiar
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            <ScrollView style={{ maxHeight: 340 }}>
+              {filtered.length === 0 ? (
+                <Text
+                  style={{
+                    color: isKidsTheme ? '#64748B' : FamilyMint.foregroundSubtle,
+                    fontSize: 13,
+                    textAlign: 'center',
+                    marginVertical: 20,
+                  }}
+                >
+                  {notifFilter === 'unread' ? '¡Todo al día! No tienes notificaciones sin leer.' : 'No tienes notificaciones pendientes.'}
+                </Text>
+              ) : (
+                filtered.map((n) => (
+                  <TouchableOpacity
+                    key={n.id}
+                    onPress={() => handlePressNotif(n, isKidsTheme)}
+                    activeOpacity={0.75}
+                    style={[
+                      isKidsTheme
+                        ? {
+                            padding: 12,
+                            borderRadius: 14,
+                            backgroundColor: n.isRead ? '#F8FAFC' : '#F0F9FF',
+                            borderWidth: 1.5,
+                            borderColor: n.isRead ? '#E2E8F0' : '#BAE6FD',
+                            marginBottom: 8,
+                            opacity: n.isRead ? 0.75 : 1,
+                          }
+                        : [styles.notifItem, n.isRead && { opacity: 0.6 }],
+                      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
+                    ]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        {!n.isRead && (
+                          <View
+                            style={{
+                              width: 7,
+                              height: 7,
+                              borderRadius: 4,
+                              backgroundColor: isKidsTheme ? '#0284C7' : FamilyMint.primary,
+                            }}
+                          />
+                        )}
+                        <Text
+                          style={[
+                            isKidsTheme ? { fontSize: 13, fontWeight: '800', color: '#1E1B4B' } : styles.notifItemTitle,
+                            { flex: 1 },
+                          ]}
+                        >
+                          {n.title}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          isKidsTheme ? { fontSize: 12, color: '#334155', marginTop: 2 } : styles.notifItemBody,
+                        ]}
+                      >
+                        {n.body}
+                      </Text>
+                      <Text style={{ color: isKidsTheme ? '#64748B' : FamilyMint.foregroundSubtle, fontSize: 10, marginTop: 4 }}>
+                        {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={() => handleDeleteNotif(n.id)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      style={{ padding: 4 }}
+                    >
+                      <Trash2 size={14} color={isKidsTheme ? '#94A3B8' : FamilyMint.foregroundSubtle} />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   const baseCurr = selectedCurrency || (summary as any)?.baseCurrency || 'USD';
   const currencySymbols: Record<string, string> = {
     USD: '$',
@@ -459,6 +798,545 @@ export default function MobileDashboardScreen() {
     USDT: '₮',
   };
   const sym = currencySymbols[baseCurr] || '$';
+
+  const isChildAccount = Boolean(
+    household?.role === 'DEPENDENT' ||
+      household?.isChildAccount ||
+      user?.isChildAccount ||
+      userRole === 'DEPENDENT' ||
+      (summary as any)?.isChildAccount
+  );
+
+  if (isChildAccount) {
+    const childAcc = accounts.find((a) => a.isChildAccount) || accounts[0];
+    const pCtrl = parentalControls || (summary as any)?.parentalControls || household?.parentalControls || {};
+    const isFrozen = Boolean(pCtrl?.isFrozen);
+    const maxSingle = Number(pCtrl?.maxSingleTransaction || 25);
+    const maxDaily = Number(pCtrl?.maxDailySpend || 50);
+    const todayExpense = Number((summary as any)?.todayExpense || 0);
+    const dailyPct = maxDaily > 0 ? Math.min(100, Math.round((todayExpense / maxDaily) * 100)) : 0;
+    const parentEmailText = pCtrl?.parentEmail || household?.parentEmail || user?.parentEmail || 'tu tutor';
+    const spendableBalance = Number(childAcc?.balance ?? summary.totalBalance ?? 0);
+    const piggyGoals = Array.isArray(piggyBank?.goals) ? piggyBank.goals : [];
+    const totalSavedInPiggyBank = Number(
+      piggyBank?.totalSavedInPiggyBank ?? (summary as any)?.piggyBankTotal ?? 0,
+    );
+    const allowSavingsGoals = pCtrl?.allowSavingsGoals !== false;
+
+    const filteredKidTransactions = transactions.filter((tx) => {
+      if (kidTxFilter === 'INCOME') return tx.type === 'INCOME';
+      if (kidTxFilter === 'SAVINGS') return tx.movementKind === 'SAVINGS_DEPOSIT';
+      if (kidTxFilter === 'EXPENSE') {
+        return tx.type !== 'INCOME' && tx.movementKind !== 'SAVINGS_DEPOSIT';
+      }
+      return true;
+    });
+
+    const getKidMovementLabel = (tx: any) => {
+      const kind = tx.movementKind || (tx.type === 'INCOME' ? 'INCOME' : 'EXPENSE');
+      if (kind === 'MISSION_REWARD') return '🏆 Premio de Misión';
+      if (kind === 'ALLOWANCE') return '💰 Mesada Recibida';
+      if (kind === 'PARENT_TOPUP') return '💝 Recarga de Tutor';
+      if (kind === 'SAVINGS_DEPOSIT') return '🐷 Guardado en Alcancía';
+      if (tx.type === 'INCOME') return '✨ Dinero Recibido';
+      return '🛍️ Compra / Gasto';
+    };
+
+    return (
+      <ScrollView
+        style={styles.kidsContainer}
+        contentContainerStyle={styles.kidsContentContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              if (offlineCount > 0) await flushOfflineQueue();
+              loadData();
+            }}
+            tintColor="#0284C7"
+          />
+        }
+      >
+        {/* Header Alegre Infantil */}
+        <View style={styles.kidsHeader}>
+          <View>
+            <Text style={styles.kidsBrandText}>
+              Hogar<Text style={{ color: '#0284C7' }}>IQ</Text>
+            </Text>
+            <Text style={styles.kidsBrandSub}>Mi Cuenta y Alcancía</Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity style={styles.kidsIconBtn} onPress={() => setShowNotifModal(true)}>
+              <Bell size={18} color="#0369A1" />
+              {unreadNotifsCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>{unreadNotifsCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.kidsLogoutBtn} onPress={handleLogout}>
+              <LogOut size={18} color="#BE123C" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Tarjeta Principal Colorida y Transparente */}
+        <View style={styles.kidsHeroCard}>
+          <Text style={styles.kidsGreeting}>
+            ¡Hola, {user?.fullName || 'Campeón'}! 🌟
+          </Text>
+          <Text style={styles.kidsTutorInfo}>
+            Cuidada junto a{' '}
+            <Text style={{ fontWeight: '800', color: '#0369A1' }}>{parentEmailText}</Text>
+          </Text>
+
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+            <View style={[styles.kidsBalanceBox, { flex: 1, marginBottom: 0 }]}>
+              <Text style={styles.kidsBalanceLabel}>Disponible</Text>
+              <Text style={[styles.kidsBalanceValue, { fontSize: 24 }]}>
+                {sym}{spendableBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </Text>
+              <Text style={[styles.kidsStatusText, { color: isFrozen ? '#BE123C' : '#047857' }]}>
+                {isFrozen ? 'Pausada' : 'Lista para usar'}
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.kidsBalanceBox,
+                { flex: 1, marginBottom: 0, backgroundColor: '#F5F3FF', borderColor: '#C4B5FD' },
+              ]}
+            >
+              <Text style={[styles.kidsBalanceLabel, { color: '#5B21B6' }]}>En tu alcancía</Text>
+              <Text style={[styles.kidsBalanceValue, { fontSize: 24, color: '#6D28D9' }]}>
+                {sym}{totalSavedInPiggyBank.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </Text>
+              <Text style={[styles.kidsStatusText, { color: '#6D28D9' }]}>
+                {piggyGoals.length} {piggyGoals.length === 1 ? 'objetivo' : 'objetivos'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Resumen Mensual Transparente */}
+          <View style={styles.kidsStatsRow}>
+            <View style={[styles.kidsStatPill, { backgroundColor: '#ECFDF5' }]}>
+              <Text style={[styles.kidsStatLabel, { color: '#065F46' }]}>Recibido este mes</Text>
+              <Text style={[styles.kidsStatValue, { color: '#047857' }]}>
+                +${Number(summary.monthlyIncome || 0).toFixed(2)}
+              </Text>
+            </View>
+            <View style={[styles.kidsStatPill, { backgroundColor: '#FFF1F2' }]}>
+              <Text style={[styles.kidsStatLabel, { color: '#9F1239' }]}>Gastado este mes</Text>
+              <Text style={[styles.kidsStatValue, { color: '#BE123C' }]}>
+                -${Number(summary.monthlyExpense || 0).toFixed(2)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.kidsProgressWrap}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155' }}>
+                Hoy: ${todayExpense.toFixed(2)} / ${maxDaily.toFixed(2)} (Máx compra: ${maxSingle.toFixed(2)})
+              </Text>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: dailyPct >= 90 ? '#BE123C' : '#047857' }}>
+                {dailyPct}%
+              </Text>
+            </View>
+            <View style={styles.kidsProgressTrack}>
+              <View
+                style={[
+                  styles.kidsProgressFill,
+                  {
+                    width: `${dailyPct}%`,
+                    backgroundColor: dailyPct >= 90 ? '#F43F5E' : dailyPct >= 65 ? '#F59E0B' : '#10B981',
+                  },
+                ]}
+              />
+            </View>
+          </View>
+
+          {/* Botones de Acción */}
+          <View style={styles.kidsActionsRow}>
+            <TouchableOpacity
+              disabled={isFrozen}
+              onPress={() => openNewTx('EXPENSE')}
+              style={[styles.kidsBtnCoral, isFrozen && { opacity: 0.5 }]}
+            >
+              <ArrowDownRight size={17} color="#FFFFFF" />
+              <Text style={styles.kidsBtnCoralText}>Registrar compra</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/family' as any)}
+              style={styles.kidsBtnSunny}
+            >
+              <Sparkles size={17} color="#1E1B4B" />
+              <Text style={styles.kidsBtnSunnyText}>Misiones y mesada</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 🐷 MI ALCANCÍA CON OBJETIVOS */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 18, marginBottom: 10 }}>
+          <Text style={styles.kidsSectionTitle}>🐷 Mi Alcancía de Ahorros</Text>
+          {allowSavingsGoals && (
+            <TouchableOpacity
+              onPress={() => setShowNewGoalModal(true)}
+              style={{
+                backgroundColor: '#7C3AED',
+                paddingHorizontal: 12,
+                paddingVertical: 7,
+                borderRadius: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <Plus size={14} color="#FFFFFF" />
+              <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>Nueva meta</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {piggyGoals.length === 0 ? (
+          <View style={styles.kidsCard}>
+            <Text style={{ fontSize: 15, fontWeight: '800', color: '#1E1B4B', textAlign: 'center' }}>
+              ¡Crea tu primer objetivo de ahorro!
+            </Text>
+            <Text style={{ fontSize: 13, color: '#475569', textAlign: 'center', marginTop: 4 }}>
+              Guarda dinero poco a poco para algo especial o recibe abonos directos de tu tutor.
+            </Text>
+          </View>
+        ) : (
+          piggyGoals.map((goal: any) => {
+            const pct = Math.min(100, Number(goal.percentage || 0));
+            return (
+              <View key={goal.id} style={[styles.kidsCard, { borderColor: '#DDD6FE', marginBottom: 10 }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <Text style={{ fontSize: 26 }}>{goal.emoji || '🐷'}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '800', color: '#1E1B4B' }}>{goal.name}</Text>
+                      <Text style={{ fontSize: 13, color: '#5B21B6', fontWeight: '700' }}>
+                        ${Number(goal.currentAmount).toFixed(2)} / ${Number(goal.targetAmount).toFixed(2)} ({pct}%)
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    disabled={isFrozen || spendableBalance <= 0}
+                    onPress={() => {
+                      setSelectedGoalForSave(goal);
+                      setSaveGoalAmount(spendableBalance >= 5 ? '5' : spendableBalance.toFixed(2));
+                      setSaveGoalNote('');
+                      setShowSaveGoalModal(true);
+                    }}
+                    style={{
+                      backgroundColor: spendableBalance > 0 && !isFrozen ? '#7C3AED' : '#CBD5E1',
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 12,
+                    }}
+                  >
+                    <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>Guardar $</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={[styles.kidsProgressTrack, { backgroundColor: '#EDE9FE', marginTop: 10 }]}>
+                  <View
+                    style={[
+                      styles.kidsProgressFill,
+                      { width: `${pct}%`, backgroundColor: goal.isCompleted ? '#10B981' : '#7C3AED' },
+                    ]}
+                  />
+                </View>
+
+                {(goal.childSavedTotal > 0 || goal.parentDepositedTotal > 0) && (
+                  <Text style={{ fontSize: 12, color: '#5B21B6', fontWeight: '700', marginTop: 6 }}>
+                    Tú ahorraste: ${Number(goal.childSavedTotal || 0).toFixed(2)} · Abonos tutor: ${Number(goal.parentDepositedTotal || 0).toFixed(2)}
+                  </Text>
+                )}
+              </View>
+            );
+          })
+        )}
+
+        {Array.isArray(piggyBank?.recentDeposits) && piggyBank.recentDeposits.length > 0 && (
+          <View style={[styles.kidsCard, { borderColor: '#DDD6FE', marginBottom: 10 }]}>
+            <Text style={{ fontSize: 13, fontWeight: '800', color: '#1E1B4B', marginBottom: 6 }}>
+              Últimos abonos a tu alcancía
+            </Text>
+            {piggyBank.recentDeposits.slice(0, 4).map((dep: any) => (
+              <View
+                key={dep.id}
+                style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5 }}
+              >
+                <Text style={{ fontSize: 12, color: '#334155', flex: 1 }} numberOfLines={1}>
+                  {dep.emoji || '🐷'} {dep.goalName}: {dep.depositSource === 'PARENT_DIRECT' ? `Abono de ${dep.actorName}` : 'Tu ahorro'}
+                </Text>
+                <Text style={{ fontSize: 13, fontWeight: '800', color: '#047857' }}>
+                  +${Number(dep.amount).toFixed(2)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Movimientos Claros y Transparentes */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 8 }}>
+          <Text style={styles.kidsSectionTitle}>Tus últimos movimientos</Text>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569' }}>{filteredKidTransactions.length} registros</Text>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {(
+              [
+                { key: 'ALL', label: 'Todos' },
+                { key: 'INCOME', label: 'Entradas (+)' },
+                { key: 'EXPENSE', label: 'Compras (-)' },
+                { key: 'SAVINGS', label: 'Alcancía' },
+              ] as const
+            ).map((f) => (
+              <TouchableOpacity
+                key={f.key}
+                onPress={() => setKidTxFilter(f.key)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 7,
+                  borderRadius: 999,
+                  backgroundColor: kidTxFilter === f.key ? '#1E1B4B' : '#FFFFFF',
+                  borderWidth: 1.5,
+                  borderColor: kidTxFilter === f.key ? '#1E1B4B' : '#BAE6FD',
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '800', color: kidTxFilter === f.key ? '#FFFFFF' : '#1E1B4B' }}>
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+
+        {filteredKidTransactions.length === 0 ? (
+          <View style={styles.kidsCard}>
+            <Text style={{ fontSize: 15, fontWeight: '800', color: '#1E1B4B', textAlign: 'center' }}>
+              Sin movimientos en esta vista
+            </Text>
+            <Text style={{ fontSize: 13, color: '#475569', textAlign: 'center', marginTop: 4 }}>
+              Aquí verás cada premio (+), mesada (+), compra (-) o ahorro a tu alcancía.
+            </Text>
+          </View>
+        ) : (
+          filteredKidTransactions.map((tx) => {
+            const isIncome = tx.type === 'INCOME';
+            const isSavings = tx.movementKind === 'SAVINGS_DEPOSIT';
+            const kind = tx.movementKind || '';
+            const renderKindIcon = () => {
+              if (kind === 'MISSION_REWARD') return <Trophy size={18} color="#B45309" />;
+              if (kind === 'ALLOWANCE') return <Coins size={18} color="#047857" />;
+              if (kind === 'PARENT_TOPUP') return <Gift size={18} color="#0369A1" />;
+              if (kind === 'SAVINGS_DEPOSIT') return <PiggyBank size={18} color="#6D28D9" />;
+              return isIncome ? <ArrowUpRight size={18} color="#047857" /> : <ShoppingBag size={18} color="#BE123C" />;
+            };
+
+            return (
+              <View key={tx.id} style={[styles.kidsCard, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 14,
+                      backgroundColor: isIncome ? '#ECFDF5' : isSavings ? '#F5F3FF' : '#FFF1F2',
+                      borderWidth: 1.5,
+                      borderColor: isIncome ? '#A7F3D0' : isSavings ? '#DDD6FE' : '#FECDD3',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {renderKindIcon()}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: isIncome ? '#047857' : isSavings ? '#6D28D9' : '#BE123C' }}>
+                      {getKidMovementLabel(tx)}
+                    </Text>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#1E1B4B', marginTop: 1 }} numberOfLines={1}>
+                      {tx.title || tx.description || getKidMovementLabel(tx)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      fontWeight: '800',
+                      color: isIncome ? '#047857' : isSavings ? '#6D28D9' : '#BE123C',
+                    }}
+                  >
+                    {isIncome ? '+' : '-'}${Number(tx.amount).toFixed(2)}
+                  </Text>
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#64748B' }}>
+                    {isIncome ? 'Entró' : isSavings ? 'Alcancía' : 'Salió'}
+                  </Text>
+                </View>
+              </View>
+            );
+          })
+        )}
+
+        {/* Modal Crear Nuevo Objetivo de Alcancía */}
+        <Modal visible={showNewGoalModal} transparent animationType="slide">
+          <View style={styles.modalBg}>
+            <View style={[styles.modalContent, { backgroundColor: '#FFFDF7', borderColor: '#FDE68A' }]}>
+              <View style={styles.modalHeaderRow}>
+                <Text style={[styles.modalTitle, { color: '#1E1B4B' }]}>🐷 Nuevo objetivo de ahorro</Text>
+                <TouchableOpacity onPress={() => setShowNewGoalModal(false)}>
+                  <X size={20} color="#475569" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {['🚲', '🎮', '🎸', '⚽', '📚', '🛹', '🎨', '🐷'].map((emoji) => (
+                    <TouchableOpacity
+                      key={emoji}
+                      onPress={() => setNewGoalEmoji(emoji)}
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 14,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: newGoalEmoji === emoji ? '#EDE9FE' : '#FFFFFF',
+                        borderWidth: 2,
+                        borderColor: newGoalEmoji === emoji ? '#7C3AED' : '#FDE68A',
+                      }}
+                    >
+                      <Text style={{ fontSize: 22 }}>{emoji}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E1B4B', marginBottom: 6 }}>
+                ¿Para qué quieres ahorrar?
+              </Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: '#FFFFFF', color: '#1E1B4B', borderColor: '#FDE68A' }]}
+                placeholder="Ej. Bicicleta nueva"
+                placeholderTextColor="#94A3B8"
+                value={newGoalName}
+                onChangeText={setNewGoalName}
+              />
+
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E1B4B', marginBottom: 6 }}>
+                ¿Cuánto cuesta? ($)
+              </Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: '#FFFFFF', color: '#6D28D9', borderColor: '#FDE68A', fontWeight: '800' }]}
+                keyboardType="decimal-pad"
+                value={newGoalTarget}
+                onChangeText={setNewGoalTarget}
+              />
+
+              <TouchableOpacity
+                disabled={creatingGoal}
+                onPress={handleCreateKidGoal}
+                style={[styles.saveBtn, { backgroundColor: '#7C3AED', paddingVertical: 14, alignItems: 'center', borderRadius: 14 }]}
+              >
+                <Text style={[styles.saveBtnText, { color: '#FFFFFF', fontSize: 14, fontWeight: '800' }]}>
+                  {creatingGoal ? 'Creando...' : 'Crear objetivo'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal Guardar Dinero en Alcancía */}
+        <Modal visible={showSaveGoalModal} transparent animationType="slide">
+          <View style={styles.modalBg}>
+            <View style={[styles.modalContent, { backgroundColor: '#FFFDF7', borderColor: '#DDD6FE' }]}>
+              <View style={styles.modalHeaderRow}>
+                <Text style={[styles.modalTitle, { color: '#1E1B4B' }]}>
+                  {selectedGoalForSave?.emoji || '🐷'} Guardar en {selectedGoalForSave?.name}
+                </Text>
+                <TouchableOpacity onPress={() => setShowSaveGoalModal(false)}>
+                  <X size={20} color="#475569" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={{ fontSize: 13, color: '#065F46', fontWeight: '700', marginBottom: 12 }}>
+                Disponible para guardar: ${spendableBalance.toFixed(2)}
+              </Text>
+
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                {[1, 5, 10, 20].map((preset) => (
+                  <TouchableOpacity
+                    key={preset}
+                    disabled={spendableBalance < preset}
+                    onPress={() => setSaveGoalAmount(String(preset))}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 7,
+                      borderRadius: 999,
+                      backgroundColor: spendableBalance >= preset ? '#EDE9FE' : '#E2E8F0',
+                    }}
+                  >
+                    <Text style={{ fontWeight: '800', color: '#5B21B6' }}>${preset}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E1B4B', marginBottom: 6 }}>
+                Monto a guardar ($)
+              </Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: '#FFFFFF', color: '#6D28D9', borderColor: '#DDD6FE', fontWeight: '800' }]}
+                keyboardType="decimal-pad"
+                value={saveGoalAmount}
+                onChangeText={setSaveGoalAmount}
+              />
+
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E1B4B', marginBottom: 6 }}>
+                Nota (opcional)
+              </Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: '#FFFFFF', color: '#1E1B4B', borderColor: '#FDE68A' }]}
+                placeholder="Ej. Ahorro de mi mesada"
+                placeholderTextColor="#94A3B8"
+                value={saveGoalNote}
+                onChangeText={setSaveGoalNote}
+              />
+
+              <TouchableOpacity
+                disabled={savingToGoal}
+                onPress={handleSaveToKidGoal}
+                style={[styles.saveBtn, { backgroundColor: '#7C3AED', paddingVertical: 14, alignItems: 'center', borderRadius: 14 }]}
+              >
+                <Text style={[styles.saveBtnText, { color: '#FFFFFF', fontSize: 14, fontWeight: '800' }]}>
+                  {savingToGoal ? 'Guardando...' : 'Confirmar ahorro'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <TransactionModal
+          visible={showTxModal}
+          onClose={() => setShowTxModal(false)}
+          accounts={accounts}
+          categories={categories}
+          initialType="EXPENSE"
+          isChildMode={true}
+          onSuccess={() => loadData()}
+        />
+
+        {renderNotificationModal(true)}
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView
@@ -1040,36 +1918,7 @@ export default function MobileDashboardScreen() {
       />
 
       {/* Modal Notificaciones */}
-      <Modal visible={showNotifModal} transparent animationType="slide">
-        <View style={styles.modalBg}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Notificaciones</Text>
-              <TouchableOpacity onPress={() => setShowNotifModal(false)}>
-                <Text style={{ color: FamilyMint.foregroundSubtle, fontSize: 18 }}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={{ maxHeight: 320 }}>
-              {notifications.length === 0 ? (
-                <Text style={{ color: FamilyMint.foregroundSubtle, fontSize: 12, textAlign: 'center', marginVertical: 20 }}>
-                  No tienes notificaciones pendientes.
-                </Text>
-              ) : (
-                notifications.map((n) => (
-                  <View key={n.id} style={[styles.notifItem, n.isRead && { opacity: 0.5 }]}>
-                    <Text style={styles.notifItemTitle}>{n.title}</Text>
-                    <Text style={styles.notifItemBody}>{n.body}</Text>
-                    <Text style={{ color: FamilyMint.foregroundSubtle, fontSize: 9, marginTop: 4 }}>
-                      {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                  </View>
-                ))
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      {renderNotificationModal(false)}
 
       {/* Modal Editar Recordatorio */}
       <Modal visible={showEditReminderModal} transparent animationType="slide">
@@ -1509,5 +2358,189 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 4,
     textAlign: 'center',
+  },
+  // Estilos Modo Infantil (Cuentas de Niños)
+  kidsContainer: {
+    flex: 1,
+    backgroundColor: '#E0F2FE',
+  },
+  kidsContentContainer: {
+    padding: 16,
+    paddingTop: 50,
+    paddingBottom: 32,
+  },
+  kidsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#BAE6FD',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  kidsBrandText: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1E1B4B',
+  },
+  kidsBrandSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0369A1',
+  },
+  kidsIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kidsLogoutBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1.5,
+    borderColor: '#FECDD3',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kidsHeroCard: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: '#FCD34D',
+    padding: 18,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  kidsGreeting: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#1E1B4B',
+  },
+  kidsTutorInfo: {
+    fontSize: 13,
+    color: '#475569',
+    marginTop: 4,
+    lineHeight: 19,
+  },
+  kidsBalanceBox: {
+    backgroundColor: '#ECFDF5',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#6EE7B7',
+    padding: 16,
+    marginTop: 14,
+  },
+  kidsBalanceLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  kidsBalanceValue: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#047857',
+    marginTop: 2,
+  },
+  kidsStatusText: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 6,
+  },
+  kidsStatsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  kidsStatPill: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 12,
+  },
+  kidsStatLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  kidsStatValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1E1B4B',
+    marginTop: 2,
+  },
+  kidsProgressWrap: {
+    marginTop: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+  },
+  kidsProgressTrack: {
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  kidsProgressFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  kidsActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  kidsBtnCoral: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F43F5E',
+    borderRadius: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 12,
+  },
+  kidsBtnCoralText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  kidsBtnSunny: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#FBBF24',
+    borderRadius: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 12,
+  },
+  kidsBtnSunnyText: {
+    color: '#1E1B4B',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  kidsSectionTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1E1B4B',
+  },
+  kidsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#BAE6FD',
+    padding: 16,
   },
 });

@@ -1,5 +1,6 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { RecurrencePeriod } from '@prisma/client';
+import { EventsGateway } from '../events/events.gateway';
 export interface FamilyMission {
     id: string;
     householdId: string;
@@ -22,9 +23,10 @@ export interface SavingsMatchingRule {
 }
 export declare class AllowancesService {
     private prisma;
+    private eventsGateway?;
     private static missionsMap;
     private static matchingRulesMap;
-    constructor(prisma: PrismaService);
+    constructor(prisma: PrismaService, eventsGateway?: EventsGateway | undefined);
     findAll(householdId: string): Promise<{
         limitAmount: number;
         spentAmount: number;
@@ -98,7 +100,7 @@ export declare class AllowancesService {
         spentAmount: import("@prisma/client/runtime/library").Decimal;
         period: import(".prisma/client").$Enums.RecurrencePeriod;
     }>;
-    createRequest(householdId: string, memberId: string, allowanceId: string, amount: number, reason: string): Promise<{
+    createRequest(householdId: string, userId: string, memberId: string | undefined, allowanceId: string, amount: number, reason: string): Promise<{
         member: {
             user: {
                 email: string;

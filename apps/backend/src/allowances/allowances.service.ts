@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RecurrencePeriod, TransactionType } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { ParentalControlHelper } from '../household/parental-control.helper';
+import { EventsGateway } from '../events/events.gateway';
 
 export interface FamilyMission {
   id: string;
@@ -32,7 +33,10 @@ export class AllowancesService {
   private static missionsMap: Map<string, FamilyMission[]> = new Map();
   private static matchingRulesMap: Map<string, SavingsMatchingRule> = new Map();
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Optional() private eventsGateway?: EventsGateway,
+  ) {}
 
   async findAll(householdId: string) {
     const allowances = await this.prisma.allowance.findMany({
@@ -112,15 +116,16 @@ export class AllowancesService {
       (c) => c.memberId === allowance.memberId || c.childUserId === allowance.member?.userId,
     );
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const hasLinkedChildAcc = Boolean(childCfg?.childAccountId && childCfg.childAccountId !== account.id);
+
       // 1. Crear movimiento de gasto / transferencia en la cuenta del hogar
       await tx.transaction.create({
         data: {
           householdId,
           accountId: account.id,
-          destinationAccountId:
-            childCfg?.childAccountId && childCfg.childAccountId !== account.id ? childCfg.childAccountId : null,
-          type: TransactionType.EXPENSE,
+          destinationAccountId: hasLinkedChildAcc ? childCfg!.childAccountId : null,
+          type: hasLinkedChildAcc ? TransactionType.TRANSFER : TransactionType.EXPENSE,
           amount: disburseAmount,
           description: `Desembolso Mesada: ${allowance.title} (${allowance.member.user.fullName})`,
           date: new Date(),
@@ -134,20 +139,38 @@ export class AllowancesService {
       });
 
       // 3. Si es una cuenta de niño con cuenta infantil vinculada, acreditar el saldo a su cuenta
-      if (childCfg?.childAccountId && childCfg.childAccountId !== account.id) {
+      if (hasLinkedChildAcc) {
         await tx.account.update({
-          where: { id: childCfg.childAccountId },
+          where: { id: childCfg!.childAccountId },
           data: { balance: { increment: disburseAmount } },
+        });
+      }
+
+      if (allowance.member?.userId) {
+        await tx.notification.create({
+          data: {
+            userId: allowance.member.userId,
+            householdId,
+            title: '💰 ¡Mesada Recibida!',
+            body: `Se acreditaron $${disburseAmount.toFixed(2)} en tu cuenta por "${allowance.title}".`,
+            type: 'ALLOWANCE_DISBURSED',
+          },
         });
       }
 
       return {
         success: true,
         message: `Desembolso de $${disburseAmount} realizado desde ${account.name}${
-          childCfg?.childAccountId ? ' y acreditado en la cuenta del niño' : ''
+          hasLinkedChildAcc ? ' y acreditado en la cuenta del niño' : ''
         }`,
       };
     });
+
+    this.eventsGateway?.notifyHouseholdChange(householdId, 'transaction', 'CREATE');
+    this.eventsGateway?.notifyHouseholdChange(householdId, 'account', 'UPDATE');
+    this.eventsGateway?.notifyHouseholdChange(householdId, 'notification', 'CREATE');
+
+    return result;
   }
 
   async reset(householdId: string, id: string) {
@@ -162,14 +185,51 @@ export class AllowancesService {
     });
   }
 
-  async createRequest(householdId: string, memberId: string, allowanceId: string, amount: number, reason: string) {
+  async createRequest(
+    householdId: string,
+    userId: string,
+    memberId: string | undefined,
+    allowanceId: string,
+    amount: number,
+    reason: string,
+  ) {
+    const allowance = await this.prisma.allowance.findFirst({
+      where: { id: allowanceId, householdId },
+    });
+    if (!allowance) {
+      throw new NotFoundException('Mesada no encontrada');
+    }
+
+    let resolvedMemberId = memberId;
+    if (!resolvedMemberId) {
+      const currentMember = await this.prisma.householdMember.findUnique({
+        where: {
+          userId_householdId: {
+            userId,
+            householdId,
+          },
+        },
+      });
+      resolvedMemberId = currentMember?.id || allowance.memberId;
+    }
+
+    const numericAmount = Number(amount);
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      throw new BadRequestException('El monto de la solicitud debe ser mayor a 0.');
+    }
+
+    const cleanReason = (reason || '').trim();
+    if (!cleanReason) {
+      throw new BadRequestException('Debes indicar un motivo para la solicitud.');
+    }
+
     const req = await this.prisma.allowanceRequest.create({
       data: {
         householdId,
-        memberId,
+        memberId: resolvedMemberId,
         allowanceId,
-        amount,
-        reason,
+        amount: numericAmount,
+        reason: cleanReason,
         status: 'PENDING',
       },
       include: {
@@ -190,11 +250,13 @@ export class AllowancesService {
           userId: admin.userId,
           householdId,
           title: '🙋‍♂️ Solicitud de Control Parental / Dinero Extra',
-          body: `${requesterName} solicita $${amount} para: "${reason}"`,
+          body: `${requesterName} solicita $${numericAmount} para: "${cleanReason}"`,
           type: 'ALLOWANCE_REQUEST',
         },
       });
     }
+
+    this.eventsGateway?.notifyHouseholdChange(householdId, 'notification', 'CREATE');
 
     return req;
   }
@@ -253,6 +315,8 @@ export class AllowancesService {
         },
       }).catch(() => null);
     }
+
+    this.eventsGateway?.notifyHouseholdChange(householdId, 'notification', 'CREATE');
 
     return updated;
   }
@@ -374,10 +438,12 @@ export class AllowancesService {
           householdId,
           title: '🏆 Misión Familiar Completada',
           body: `${mission.memberName} completó: "${mission.title}". Toca para aprobar y desembolsar $${mission.rewardAmount.toFixed(2)}.`,
-          type: 'SYSTEM',
+          type: 'MISSION_COMPLETED',
         },
       });
     }
+
+    this.eventsGateway?.notifyHouseholdChange(householdId, 'notification', 'CREATE');
 
     return mission;
   }
@@ -398,16 +464,27 @@ export class AllowancesService {
     if (!account) throw new NotFoundException('Cuenta de desembolso no encontrada');
 
     const configs = await ParentalControlHelper.getHouseholdParentalControls(this.prisma, householdId);
-    const childCfg = configs.find((c) => c.memberId === mission.memberId);
+    let childCfg = configs.find(
+      (c) => c.memberId === mission.memberId || c.childName === mission.memberName,
+    );
+
+    const memberRecord = await this.prisma.householdMember.findFirst({
+      where: { id: mission.memberId, householdId },
+    });
+    if (!childCfg && memberRecord) {
+      childCfg = configs.find((c) => c.childUserId === memberRecord.userId);
+    }
+
+    const hasLinkedChildAcc = Boolean(childCfg?.childAccountId && childCfg.childAccountId !== account.id);
+    const targetChildUserId = childCfg?.childUserId || memberRecord?.userId || null;
 
     await this.prisma.$transaction(async (tx) => {
       await tx.transaction.create({
         data: {
           householdId,
           accountId: account.id,
-          destinationAccountId:
-            childCfg?.childAccountId && childCfg.childAccountId !== account.id ? childCfg.childAccountId : null,
-          type: TransactionType.EXPENSE,
+          destinationAccountId: hasLinkedChildAcc ? childCfg!.childAccountId : null,
+          type: hasLinkedChildAcc ? TransactionType.TRANSFER : TransactionType.EXPENSE,
           amount: mission.rewardAmount,
           description: `🏆 Recompensa Misión: ${mission.title} (${mission.memberName})`,
           date: new Date(),
@@ -420,16 +497,32 @@ export class AllowancesService {
         data: { balance: { decrement: mission.rewardAmount } },
       });
 
-      if (childCfg?.childAccountId && childCfg.childAccountId !== account.id) {
+      if (hasLinkedChildAcc) {
         await tx.account.update({
-          where: { id: childCfg.childAccountId },
+          where: { id: childCfg!.childAccountId },
           data: { balance: { increment: mission.rewardAmount } },
+        });
+      }
+
+      if (targetChildUserId) {
+        await tx.notification.create({
+          data: {
+            userId: targetChildUserId,
+            householdId,
+            title: '🏆 ¡Misión Aprobada y Pagada!',
+            body: `Completaste "${mission.title}" y recibiste +$${mission.rewardAmount.toFixed(2)} en tu cuenta.`,
+            type: 'MISSION_PAID',
+          },
         });
       }
     });
 
     mission.status = 'APPROVED_AND_PAID';
     mission.approvedAt = new Date().toISOString();
+
+    this.eventsGateway?.notifyHouseholdChange(householdId, 'transaction', 'CREATE');
+    this.eventsGateway?.notifyHouseholdChange(householdId, 'account', 'UPDATE');
+    this.eventsGateway?.notifyHouseholdChange(householdId, 'notification', 'CREATE');
 
     return {
       mission,

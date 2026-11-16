@@ -4,7 +4,7 @@ export declare class NotificationsService {
     private prisma;
     private eventsGateway;
     constructor(prisma: PrismaService, eventsGateway: EventsGateway);
-    getUserNotifications(userId: string): Promise<{
+    getUserNotifications(userId: string, householdId?: string, unreadOnly?: boolean): Promise<{
         id: string;
         userId: string;
         householdId: string;
@@ -45,7 +45,10 @@ export declare class NotificationsService {
         metadata: string | null;
     } | null>;
     markAsRead(id: string, userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
-    markAllAsRead(userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    markAllAsRead(userId: string, householdId?: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    deleteNotification(id: string, userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    clearReadNotifications(userId: string, householdId?: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    clearAllNotifications(userId: string, householdId?: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
     registerPushToken(userId: string, pushToken: string): Promise<{
         email: string;
         fullName: string | null;

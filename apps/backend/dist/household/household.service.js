@@ -41,17 +41,23 @@ var __importStar = (this && this.__importStar) || (function () {
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HouseholdService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const client_1 = require("@prisma/client");
 const parental_control_helper_1 = require("./parental-control.helper");
+const events_gateway_1 = require("../events/events.gateway");
 const crypto = __importStar(require("crypto"));
 let HouseholdService = class HouseholdService {
     prisma;
-    constructor(prisma) {
+    eventsGateway;
+    constructor(prisma, eventsGateway) {
         this.prisma = prisma;
+        this.eventsGateway = eventsGateway;
     }
     hashPassword(password) {
         const salt = crypto.randomBytes(16).toString('hex');
@@ -254,7 +260,10 @@ let HouseholdService = class HouseholdService {
         }
         const cleanChildEmail = dto.childEmail.trim().toLowerCase();
         const cleanParentEmail = (dto.parentEmail || currentMember.user.email).trim().toLowerCase();
-        const cleanChildName = dto.childName.trim();
+        const cleanChildName = (dto.childName || dto.childFullName || '').trim();
+        if (!cleanChildName) {
+            throw new common_1.BadRequestException('El nombre del niño es requerido.');
+        }
         if (cleanChildEmail === cleanParentEmail) {
             throw new common_1.BadRequestException('El correo del niño debe ser distinto al correo del padre o tutor.');
         }
@@ -417,6 +426,7 @@ let HouseholdService = class HouseholdService {
                 type: 'PARENTAL_CONTROL',
             },
         });
+        this.eventsGateway?.notifyHouseholdChange(householdId, 'notification', 'CREATE');
         return updatedConfig;
     }
     async topUpChildAccount(currentUserId, householdId, childUserId, body) {
@@ -492,6 +502,9 @@ let HouseholdService = class HouseholdService {
                 },
             });
         });
+        this.eventsGateway?.notifyHouseholdChange(householdId, 'transaction', 'CREATE');
+        this.eventsGateway?.notifyHouseholdChange(householdId, 'account', 'UPDATE');
+        this.eventsGateway?.notifyHouseholdChange(householdId, 'notification', 'CREATE');
         return {
             success: true,
             message: `Se transfirieron $${amount.toFixed(2)} exitosamente a la cuenta de ${childCfg.childName}.`,
@@ -817,6 +830,8 @@ let HouseholdService = class HouseholdService {
 exports.HouseholdService = HouseholdService;
 exports.HouseholdService = HouseholdService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __param(1, (0, common_1.Optional)()),
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        events_gateway_1.EventsGateway])
 ], HouseholdService);
 //# sourceMappingURL=household.service.js.map

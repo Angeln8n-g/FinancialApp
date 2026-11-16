@@ -17,6 +17,7 @@ import EditTransactionModal from '@/components/modals/EditTransactionModal';
 import VoidTransactionModal from '@/components/modals/VoidTransactionModal';
 import ImportModal from '@/components/modals/ImportModal';
 import ReceiptScanModal from '@/components/modals/ReceiptScanModal';
+import { PiggyBuddyIllustration } from '@/components/kids/KidsIllustrations';
 import { apiFetch, getUser, getHousehold, getToken } from '@/lib/api';
 import { useHouseholdSocket } from '@/hooks/useHouseholdSocket';
 import { enqueueOfflineTransaction } from '@/lib/offlineSync';
@@ -45,6 +46,12 @@ import {
   Lock,
   Sparkles,
   Wallet,
+  Trophy,
+  Gift,
+  Coins,
+  ShoppingBag,
+  Target,
+  X,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -60,7 +67,23 @@ export default function DashboardPage() {
   const [reminders, setReminders] = useState<any[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
+  const [piggyBank, setPiggyBank] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // Estados de Alcancía Infantil & Filtros Claros
+  const [kidTxFilter, setKidTxFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE' | 'SAVINGS'>('ALL');
+  const [showNewGoalModal, setShowNewGoalModal] = useState(false);
+  const [newGoalName, setNewGoalName] = useState('');
+  const [newGoalTarget, setNewGoalTarget] = useState('50');
+  const [newGoalEmoji, setNewGoalEmoji] = useState('🚲');
+  const [creatingGoal, setCreatingGoal] = useState(false);
+
+  const [showSaveToGoalModal, setShowSaveToGoalModal] = useState(false);
+  const [selectedGoalForSave, setSelectedGoalForSave] = useState<any>(null);
+  const [saveGoalAmount, setSaveGoalAmount] = useState('5');
+  const [saveGoalNote, setSaveGoalNote] = useState('');
+  const [savingToGoal, setSavingToGoal] = useState(false);
+  const [kidFeedback, setKidFeedback] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   // Estados de Modales
   const [showTxModal, setShowTxModal] = useState(false);
@@ -89,14 +112,15 @@ export default function DashboardPage() {
     }
 
     try {
-      const [sum, accs, txs, cats, rems, subs, dbts] = await Promise.all([
+      const [sum, accs, txs, cats, rems, subs, dbts, piggy] = await Promise.all([
         apiFetch(`/api/transactions/summary?currency=${selectedCurrency}`).catch(() => ({ totalBalance: 0, monthlyIncome: 0, monthlyExpense: 0 })),
         apiFetch('/api/accounts').catch(() => []),
-        apiFetch('/api/transactions?limit=10').catch(() => []),
+        apiFetch('/api/transactions?limit=25').catch(() => []),
         apiFetch('/api/categories').catch(() => []),
         apiFetch('/api/reminders').catch(() => []),
         apiFetch('/api/subscriptions').catch(() => ({ subscriptions: [] })),
         apiFetch('/api/debts').catch(() => []),
+        apiFetch('/api/goals/piggy-bank').catch(() => null),
       ]);
 
       setSummary(sum);
@@ -106,6 +130,7 @@ export default function DashboardPage() {
       setReminders(Array.isArray(rems) ? rems : []);
       setSubscriptions(subs?.subscriptions || []);
       setDebts(Array.isArray(dbts) ? dbts : []);
+      setPiggyBank(piggy);
     } catch (err) {
       console.error('Error cargando datos del dashboard:', err);
     } finally {
@@ -282,6 +307,58 @@ export default function DashboardPage() {
     await fetchData();
   };
 
+  const handleCreateKidGoal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGoalName.trim() || !newGoalTarget) return;
+    setCreatingGoal(true);
+    setKidFeedback(null);
+    try {
+      await apiFetch('/api/goals', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: newGoalName.trim(),
+          targetAmount: parseFloat(newGoalTarget),
+          emoji: newGoalEmoji,
+        }),
+      });
+      setShowNewGoalModal(false);
+      setNewGoalName('');
+      setNewGoalTarget('50');
+      setKidFeedback({ type: 'ok', text: `¡Objetivo "${newGoalName.trim()}" creado en tu alcancía!` });
+      await fetchData();
+    } catch (err: any) {
+      setKidFeedback({ type: 'err', text: err?.message || 'No se pudo crear el objetivo.' });
+    } finally {
+      setCreatingGoal(false);
+    }
+  };
+
+  const handleSaveToKidGoal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedGoalForSave || !saveGoalAmount) return;
+    setSavingToGoal(true);
+    setKidFeedback(null);
+    try {
+      await apiFetch(`/api/goals/${selectedGoalForSave.id}/contribute`, {
+        method: 'POST',
+        body: JSON.stringify({
+          amount: parseFloat(saveGoalAmount),
+          notes: saveGoalNote.trim() || undefined,
+        }),
+      });
+      setShowSaveToGoalModal(false);
+      setSelectedGoalForSave(null);
+      setSaveGoalAmount('5');
+      setSaveGoalNote('');
+      setKidFeedback({ type: 'ok', text: `¡Genial! Guardaste $${parseFloat(saveGoalAmount).toFixed(2)} en tu alcancía.` });
+      await fetchData();
+    } catch (err: any) {
+      setKidFeedback({ type: 'err', text: err?.message || 'No pudimos guardar en tu alcancía.' });
+    } finally {
+      setSavingToGoal(false);
+    }
+  };
+
   const getAccountIcon = (type: string) => {
     switch (type) {
       case 'PAYROLL':
@@ -331,198 +408,670 @@ export default function DashboardPage() {
     const maxDaily = Number(parentalControls?.maxDailySpend || 50);
     const todayExpense = Number(summary?.todayExpense || 0);
     const dailyPct = maxDaily > 0 ? Math.min(100, Math.round((todayExpense / maxDaily) * 100)) : 0;
+    const spendableBalance = Number(childAccount?.balance ?? summary?.totalBalance ?? 0);
+    const piggyBankGoals = Array.isArray(piggyBank?.goals) ? piggyBank.goals : [];
+    const totalSavedInPiggyBank = Number(
+      piggyBank?.totalSavedInPiggyBank ?? summary?.piggyBankTotal ?? 0,
+    );
+    const allowSavingsGoals = parentalControls?.allowSavingsGoals !== false;
+
+    const filteredKidTransactions = transactions.filter((tx) => {
+      if (kidTxFilter === 'INCOME') return tx.type === 'INCOME';
+      if (kidTxFilter === 'SAVINGS') return tx.movementKind === 'SAVINGS_DEPOSIT';
+      if (kidTxFilter === 'EXPENSE') {
+        return tx.type !== 'INCOME' && tx.movementKind !== 'SAVINGS_DEPOSIT';
+      }
+      return true;
+    });
+
+    const getKidMovementMeta = (tx: any) => {
+      const kind = tx.movementKind || (tx.type === 'INCOME' ? 'INCOME' : 'EXPENSE');
+      if (kind === 'MISSION_REWARD') {
+        return {
+          badge: tx.movementLabel || 'Premio de Misión',
+          icon: <Trophy className="w-5 h-5" />,
+          boxClass: 'bg-amber-50 border-amber-300 text-amber-700',
+          badgeClass: 'bg-amber-100 text-amber-900',
+        };
+      }
+      if (kind === 'ALLOWANCE') {
+        return {
+          badge: tx.movementLabel || 'Mesada Recibida',
+          icon: <Coins className="w-5 h-5" />,
+          boxClass: 'bg-emerald-50 border-emerald-300 text-emerald-700',
+          badgeClass: 'bg-emerald-100 text-emerald-900',
+        };
+      }
+      if (kind === 'PARENT_TOPUP') {
+        return {
+          badge: tx.movementLabel || 'Recarga de Tutor',
+          icon: <Gift className="w-5 h-5" />,
+          boxClass: 'bg-sky-50 border-sky-300 text-sky-700',
+          badgeClass: 'bg-sky-100 text-sky-900',
+        };
+      }
+      if (kind === 'SAVINGS_DEPOSIT') {
+        return {
+          badge: tx.movementLabel || 'Guardado en Alcancía',
+          icon: <PiggyBank className="w-5 h-5" />,
+          boxClass: 'bg-violet-50 border-violet-300 text-violet-700',
+          badgeClass: 'bg-violet-100 text-violet-900',
+        };
+      }
+      if (tx.type === 'INCOME') {
+        return {
+          badge: tx.movementLabel || 'Dinero recibido',
+          icon: <ArrowUpRight className="w-5 h-5" />,
+          boxClass: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+          badgeClass: 'bg-emerald-100 text-emerald-900',
+        };
+      }
+      return {
+        badge: tx.movementLabel || 'Compra',
+        icon: <ShoppingBag className="w-5 h-5" />,
+        boxClass: 'bg-rose-50 border-rose-200 text-rose-700',
+        badgeClass: 'bg-rose-100 text-rose-900',
+      };
+    };
 
     return (
-      <div className="min-h-screen bg-[#0A1128] text-slate-100 pb-20 lg:pb-12">
+      <div className="kids-stage pb-24 lg:pb-14">
         <Navbar user={user} household={household} unreadNotifications={0} />
 
-        <main className="max-w-4xl mx-auto px-4 py-6 sm:py-8 space-y-6">
-          {/* Tarjeta Principal de Cuenta de Niño con Control Parental */}
-          <section className="mint-card p-6 sm:p-7 border border-amber-500/30 bg-gradient-to-br from-[#101A36] via-[#132046] to-amber-950/20 relative overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-300 text-[11px] font-bold flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                    Cuenta de Niño • Control Parental Activo
-                  </span>
-                  {isFrozen ? (
-                    <span className="px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[11px] font-bold flex items-center gap-1">
-                      <Lock className="w-3 h-3" />
-                      Cuenta Congelada por tu Tutor
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold">
-                      Activa para usar
-                    </span>
-                  )}
+        <main className="max-w-4xl mx-auto px-4 py-6 sm:py-8 space-y-8">
+          {kidFeedback && (
+            <div
+              className={`rounded-2xl px-4 py-3 border-2 flex items-center justify-between gap-3 text-sm font-bold ${
+                kidFeedback.type === 'ok'
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                  : 'bg-rose-50 border-rose-300 text-rose-900'
+              }`}
+            >
+              <span>{kidFeedback.text}</span>
+              <button
+                onClick={() => setKidFeedback(null)}
+                className="p-1 rounded-lg hover:bg-black/5 cursor-pointer"
+                aria-label="Cerrar aviso"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Tarjeta Principal Transparente de Mi Cuenta + Alcancía */}
+          <section className="kids-hero-card p-6 sm:p-8 relative overflow-hidden">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-start sm:items-center gap-4">
+                <PiggyBuddyIllustration className="w-20 h-20 sm:w-24 sm:h-24 shrink-0" />
+                <div className="space-y-2">
+                  <h1 className="text-3xl sm:text-4xl font-extrabold text-[#1E1B4B] tracking-tight leading-tight">
+                    ¡Hola, {user?.fullName || 'Campeón'}!
+                  </h1>
+                  <p className="text-sm text-slate-700 max-w-md leading-relaxed">
+                    Tu cuenta está cuidada junto a{' '}
+                    <strong className="text-[#0369A1]">{linkedParentEmail || 'tu tutor'}</strong>. Aquí ves claro cada peso que entra, sale o ahorras.
+                  </p>
+                  <p
+                    className={`text-[13px] font-bold flex items-center gap-1.5 ${
+                      isFrozen ? 'text-rose-700' : 'text-emerald-700'
+                    }`}
+                  >
+                    {isFrozen ? (
+                      <>
+                        <Lock className="w-4 h-4 shrink-0" />
+                        <span>Cuenta pausada temporalmente por tu tutor</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="w-4 h-4 shrink-0" />
+                        <span>Cuenta activa y lista para usar</span>
+                      </>
+                    )}
+                  </p>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100 tracking-tight">
-                  ¡Hola, {user?.fullName || 'Campeón'}!
-                </h1>
-                <p className="text-xs text-slate-300">
-                  Esta es tu cuenta personal exclusiva. Enlazada automáticamente con el control parental de{' '}
-                  <strong className="text-amber-300">{linkedParentEmail || 'tu padre/tutor'}</strong>.
-                </p>
               </div>
 
-              <div className="bg-[#0A1128]/80 border border-[#1E2B4D] rounded-2xl p-4 sm:min-w-[230px] text-right">
-                <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
-                  Mi Saldo Disponible
-                </p>
-                <p className="text-2xl sm:text-3xl font-extrabold text-emerald-400 tabular-nums mt-0.5">
-                  ${Number(childAccount?.balance ?? summary?.totalBalance ?? 0).toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                  })}
-                </p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {childAccount?.name || 'Mi Cuenta de Niño'} ({childAccount?.currency || 'USD'})
-                </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-3 sm:min-w-[250px]">
+                <div className="bg-emerald-50 border-2 border-emerald-300 rounded-3xl p-4 md:text-right shadow-sm">
+                  <p className="text-[13px] font-bold text-emerald-900">
+                    Disponible para gastar
+                  </p>
+                  <p className="text-3xl font-extrabold text-emerald-700 tabular-nums mt-1 leading-none">
+                    ${spendableBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-[13px] font-medium text-emerald-800/85 mt-1.5">
+                    {childAccount?.name || 'Mi Cuenta'} ({childAccount?.currency || 'USD'})
+                  </p>
+                </div>
+
+                <div className="bg-violet-50 border-2 border-violet-300 rounded-3xl p-4 md:text-right shadow-sm">
+                  <p className="text-[13px] font-bold text-violet-900">
+                    Guardado en tu alcancía
+                  </p>
+                  <p className="text-2xl font-extrabold text-violet-700 tabular-nums mt-1 leading-none">
+                    ${totalSavedInPiggyBank.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-[13px] font-medium text-violet-800/85 mt-1.5">
+                    {piggyBankGoals.length} {piggyBankGoals.length === 1 ? 'objetivo activo' : 'objetivos activos'}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Reglas de Control Parental y Barra de Gasto Diario */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-5 border-t border-[#1E2B4D]/80">
-              <div className="p-3.5 rounded-xl bg-[#0A1128]/60 border border-[#1E2B4D]">
-                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
-                  Máximo por Compra
+            {/* Resumen Transparente del Mes */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-5 border-t-2 border-amber-200/80">
+              <div className="p-3.5 rounded-2xl bg-emerald-50/90 border border-emerald-200">
+                <p className="text-[13px] font-bold text-emerald-900">Recibido este mes</p>
+                <p className="text-xl font-extrabold text-emerald-700 tabular-nums mt-0.5">
+                  +${Number(summary?.monthlyIncome || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-base font-bold text-slate-100 tabular-nums mt-0.5">
-                  ${maxSingle.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </p>
-                <p className="text-[10px] text-slate-400 mt-0.5">
-                  Compras mayores requieren permiso
-                </p>
+                <p className="text-[13px] text-emerald-800/80 mt-0.5">Misiones, mesada y recargas</p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#0A1128]/60 border border-[#1E2B4D]">
-                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
-                  Límite Diario
+              <div className="p-3.5 rounded-2xl bg-rose-50/90 border border-rose-200">
+                <p className="text-[13px] font-bold text-rose-900">Gastado este mes</p>
+                <p className="text-xl font-extrabold text-rose-700 tabular-nums mt-0.5">
+                  -${Number(summary?.monthlyExpense || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-base font-bold text-slate-100 tabular-nums mt-0.5">
-                  ${maxDaily.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                <p className="text-[13px] text-rose-800/80 mt-0.5">Compras registradas</p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-amber-50/95 border border-amber-200">
+                <p className="text-[13px] font-bold text-amber-900">Límite diario de compras</p>
+                <p className="text-xl font-extrabold text-[#1E1B4B] tabular-nums mt-0.5">
+                  ${todayExpense.toFixed(2)} / ${maxDaily.toFixed(2)}
                 </p>
-                <p className="text-[10px] text-slate-400 mt-0.5">
-                  Usado hoy: ${todayExpense.toFixed(2)} ({dailyPct}%)
-                </p>
-                <div className="w-full h-1.5 rounded-full bg-[#162347] overflow-hidden mt-1.5">
+                <div className="w-full h-2.5 rounded-full bg-amber-200/70 overflow-hidden mt-2">
                   <div
-                    className={`h-full rounded-full transition-all ${
-                      dailyPct >= 90 ? 'bg-rose-500' : 'bg-emerald-500'
+                    className={`h-full rounded-full ${
+                      dailyPct >= 90 ? 'bg-rose-500' : dailyPct >= 65 ? 'bg-amber-500' : 'bg-emerald-500'
                     }`}
-                    style={{ width: `${dailyPct}%` }}
+                    style={{
+                      width: `${dailyPct}%`,
+                      transition: 'width 240ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    }}
                   />
                 </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-[#0A1128]/60 border border-[#1E2B4D] flex flex-col justify-between">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
-                    Correo del Padre / Tutor
-                  </p>
-                  <p className="text-xs font-bold text-amber-300 truncate mt-1">
-                    {linkedParentEmail || 'Tutor familiar enlazado'}
-                  </p>
-                </div>
-                <p className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" /> Enlace parental verificado
+                <p className="text-[13px] text-slate-700 mt-1">
+                  Máx. ${maxSingle.toFixed(2)} por compra
                 </p>
               </div>
             </div>
 
-            {/* Botones de Acción para el Niño */}
-            <div className="flex flex-wrap items-center gap-3 mt-5">
+            {/* Botones de Acción Amigables */}
+            <div className="flex flex-wrap items-center gap-3 mt-6">
               <button
                 disabled={isFrozen}
                 onClick={() => {
                   setTxInitialType('EXPENSE');
                   setShowTxModal(true);
                 }}
-                className="px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 disabled:opacity-50 text-rose-200 border border-rose-500/30 font-semibold text-xs transition-all flex items-center gap-2 cursor-pointer"
+                className="kids-btn-coral px-5 py-3 disabled:opacity-50 font-bold text-sm flex items-center gap-2 cursor-pointer"
               >
-                <ArrowDownRight className="w-4 h-4 text-rose-400" />
-                <span>Registrar Compra / Gasto</span>
+                <ArrowDownRight className="w-4 h-4" />
+                <span>Registrar una compra</span>
               </button>
+
+              {allowSavingsGoals && (
+                <button
+                  disabled={isFrozen}
+                  onClick={() => setShowNewGoalModal(true)}
+                  className="kids-btn-sunny px-5 py-3 disabled:opacity-50 font-bold text-sm flex items-center gap-2 cursor-pointer"
+                >
+                  <PiggyBank className="w-4 h-4" />
+                  <span>Nuevo objetivo de ahorro</span>
+                </button>
+              )}
 
               <Link
                 href="/dashboard/family"
-                className="px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 border border-amber-500/30 font-semibold text-xs transition-all flex items-center gap-2"
+                className="px-5 py-3 rounded-2xl bg-sky-100 hover:bg-sky-200 border-2 border-sky-300 text-[#1E1B4B] font-bold text-sm flex items-center gap-2"
               >
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>Ver Misiones y Pedir Permiso / Mesada</span>
+                <Sparkles className="w-4 h-4 text-sky-700" />
+                <span>Mis misiones y mesada</span>
               </Link>
             </div>
           </section>
 
-          {/* Movimientos de la Cuenta del Niño */}
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Wallet className="w-4 h-4 text-emerald-400" />
-                <h2 className="text-sm font-semibold text-slate-100">
-                  Movimientos de Mi Cuenta de Niño
-                </h2>
+          {/* 🐷 Mi Alcancía de Ahorros con Objetivos */}
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-violet-100 border-2 border-violet-300 flex items-center justify-center text-violet-700">
+                  <PiggyBank className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-[#1E1B4B]">
+                    Mi Alcancía con Objetivos
+                  </h2>
+                  <p className="text-sm text-slate-600">
+                    Aparta dinero para tus metas; tu tutor también puede hacerte abonos directos aquí.
+                  </p>
+                </div>
               </div>
-              <span className="text-xs text-slate-400 tabular-nums">
-                {transactions.length} movimientos
-              </span>
+
+              {allowSavingsGoals && (
+                <button
+                  onClick={() => setShowNewGoalModal(true)}
+                  className="px-4 py-2 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Crear meta</span>
+                </button>
+              )}
             </div>
 
-            {transactions.length === 0 ? (
-              <div className="mint-card p-8 text-center text-slate-400 text-xs">
-                Aún no tienes movimientos registrados en tu cuenta de niño.
+            {piggyBankGoals.length === 0 ? (
+              <div className="kids-card p-6 sm:p-8 text-center space-y-3">
+                <p className="text-lg font-extrabold text-[#1E1B4B]">
+                  ¡Empieza tu primer objetivo de ahorro!
+                </p>
+                <p className="text-sm text-slate-600 max-w-md mx-auto">
+                  Elige algo que quieras lograr (una bicicleta, un juego o un regalo) y guarda poco a poco desde tu saldo o recibe abonos de tu tutor.
+                </p>
+                {allowSavingsGoals && (
+                  <button
+                    onClick={() => setShowNewGoalModal(true)}
+                    className="kids-btn-sunny px-5 py-2.5 text-sm font-bold inline-flex items-center gap-2 cursor-pointer"
+                  >
+                    <Target className="w-4 h-4" />
+                    <span>Crear mi primera meta</span>
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="space-y-2">
-                {transactions.map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="mint-card p-3.5 flex items-center justify-between border border-[#1E2B4D]"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
-                          tx.type === 'INCOME'
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                            : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-                        }`}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {piggyBankGoals.map((goal: any) => {
+                  const pct = Math.min(100, Number(goal.percentage || 0));
+                  return (
+                    <div key={goal.id} className="kids-card p-5 flex flex-col justify-between gap-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-3xl leading-none">{goal.emoji || '🐷'}</span>
+                            <div>
+                              <h3 className="text-base font-extrabold text-[#1E1B4B]">
+                                {goal.name}
+                              </h3>
+                              <p className="text-sm text-slate-600 tabular-nums">
+                                Llevas <strong className="text-violet-700">${Number(goal.currentAmount).toFixed(2)}</strong> de ${Number(goal.targetAmount).toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[13px] font-extrabold tabular-nums ${
+                              goal.isCompleted
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-violet-100 text-violet-900'
+                            }`}
+                          >
+                            {goal.isCompleted ? '¡Logrado!' : `${pct}%`}
+                          </span>
+                        </div>
+
+                        <div className="w-full h-3.5 rounded-full bg-violet-100 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${
+                              goal.isCompleted ? 'bg-emerald-500' : 'bg-violet-500'
+                            }`}
+                            style={{
+                              width: `${pct}%`,
+                              transition: 'width 240ms cubic-bezier(0.22, 1, 0.36, 1)',
+                            }}
+                          />
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-[13px] text-slate-700">
+                          <span>
+                            {goal.remainingAmount > 0
+                              ? `Faltan $${Number(goal.remainingAmount).toFixed(2)}`
+                              : 'Meta completada al 100%'}
+                          </span>
+                          {(goal.childSavedTotal > 0 || goal.parentDepositedTotal > 0) && (
+                            <span className="font-semibold text-violet-800 tabular-nums">
+                              Tú: ${Number(goal.childSavedTotal || 0).toFixed(2)} · Tutor: ${Number(goal.parentDepositedTotal || 0).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        disabled={isFrozen || spendableBalance <= 0}
+                        onClick={() => {
+                          setSelectedGoalForSave(goal);
+                          setSaveGoalAmount(spendableBalance >= 5 ? '5' : spendableBalance.toFixed(2));
+                          setSaveGoalNote('');
+                          setShowSaveToGoalModal(true);
+                        }}
+                        className="w-full py-2.5 px-4 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-bold text-sm cursor-pointer flex items-center justify-center gap-2"
                       >
-                        {tx.type === 'INCOME' ? (
-                          <ArrowUpRight className="w-4 h-4" />
-                        ) : (
-                          <ArrowDownRight className="w-4 h-4" />
+                        <PiggyBank className="w-4 h-4" />
+                        <span>Guardar dinero aquí</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {Array.isArray(piggyBank?.recentDeposits) && piggyBank.recentDeposits.length > 0 && (
+              <div className="kids-card p-4 space-y-2.5">
+                <h3 className="text-sm font-extrabold text-[#1E1B4B]">
+                  Últimos abonos a tu alcancía
+                </h3>
+                <div className="space-y-2">
+                  {piggyBank.recentDeposits.slice(0, 5).map((dep: any) => (
+                    <div
+                      key={dep.id}
+                      className="flex items-center justify-between gap-3 py-2 border-b border-amber-100 last:border-b-0 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-bold text-[#1E1B4B] truncate">
+                          {dep.emoji || '🐷'} {dep.goalName || 'Alcancía'} —{' '}
+                          <span className="font-semibold text-slate-700">
+                            {dep.depositSource === 'PARENT_DIRECT'
+                              ? `Abono directo de ${dep.actorName}`
+                              : 'Ahorraste desde tu cuenta'}
+                          </span>
+                        </p>
+                        {dep.note && (
+                          <p className="text-[13px] text-slate-600 truncate">{dep.note}</p>
                         )}
                       </div>
-                      <div>
-                        <p className="text-xs font-semibold text-slate-100">
-                          {tx.description || (tx.type === 'INCOME' ? 'Recarga / Mesada' : 'Compra')}
+                      <span className="font-extrabold text-emerald-700 tabular-nums shrink-0">
+                        +${Number(dep.amount).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Movimientos de la Cuenta (Transparentes y Claros) */}
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-sky-100 border-2 border-sky-300 flex items-center justify-center text-sky-700">
+                  <Wallet className="w-5 h-5" />
+                </div>
+                <h2 className="text-lg font-extrabold text-[#1E1B4B]">
+                  Tus últimos movimientos
+                </h2>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                {(
+                  [
+                    { key: 'ALL', label: 'Todos' },
+                    { key: 'INCOME', label: 'Entradas (+)' },
+                    { key: 'EXPENSE', label: 'Compras (-)' },
+                    { key: 'SAVINGS', label: 'Alcancía' },
+                  ] as const
+                ).map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => setKidTxFilter(f.key)}
+                    className={`px-3 py-1.5 rounded-full text-[13px] font-bold cursor-pointer ${
+                      kidTxFilter === f.key
+                        ? 'bg-[#1E1B4B] text-white'
+                        : 'bg-white/80 border border-amber-200 text-[#1E1B4B] hover:bg-amber-50'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {filteredKidTransactions.length === 0 ? (
+              <div className="kids-card p-8 text-center space-y-2">
+                <p className="text-base font-bold text-[#1E1B4B]">
+                  No hay movimientos en esta vista todavía
+                </p>
+                <p className="text-sm text-slate-600">
+                  Aquí verás con claridad cada premio de misión (+), mesada (+), compra (-) o ahorro a tu alcancía.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredKidTransactions.map((tx) => {
+                  const meta = getKidMovementMeta(tx);
+                  const isIncome = tx.type === 'INCOME';
+                  const isSavingsTransfer = tx.movementKind === 'SAVINGS_DEPOSIT';
+                  return (
+                    <div
+                      key={tx.id}
+                      className="kids-card p-4 flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center space-x-3.5 min-w-0">
+                        <div
+                          className={`w-11 h-11 rounded-2xl flex items-center justify-center border-2 shrink-0 ${meta.boxClass}`}
+                        >
+                          {meta.icon}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[13px] font-bold ${meta.badgeClass}`}
+                            >
+                              {meta.badge}
+                            </span>
+                            <span className="text-[13px] text-slate-600 tabular-nums">
+                              {new Date(tx.date).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-sm font-bold text-[#1E1B4B] mt-1 truncate">
+                            {tx.description || meta.badge}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p
+                          className={`text-base font-extrabold tabular-nums ${
+                            isIncome
+                              ? 'text-emerald-700'
+                              : isSavingsTransfer
+                              ? 'text-violet-700'
+                              : 'text-rose-600'
+                          }`}
+                        >
+                          {isIncome ? '+' : '-'}$
+                          {Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </p>
-                        <p className="text-[10px] text-slate-400 tabular-nums">
-                          {new Date(tx.date).toLocaleDateString()} • {tx.category?.name || 'Mi Cuenta'}
+                        <p className="text-[13px] font-semibold text-slate-600">
+                          {isIncome ? 'Entró a tu saldo' : isSavingsTransfer ? 'Pasó a alcancía' : 'Salió de tu saldo'}
                         </p>
                       </div>
                     </div>
-                    <p
-                      className={`text-xs font-bold tabular-nums ${
-                        tx.type === 'INCOME' ? 'text-emerald-400' : 'text-rose-400'
-                      }`}
-                    >
-                      {tx.type === 'INCOME' ? '+' : '-'}$
-                      {Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
         </main>
+
+        {/* Modal Crear Objetivo en Alcancía Infantil */}
+        {showNewGoalModal && (
+          <div className="fixed inset-0 bg-[#1E1B4B]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="kids-hero-card w-full max-w-md p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-extrabold text-[#1E1B4B]">
+                  🐷 Nuevo objetivo de ahorro
+                </h3>
+                <button
+                  onClick={() => setShowNewGoalModal(false)}
+                  className="p-1.5 rounded-xl hover:bg-amber-100 text-[#1E1B4B] cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateKidGoal} className="space-y-4">
+                <div>
+                  <label className="block text-[13px] font-bold text-[#1E1B4B] mb-1.5">
+                    Elige un ícono para tu meta
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {['🚲', '🎮', '🎸', '⚽', '📚', '🛹', '🎨', '🐷'].map((emoji) => (
+                      <button
+                        type="button"
+                        key={emoji}
+                        onClick={() => setNewGoalEmoji(emoji)}
+                        className={`w-11 h-11 rounded-2xl text-2xl flex items-center justify-center border-2 cursor-pointer ${
+                          newGoalEmoji === emoji
+                            ? 'bg-violet-100 border-violet-500'
+                            : 'bg-white border-amber-200'
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[13px] font-bold text-[#1E1B4B] mb-1">
+                    ¿Para qué quieres ahorrar? *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. Bicicleta nueva"
+                    value={newGoalName}
+                    onChange={(e) => setNewGoalName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border-2 border-amber-200 text-sm font-semibold text-[#1E1B4B]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[13px] font-bold text-[#1E1B4B] mb-1">
+                    ¿Cuánto cuesta tu meta? ($) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    required
+                    value={newGoalTarget}
+                    onChange={(e) => setNewGoalTarget(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border-2 border-amber-200 text-lg font-extrabold text-violet-700 tabular-nums"
+                  />
+                </div>
+
+                <div className="flex gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewGoalModal(false)}
+                    className="flex-1 py-2.5 rounded-2xl bg-slate-100 text-sm font-bold text-slate-700 cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingGoal}
+                    className="flex-1 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold cursor-pointer"
+                  >
+                    {creatingGoal ? 'Creando...' : 'Crear objetivo'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Guardar Dinero en Alcancía */}
+        {showSaveToGoalModal && selectedGoalForSave && (
+          <div className="fixed inset-0 bg-[#1E1B4B]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="kids-hero-card w-full max-w-md p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-extrabold text-[#1E1B4B]">
+                  {selectedGoalForSave.emoji || '🐷'} Guardar en &ldquo;{selectedGoalForSave.name}&rdquo;
+                </h3>
+                <button
+                  onClick={() => setShowSaveToGoalModal(false)}
+                  className="p-1.5 rounded-xl hover:bg-amber-100 text-[#1E1B4B] cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border-2 border-emerald-200 text-sm text-emerald-900">
+                Tu dinero disponible para ahorrar es{' '}
+                <strong className="tabular-nums">${spendableBalance.toFixed(2)}</strong>. Este monto pasará de tu saldo disponible a tu alcancía.
+              </div>
+
+              <form onSubmit={handleSaveToKidGoal} className="space-y-4">
+                <div>
+                  <label className="block text-[13px] font-bold text-[#1E1B4B] mb-1.5">
+                    ¿Cuánto quieres guardar hoy? ($) *
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {[1, 5, 10, 20].map((preset) => (
+                      <button
+                        type="button"
+                        key={preset}
+                        disabled={spendableBalance < preset}
+                        onClick={() => setSaveGoalAmount(String(preset))}
+                        className="px-3 py-1.5 rounded-full bg-violet-100 hover:bg-violet-200 disabled:opacity-40 text-violet-900 text-sm font-bold cursor-pointer"
+                      >
+                        ${preset}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.50"
+                    max={spendableBalance > 0 ? spendableBalance : undefined}
+                    required
+                    value={saveGoalAmount}
+                    onChange={(e) => setSaveGoalAmount(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border-2 border-violet-200 text-lg font-extrabold text-violet-700 tabular-nums"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[13px] font-bold text-[#1E1B4B] mb-1">
+                    Nota (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Premio de mi misión de hoy"
+                    value={saveGoalNote}
+                    onChange={(e) => setSaveGoalNote(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border-2 border-amber-200 text-sm text-[#1E1B4B]"
+                  />
+                </div>
+
+                <div className="flex gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSaveToGoalModal(false)}
+                    className="flex-1 py-2.5 rounded-2xl bg-slate-100 text-sm font-bold text-slate-700 cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingToGoal}
+                    className="flex-1 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold cursor-pointer"
+                  >
+                    {savingToGoal ? 'Guardando...' : 'Guardar en alcancía'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         <TransactionModal
           isOpen={showTxModal}
           onClose={() => setShowTxModal(false)}
           accounts={accounts}
           categories={categories}
-          initialType={txInitialType}
+          initialType="EXPENSE"
+          isChildMode={true}
           onSubmit={handleCreateTransaction}
         />
       </div>

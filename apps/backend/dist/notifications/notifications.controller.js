@@ -22,14 +22,23 @@ let NotificationsController = class NotificationsController {
     constructor(notificationsService) {
         this.notificationsService = notificationsService;
     }
-    async getUserNotifications(user) {
-        return this.notificationsService.getUserNotifications(user.userId);
+    async getUserNotifications(user, unreadOnly) {
+        return this.notificationsService.getUserNotifications(user.userId, user.householdId, unreadOnly === 'true');
+    }
+    async markAllAsRead(user) {
+        return this.notificationsService.markAllAsRead(user.userId, user.householdId);
     }
     async markAsRead(user, id) {
         return this.notificationsService.markAsRead(id, user.userId);
     }
-    async markAllAsRead(user) {
-        return this.notificationsService.markAllAsRead(user.userId);
+    async clearReadNotifications(user) {
+        return this.notificationsService.clearReadNotifications(user.userId, user.householdId);
+    }
+    async clearAllNotifications(user) {
+        return this.notificationsService.clearAllNotifications(user.userId, user.householdId);
+    }
+    async deleteNotification(user, id) {
+        return this.notificationsService.deleteNotification(id, user.userId);
     }
     async registerPushToken(user, body) {
         return this.notificationsService.registerPushToken(user.userId, body.pushToken);
@@ -39,10 +48,18 @@ exports.NotificationsController = NotificationsController;
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('unreadOnly')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
+    __metadata("design:returntype", Promise)
+], NotificationsController.prototype, "getUserNotifications", null);
+__decorate([
+    (0, common_1.Put)('read-all'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
     __metadata("design:returntype", Promise)
-], NotificationsController.prototype, "getUserNotifications", null);
+], NotificationsController.prototype, "markAllAsRead", null);
 __decorate([
     (0, common_1.Put)(':id/read'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
@@ -52,12 +69,27 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], NotificationsController.prototype, "markAsRead", null);
 __decorate([
-    (0, common_1.Put)('read-all'),
+    (0, common_1.Delete)('clear-read'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
     __metadata("design:returntype", Promise)
-], NotificationsController.prototype, "markAllAsRead", null);
+], NotificationsController.prototype, "clearReadNotifications", null);
+__decorate([
+    (0, common_1.Delete)('clear-all'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
+    __metadata("design:returntype", Promise)
+], NotificationsController.prototype, "clearAllNotifications", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
+    __metadata("design:returntype", Promise)
+], NotificationsController.prototype, "deleteNotification", null);
 __decorate([
     (0, common_1.Post)('register-token'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),

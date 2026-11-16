@@ -9,11 +9,15 @@ export class NotificationsService {
     private eventsGateway: EventsGateway,
   ) {}
 
-  async getUserNotifications(userId: string) {
+  async getUserNotifications(userId: string, householdId?: string, unreadOnly = false) {
     return this.prisma.notification.findMany({
-      where: { userId },
+      where: {
+        userId,
+        ...(householdId ? { householdId } : {}),
+        ...(unreadOnly ? { isRead: false } : {}),
+      },
       orderBy: { createdAt: 'desc' },
-      take: 30,
+      take: 40,
     });
   }
 
@@ -69,10 +73,39 @@ export class NotificationsService {
     });
   }
 
-  async markAllAsRead(userId: string) {
+  async markAllAsRead(userId: string, householdId?: string) {
     return this.prisma.notification.updateMany({
-      where: { userId, isRead: false },
+      where: {
+        userId,
+        isRead: false,
+        ...(householdId ? { householdId } : {}),
+      },
       data: { isRead: true },
+    });
+  }
+
+  async deleteNotification(id: string, userId: string) {
+    return this.prisma.notification.deleteMany({
+      where: { id, userId },
+    });
+  }
+
+  async clearReadNotifications(userId: string, householdId?: string) {
+    return this.prisma.notification.deleteMany({
+      where: {
+        userId,
+        isRead: true,
+        ...(householdId ? { householdId } : {}),
+      },
+    });
+  }
+
+  async clearAllNotifications(userId: string, householdId?: string) {
+    return this.prisma.notification.deleteMany({
+      where: {
+        userId,
+        ...(householdId ? { householdId } : {}),
+      },
     });
   }
 

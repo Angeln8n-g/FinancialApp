@@ -1,13 +1,17 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateChildAccountDto, InviteMemberDto, UpdateParentalControlDto, UpdateRoleDto } from './household.dto';
 import { RecurrencePeriod, Role, TransactionType } from '@prisma/client';
 import { ParentalControlHelper } from './parental-control.helper';
+import { EventsGateway } from '../events/events.gateway';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class HouseholdService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Optional() private eventsGateway?: EventsGateway,
+  ) {}
 
   private hashPassword(password: string): string {
     const salt = crypto.randomBytes(16).toString('hex');
@@ -247,7 +251,11 @@ export class HouseholdService {
 
     const cleanChildEmail = dto.childEmail.trim().toLowerCase();
     const cleanParentEmail = (dto.parentEmail || currentMember.user.email).trim().toLowerCase();
-    const cleanChildName = dto.childName.trim();
+    const cleanChildName = (dto.childName || dto.childFullName || '').trim();
+
+    if (!cleanChildName) {
+      throw new BadRequestException('El nombre del niño es requerido.');
+    }
 
     if (cleanChildEmail === cleanParentEmail) {
       throw new BadRequestException('El correo del niño debe ser distinto al correo del padre o tutor.');
@@ -449,6 +457,8 @@ export class HouseholdService {
       },
     });
 
+    this.eventsGateway?.notifyHouseholdChange(householdId, 'notification', 'CREATE');
+
     return updatedConfig;
   }
 
@@ -540,6 +550,10 @@ export class HouseholdService {
         },
       });
     });
+
+    this.eventsGateway?.notifyHouseholdChange(householdId, 'transaction', 'CREATE');
+    this.eventsGateway?.notifyHouseholdChange(householdId, 'account', 'UPDATE');
+    this.eventsGateway?.notifyHouseholdChange(householdId, 'notification', 'CREATE');
 
     return {
       success: true,

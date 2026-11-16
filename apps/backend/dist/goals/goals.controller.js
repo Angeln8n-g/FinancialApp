@@ -22,30 +22,59 @@ let GoalsController = class GoalsController {
     constructor(goalsService) {
         this.goalsService = goalsService;
     }
-    async findAll(user) {
-        return this.goalsService.findAll(user.householdId);
+    async findAll(user, childUserId) {
+        return this.goalsService.findAll(user.householdId, user.userId, childUserId);
+    }
+    async getPiggyBank(user, childUserId) {
+        return this.goalsService.getPiggyBankSummary(user.householdId, user.userId, childUserId);
+    }
+    async parentDirectDeposit(user, body) {
+        return this.goalsService.parentDirectDeposit(user.householdId, user.userId, body);
     }
     async create(user, body) {
-        return this.goalsService.create(user.householdId, body);
+        return this.goalsService.create(user.householdId, body, user.userId);
     }
     async update(user, id, body) {
-        return this.goalsService.update(user.householdId, id, body);
+        return this.goalsService.update(user.householdId, id, body, user.userId);
     }
     async contribute(user, id, body) {
         return this.goalsService.contribute(user.householdId, id, body, user.userId);
     }
+    async parentDepositToGoal(user, id, body) {
+        return this.goalsService.parentDirectDeposit(user.householdId, user.userId, {
+            ...body,
+            goalId: id,
+        });
+    }
     async delete(user, id) {
-        return this.goalsService.delete(user.householdId, id);
+        return this.goalsService.delete(user.householdId, id, user.userId);
     }
 };
 exports.GoalsController = GoalsController;
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('childUserId')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload]),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
     __metadata("design:returntype", Promise)
 ], GoalsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('piggy-bank'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('childUserId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String]),
+    __metadata("design:returntype", Promise)
+], GoalsController.prototype, "getPiggyBank", null);
+__decorate([
+    (0, common_1.Post)('child-direct-deposit'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, Object]),
+    __metadata("design:returntype", Promise)
+], GoalsController.prototype, "parentDirectDeposit", null);
 __decorate([
     (0, common_1.Post)(),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),
@@ -72,6 +101,15 @@ __decorate([
     __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
     __metadata("design:returntype", Promise)
 ], GoalsController.prototype, "contribute", null);
+__decorate([
+    (0, common_1.Post)(':id/parent-deposit'),
+    __param(0, (0, get_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [get_user_decorator_1.UserPayload, String, Object]),
+    __metadata("design:returntype", Promise)
+], GoalsController.prototype, "parentDepositToGoal", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, get_user_decorator_1.CurrentUser)()),

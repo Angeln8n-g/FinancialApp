@@ -1,8 +1,10 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateChildAccountDto, InviteMemberDto, UpdateParentalControlDto, UpdateRoleDto } from './household.dto';
+import { EventsGateway } from '../events/events.gateway';
 export declare class HouseholdService {
     private prisma;
-    constructor(prisma: PrismaService);
+    private eventsGateway?;
+    constructor(prisma: PrismaService, eventsGateway?: EventsGateway | undefined);
     private hashPassword;
     getMembers(householdId: string): Promise<{
         id: string;

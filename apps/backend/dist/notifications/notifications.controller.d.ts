@@ -3,7 +3,7 @@ import { UserPayload } from '../auth/get-user.decorator';
 export declare class NotificationsController {
     private readonly notificationsService;
     constructor(notificationsService: NotificationsService);
-    getUserNotifications(user: UserPayload): Promise<{
+    getUserNotifications(user: UserPayload, unreadOnly?: string): Promise<{
         id: string;
         userId: string;
         householdId: string;
@@ -14,8 +14,11 @@ export declare class NotificationsController {
         isRead: boolean;
         metadata: string | null;
     }[]>;
-    markAsRead(user: UserPayload, id: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
     markAllAsRead(user: UserPayload): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    markAsRead(user: UserPayload, id: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    clearReadNotifications(user: UserPayload): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    clearAllNotifications(user: UserPayload): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    deleteNotification(user: UserPayload, id: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
     registerPushToken(user: UserPayload, body: {
         pushToken: string;
     }): Promise<{

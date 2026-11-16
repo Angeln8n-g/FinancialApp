@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import { MissionTrophyIllustration } from '@/components/kids/KidsIllustrations';
 import {
   Users,
   Handshake,
@@ -69,6 +70,18 @@ export default function FamilyPage() {
   const [topUpFromAccountId, setTopUpFromAccountId] = useState('');
   const [topUpNotes, setTopUpNotes] = useState('Recarga de saldo de control parental');
   const [toppingUp, setToppingUp] = useState(false);
+
+  // Alcancías Infantiles y Abono Directo a Ahorro (Padre -> Objetivo del Niño)
+  const [piggyBanksByChild, setPiggyBanksByChild] = useState<Record<string, any>>({});
+  const [showChildSavingsDepositModal, setShowChildSavingsDepositModal] = useState(false);
+  const [selectedChildForSavings, setSelectedChildForSavings] = useState<any>(null);
+  const [savingsFromAccountId, setSavingsFromAccountId] = useState('');
+  const [savingsGoalId, setSavingsGoalId] = useState('');
+  const [savingsNewGoalName, setSavingsNewGoalName] = useState('');
+  const [savingsNewGoalTarget, setSavingsNewGoalTarget] = useState('100');
+  const [savingsDepositAmount, setSavingsDepositAmount] = useState('15.00');
+  const [savingsDepositNote, setSavingsDepositNote] = useState('Abono directo a tu alcancía de ahorro');
+  const [depositingSavings, setDepositingSavings] = useState(false);
 
   // Modal Solicitud de Permiso / Dinero Extra (Para Niños)
   const [showChildRequestModal, setShowChildRequestModal] = useState(false);
@@ -444,12 +457,27 @@ export default function FamilyPage() {
     const token = getToken();
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/household/parental-controls`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const [res, piggyRes] = await Promise.all([
+        fetch(`${API_URL}/api/household/parental-controls`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/api/goals/piggy-bank`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => null),
+      ]);
       if (res.ok) {
         const data = await res.json();
         setParentalChildren(Array.isArray(data) ? data : []);
+      }
+      if (piggyRes && piggyRes.ok) {
+        const piggyData = await piggyRes.json();
+        if (Array.isArray(piggyData?.childrenPiggyBanks)) {
+          const map: Record<string, any> = {};
+          for (const item of piggyData.childrenPiggyBanks) {
+            map[item.childUserId] = item;
+          }
+          setPiggyBanksByChild(map);
+        }
       }
     } catch (e) {
       console.log('Error cargando controles parentales:', e);
@@ -471,6 +499,7 @@ export default function FamilyPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          childName: childFullName.trim(),
           childFullName: childFullName.trim(),
           childEmail: childEmail.trim().toLowerCase(),
           childPassword: childPassword.trim() || undefined,
@@ -590,6 +619,54 @@ export default function FamilyPage() {
     }
   };
 
+  const handleDirectDepositToChildSavings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedChildForSavings || !savingsFromAccountId || !savingsDepositAmount) return;
+    setDepositingSavings(true);
+    setMsg(null);
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/api/goals/child-direct-deposit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          childUserId: selectedChildForSavings.childUserId,
+          fromAccountId: savingsFromAccountId,
+          amount: parseFloat(savingsDepositAmount),
+          goalId: savingsGoalId && savingsGoalId !== '__NEW__' ? savingsGoalId : undefined,
+          newGoalName:
+            savingsGoalId === '__NEW__' || !savingsGoalId
+              ? savingsNewGoalName.trim() || `Alcancía de ${selectedChildForSavings.childName}`
+              : undefined,
+          targetAmount:
+            savingsGoalId === '__NEW__' || !savingsGoalId
+              ? parseFloat(savingsNewGoalTarget) || 100
+              : undefined,
+          note: savingsDepositNote.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || 'Error al realizar el abono a ahorro.');
+      }
+      setShowChildSavingsDepositModal(false);
+      setSelectedChildForSavings(null);
+      setSavingsDepositAmount('15.00');
+      setMsg({
+        type: 'success',
+        text: data?.message || 'Abono directo acreditado en la alcancía del niño.',
+      });
+      await Promise.all([fetchParentalControls(), fetchAccounts(), fetchActivity()]);
+    } catch (err: any) {
+      setMsg({ type: 'error', text: err?.message || 'Error al abonar al ahorro.' });
+    } finally {
+      setDepositingSavings(false);
+    }
+  };
+
   const handleSendChildRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAllowanceForRequest || !reqAmount || !reqReason.trim()) return;
@@ -603,6 +680,7 @@ export default function FamilyPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          memberId: selectedAllowanceForRequest.memberId,
           amount: parseFloat(reqAmount),
           reason: reqReason.trim(),
         }),
@@ -613,6 +691,9 @@ export default function FamilyPage() {
         setReqReason('');
         await Promise.all([fetchAllowanceRequests(), fetchActivity()]);
         alert('¡Solicitud enviada a tu padre/tutor para aprobación!');
+      } else {
+        const errData = await res.json().catch(() => null);
+        alert(errData?.message || 'No se pudo enviar la solicitud.');
       }
     } catch (e) {
       console.error('Error enviando solicitud:', e);
@@ -943,58 +1024,59 @@ export default function FamilyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A1128] text-slate-100 pb-20 lg:pb-12">
+    <div className={isChildAccount ? 'kids-stage pb-24 lg:pb-14' : 'min-h-screen bg-[#0A1128] text-slate-100 pb-20 lg:pb-12'}>
       <Navbar user={currentUser} household={household} />
 
       {/* Main Container */}
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+      <main className="max-w-4xl mx-auto px-4 py-6 sm:py-8 space-y-8">
         {isChildAccount ? (
-          /* 👦 VISTA EXCLUSIVA PARA CUENTA DE NIÑO EN SECCIÓN FAMILIA */
-          <div className="glass-card p-6 border border-amber-500/35 bg-gradient-to-br from-[#101A36] to-amber-950/20 space-y-4">
+          /* 👦 VISTA EXCLUSIVA PARA CUENTA DE NIÑO EN SECCIÓN MISIONES Y MESADA */
+          <section className="kids-hero-card p-6 sm:p-8 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-amber-400" />
-                  <h2 className="text-lg font-bold text-white">
-                    Mi Enlace Familiar y Control Parental
-                  </h2>
+              <div className="flex items-start sm:items-center gap-4">
+                <MissionTrophyIllustration className="w-16 h-16 sm:w-20 sm:h-20 shrink-0" />
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1E1B4B] tracking-tight">
+                    Misiones, Mesada y Premios
+                  </h1>
+                  <p className="text-sm text-slate-700 mt-1">
+                    Cuenta protegida por{' '}
+                    <strong className="text-[#0369A1]">
+                      {myParentalControl?.parentEmail || household?.parentEmail || currentUser?.parentEmail || 'tu tutor familiar'}
+                    </strong>
+                    .
+                  </p>
                 </div>
-                <p className="text-xs text-slate-300 mt-1">
-                  Tu cuenta de niño está enlazada automáticamente con el correo de tu padre/tutor:{' '}
-                  <strong className="text-amber-300">
-                    {myParentalControl?.parentEmail || household?.parentEmail || currentUser?.parentEmail || 'Tutor familiar'}
-                  </strong>
-                </p>
               </div>
               <Link
                 href="/dashboard"
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold self-start sm:self-auto"
+                className="kids-btn-primary px-4 py-2.5 text-sm font-bold self-start sm:self-auto"
               >
-                ← Ir a Mi Cuenta de Niño
+                ← Volver a Mi Alcancía
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-              <div className="p-3.5 rounded-xl bg-[#0A1128]/80 border border-[#1E2B4D]">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Estado de Cuenta</span>
-                <p className={`text-sm font-bold mt-1 ${myParentalControl?.isFrozen ? 'text-rose-400' : 'text-emerald-400'}`}>
-                  {myParentalControl?.isFrozen ? '🔒 Pausada por Control Parental' : '✅ Activa'}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-5 border-t-2 border-amber-200/80">
+              <div className="p-4 rounded-2xl bg-emerald-50/95">
+                <span className="text-[13px] font-bold text-emerald-900">Estado de cuenta</span>
+                <p className={`text-base font-extrabold mt-1 ${myParentalControl?.isFrozen ? 'text-rose-700' : 'text-emerald-700'}`}>
+                  {myParentalControl?.isFrozen ? 'Pausada por tutor' : 'Activa para usar'}
                 </p>
               </div>
-              <div className="p-3.5 rounded-xl bg-[#0A1128]/80 border border-[#1E2B4D]">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Límite por Compra</span>
-                <p className="text-sm font-bold text-slate-100 tabular-nums mt-1">
+              <div className="p-4 rounded-2xl bg-sky-50/95">
+                <span className="text-[13px] font-bold text-sky-900">Límite por compra</span>
+                <p className="text-base font-extrabold text-[#1E1B4B] tabular-nums mt-1">
                   ${Number(myParentalControl?.maxSingleTransaction || 25).toFixed(2)}
                 </p>
               </div>
-              <div className="p-3.5 rounded-xl bg-[#0A1128]/80 border border-[#1E2B4D]">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Límite Diario</span>
-                <p className="text-sm font-bold text-slate-100 tabular-nums mt-1">
+              <div className="p-4 rounded-2xl bg-amber-50/95">
+                <span className="text-[13px] font-bold text-amber-900">Límite diario</span>
+                <p className="text-base font-extrabold text-[#1E1B4B] tabular-nums mt-1">
                   ${Number(myParentalControl?.maxDailySpend || 50).toFixed(2)}
                 </p>
               </div>
             </div>
-          </div>
+          </section>
         ) : (
         <>
         {/* Formulario Invitación */}
@@ -1197,13 +1279,23 @@ export default function FamilyPage() {
                         </p>
                       </div>
 
-                      <div className="text-right">
-                        <span className="text-[10px] uppercase text-slate-400 font-bold block">
-                          Saldo Cuenta Niño
-                        </span>
-                        <span className="text-lg font-extrabold text-emerald-400 tabular-nums">
-                          ${Number(child.account?.balance ?? 0).toFixed(2)}
-                        </span>
+                      <div className="text-right space-y-1">
+                        <div>
+                          <span className="text-[10px] uppercase text-slate-400 font-bold block">
+                            Saldo Disponible
+                          </span>
+                          <span className="text-lg font-extrabold text-emerald-400 tabular-nums">
+                            ${Number(child.account?.balance ?? 0).toFixed(2)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase text-violet-300 font-bold block">
+                            🐷 Alcancía ({piggyBanksByChild[child.childUserId]?.goalsCount || 0} metas)
+                          </span>
+                          <span className="text-sm font-extrabold text-violet-300 tabular-nums">
+                            ${Number(piggyBanksByChild[child.childUserId]?.totalSavedInPiggyBank || 0).toFixed(2)}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
@@ -1243,6 +1335,23 @@ export default function FamilyPage() {
                         className="flex-1 py-2 px-3 rounded-xl bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-200 border border-emerald-500/30 text-xs font-bold cursor-pointer transition-colors"
                       >
                         💵 Recargar
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setSelectedChildForSavings(child);
+                          const adultAcc = accounts.find((a) => !a.isChildAccount) || accounts[0];
+                          if (adultAcc) setSavingsFromAccountId(adultAcc.id);
+                          const childGoals = piggyBanksByChild[child.childUserId]?.goals || [];
+                          setSavingsGoalId(childGoals[0]?.id || '__NEW__');
+                          setSavingsNewGoalName(`Alcancía de ${child.childName}`);
+                          setSavingsDepositAmount('15.00');
+                          setSavingsDepositNote('Abono directo a tu ahorro');
+                          setShowChildSavingsDepositModal(true);
+                        }}
+                        className="flex-1 py-2 px-3 rounded-xl bg-violet-600/25 hover:bg-violet-600/40 text-violet-200 border border-violet-500/35 text-xs font-bold cursor-pointer transition-colors"
+                      >
+                        🐷 Abonar ahorro
                       </button>
 
                       <button
@@ -1617,15 +1726,15 @@ export default function FamilyPage() {
         )}
 
         {/* 💸 2. CONTROL DE MESADAS & PRESUPUESTOS FAMILIARES */}
-        <section className="glass-card p-6 border border-[#1E2B4D] space-y-6">
+        <section className={isChildAccount ? 'kids-card p-6 sm:p-7 space-y-6' : 'glass-card p-6 border border-[#1E2B4D] space-y-6'}>
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold text-white">
-                {isChildAccount ? '💸 Mi Mesada y Presupuesto' : '💸 Mesadas & Presupuestos para Integrantes'}
-              </h3>
-              <p className="text-xs text-slate-400">
+              <h2 className={isChildAccount ? 'text-xl font-extrabold text-[#1E1B4B]' : 'text-lg font-bold text-white'}>
+                {isChildAccount ? 'Mi mesada y presupuesto' : '💸 Mesadas & Presupuestos para Integrantes'}
+              </h2>
+              <p className={isChildAccount ? 'text-sm text-slate-600 mt-1' : 'text-xs text-slate-400'}>
                 {isChildAccount
-                  ? 'Revisa cuánto llevas consumido de tu mesada y solicita permiso o saldo extra a tu padre/tutor.'
+                  ? 'Mira cuánto llevas usado de tu mesada y pide permiso o dinero extra si lo necesitas.'
                   : 'Asigna presupuestos periódicos a tus hijos o familiares dependientes con seguimiento de consumo.'}
               </p>
             </div>
@@ -1644,8 +1753,10 @@ export default function FamilyPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {allowances.filter((a) => !isChildAccount || a.member?.userId === currentUser?.id).length === 0 ? (
-              <div className="col-span-2 text-center py-6 border border-dashed border-slate-800 rounded-xl">
-                <p className="text-xs text-slate-400">No hay mesadas ni límites asignados aún.</p>
+              <div className={`col-span-2 text-center py-6 rounded-2xl ${isChildAccount ? 'bg-sky-50 border-2 border-dashed border-sky-200' : 'border border-dashed border-slate-800'}`}>
+                <p className={isChildAccount ? 'text-sm font-medium text-slate-600' : 'text-xs text-slate-400'}>
+                  No hay mesadas ni límites asignados aún.
+                </p>
               </div>
             ) : (
               allowances
@@ -1654,6 +1765,55 @@ export default function FamilyPage() {
                 const pct = a.percentageUsed || 0;
                 const barColor = pct >= 90 ? 'bg-rose-500' : pct >= 70 ? 'bg-amber-500' : 'bg-emerald-500';
                 const badgeColor = pct >= 90 ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' : pct >= 70 ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+
+                if (isChildAccount) {
+                  return (
+                    <div key={a.id} className="p-5 rounded-3xl bg-sky-50/90 space-y-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="text-lg font-extrabold text-[#1E1B4B]">{a.title}</h3>
+                          <p className="text-sm text-sky-800 font-medium">
+                            Periodo {a.period === 'WEEKLY' ? 'semanal' : 'mensual'}
+                          </p>
+                        </div>
+                        <span className="text-sm font-extrabold text-emerald-700 tabular-nums">
+                          Disponible: ${Number(a.remainingAmount).toFixed(2)}
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm font-semibold text-slate-700">
+                          <span>Gastado: <strong className="text-[#1E1B4B] tabular-nums">${Number(a.spentAmount).toFixed(2)}</strong></span>
+                          <span>Límite: <strong className="text-emerald-700 tabular-nums">${Number(a.limitAmount).toFixed(2)}</strong></span>
+                        </div>
+                        <div className="w-full bg-white h-3.5 rounded-full overflow-hidden border border-sky-200">
+                          <div
+                            className={`h-full ${barColor}`}
+                            style={{
+                              width: `${Math.min(100, pct)}%`,
+                              transition: 'width 240ms cubic-bezier(0.22, 1, 0.36, 1)',
+                            }}
+                          />
+                        </div>
+                        <p className={`text-sm font-bold tabular-nums ${pct >= 90 ? 'text-rose-700' : 'text-slate-600'}`}>
+                          {pct}% usado {pct >= 100 ? '· Límite alcanzado' : ''}
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setSelectedAllowanceForRequest(a);
+                          setReqAmount('10.00');
+                          setReqReason('');
+                          setShowChildRequestModal(true);
+                        }}
+                        className="kids-btn-sunny w-full py-3 px-4 text-sm font-extrabold cursor-pointer"
+                      >
+                        Pedir permiso o dinero extra a Papá o Mamá
+                      </button>
+                    </div>
+                  );
+                }
 
                 return (
                   <div key={a.id} className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl">
@@ -1701,67 +1861,90 @@ export default function FamilyPage() {
 
                     {/* Acciones de Mesada */}
                     <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
-                      {isChildAccount ? (
-                        <button
-                          onClick={() => {
-                            setSelectedAllowanceForRequest(a);
-                            setReqAmount('10.00');
-                            setReqReason('');
-                            setShowChildRequestModal(true);
-                          }}
-                          className="w-full py-2.5 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-bold cursor-pointer border border-amber-500/40 transition-colors"
-                        >
-                          🙋‍♂️ Pedir Permiso / Dinero Extra a Papá o Mamá
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => {
-                              setSelectedAllowance(a);
-                              setExpenseAmount('');
-                              setShowExpenseModal(true);
-                            }}
-                            className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 cursor-pointer border border-slate-700 transition-colors"
-                          >
-                            📉 Gasto
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedAllowance(a);
-                              setDisburseAmount(a.limitAmount.toString());
-                              setShowDisburseModal(true);
-                            }}
-                            className="flex-1 py-2 px-3 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 text-xs font-bold cursor-pointer border border-emerald-500/30 transition-colors"
-                          >
-                            💵 Desembolsar
-                          </button>
-                          <button
-                            onClick={() => handleResetAllowance(a.id)}
-                            className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-bold cursor-pointer border border-slate-700"
-                            title="Reiniciar consumo a $0"
-                          >
-                            🔄
-                          </button>
-                        </>
-                      )}
+                      <button
+                        onClick={() => {
+                          setSelectedAllowance(a);
+                          setExpenseAmount('');
+                          setShowExpenseModal(true);
+                        }}
+                        className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 cursor-pointer border border-slate-700 transition-colors"
+                      >
+                        📉 Gasto
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedAllowance(a);
+                          setDisburseAmount(a.limitAmount.toString());
+                          setShowDisburseModal(true);
+                        }}
+                        className="flex-1 py-2 px-3 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 text-xs font-bold cursor-pointer border border-emerald-500/30 transition-colors"
+                      >
+                        💵 Desembolsar
+                      </button>
+                      <button
+                        onClick={() => handleResetAllowance(a.id)}
+                        className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-bold cursor-pointer border border-slate-700"
+                        title="Reiniciar consumo a $0"
+                      >
+                        🔄
+                      </button>
                     </div>
                   </div>
                 );
               })
             )}
           </div>
+
+          {/* Historial de Solicitudes del Niño */}
+          {isChildAccount && allowanceRequests.filter((r) => r.member?.userId === currentUser?.id).length > 0 && (
+            <div className="pt-4 border-t-2 border-sky-100 space-y-3">
+              <h3 className="text-base font-extrabold text-[#1E1B4B]">
+                Tus solicitudes de dinero extra
+              </h3>
+              <div className="space-y-2.5">
+                {allowanceRequests
+                  .filter((r) => r.member?.userId === currentUser?.id)
+                  .slice(0, 5)
+                  .map((r) => (
+                    <div
+                      key={r.id}
+                      className="p-3.5 rounded-2xl bg-amber-50/70 flex items-center justify-between gap-3"
+                    >
+                      <div>
+                        <p className="text-sm font-bold text-[#1E1B4B]">{r.reason}</p>
+                        <p className="text-sm text-slate-600 tabular-nums">
+                          {new Date(r.createdAt).toLocaleDateString()} · {r.status === 'APPROVED' ? 'Aprobada' : r.status === 'REJECTED' ? 'No aprobada' : 'Esperando respuesta de tu tutor'}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-base font-extrabold tabular-nums shrink-0 ${
+                          r.status === 'APPROVED'
+                            ? 'text-emerald-700'
+                            : r.status === 'REJECTED'
+                            ? 'text-rose-600'
+                            : 'text-amber-700'
+                        }`}
+                      >
+                        ${Number(r.amount).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* 🏆 3. MISIONES FAMILIARES & GAMIFICACIÓN DE TAREAS (AHORRO CON PROPÓSITO) */}
-        <section className="glass-card p-6 border border-[#1E2B4D] space-y-6">
+        <section className={isChildAccount ? 'kids-card p-6 sm:p-7 space-y-6' : 'glass-card p-6 border border-[#1E2B4D] space-y-6'}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🏆</span>
-                <h3 className="text-lg font-bold text-white">Misiones Familiares & Tareas Remuneradas</h3>
-              </div>
-              <p className="text-xs text-slate-400 mt-1">
-                Gamificación financiera: Completa misiones y recibe recompensas directamente en tu cuenta.
+              <h2 className={isChildAccount ? 'text-xl font-extrabold text-[#1E1B4B]' : 'text-lg font-bold text-white'}>
+                {isChildAccount ? 'Tus misiones y recompensas' : '🏆 Misiones Familiares & Tareas Remuneradas'}
+              </h2>
+              <p className={isChildAccount ? 'text-sm text-slate-600 mt-1' : 'text-xs text-slate-400 mt-1'}>
+                {isChildAccount
+                  ? 'Completa tus misiones en casa y gana recompensas directas en tu alcancía.'
+                  : 'Gamificación financiera: Completa misiones y recibe recompensas directamente en tu cuenta.'}
               </p>
             </div>
             {!isChildAccount && (
@@ -1780,13 +1963,60 @@ export default function FamilyPage() {
           {/* Grid de Misiones */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {missions.length === 0 ? (
-              <div className="col-span-3 text-center py-6 border border-dashed border-slate-800 rounded-xl">
-                <p className="text-xs text-slate-400">No hay misiones asignadas actualmente.</p>
+              <div className={`col-span-3 text-center py-6 rounded-2xl ${isChildAccount ? 'bg-amber-50 border-2 border-dashed border-amber-200' : 'border border-dashed border-slate-800'}`}>
+                <p className={isChildAccount ? 'text-sm font-medium text-slate-600' : 'text-xs text-slate-400'}>
+                  No hay misiones asignadas actualmente.
+                </p>
               </div>
             ) : (
               missions.map((m) => {
                 const isPaid = m.status === 'APPROVED_AND_PAID';
                 const isDone = m.status === 'COMPLETED';
+
+                if (isChildAccount) {
+                  return (
+                    <div
+                      key={m.id}
+                      className={`p-5 rounded-3xl space-y-4 flex flex-col justify-between ${
+                        isPaid
+                          ? 'bg-emerald-50'
+                          : isDone
+                          ? 'bg-amber-50'
+                          : 'bg-sky-50'
+                      }`}
+                    >
+                      <div className="space-y-1.5">
+                        <p
+                          className={`text-sm font-bold ${
+                            isPaid ? 'text-emerald-700' : isDone ? 'text-amber-700' : 'text-sky-700'
+                          }`}
+                        >
+                          {isPaid ? 'Recompensa acreditada' : isDone ? 'Esperando aprobación' : 'Misión disponible'}
+                        </p>
+                        <h3 className="text-base font-extrabold text-[#1E1B4B] leading-snug">{m.title}</h3>
+                        {m.description && (
+                          <p className="text-sm text-slate-600 line-clamp-2">{m.description}</p>
+                        )}
+                      </div>
+
+                      <div className="pt-3 border-t border-white/80 flex items-center justify-between gap-2">
+                        <div>
+                          <span className="text-sm text-slate-600 block">Premio</span>
+                          <p className="text-lg font-extrabold text-amber-700 tabular-nums">+${m.rewardAmount.toFixed(2)}</p>
+                        </div>
+
+                        {m.status === 'PENDING' && (
+                          <button
+                            onClick={() => handleCompleteMission(m.id)}
+                            className="kids-btn-primary px-3.5 py-2 text-sm font-bold cursor-pointer"
+                          >
+                            ¡La completé!
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
                   <div
@@ -1877,51 +2107,67 @@ export default function FamilyPage() {
           </div>
 
           {/* Tarjeta de Matching de Ahorro para Hijos */}
-          <div className="p-4 rounded-2xl bg-[#0A1128] border border-[#1E2B4D] space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <span className="text-lg">💡</span>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-white">
-                    Matching de Ahorro Educativo ("Premio al Ahorro")
-                  </h4>
-                  <p className="text-[11px] text-slate-400">
-                    Incentiva a tus hijos: Por cada \$1 que ahorren en sus metas, el hogar bonifica un porcentaje adicional.
-                  </p>
+          {isChildAccount ? (
+            <div className="p-5 rounded-3xl bg-emerald-50 space-y-2">
+              <h3 className="text-base font-extrabold text-[#1E1B4B]">
+                Premio al ahorro familiar (+{savingsMatching.matchPercentage}%)
+              </h3>
+              <p className="text-sm text-slate-700">
+                Por cada $1 que ahorres en tus metas, tu hogar agrega un{' '}
+                <strong className="text-emerald-700">+{savingsMatching.matchPercentage}% adicional</strong>{' '}
+                (tope mensual de ${savingsMatching.maxMonthlyBonus}). Este mes llevas bonificado{' '}
+                <strong className="text-emerald-700 tabular-nums">
+                  ${Number(savingsMatching.totalMatchedThisMonth || 0).toFixed(2)}
+                </strong>.
+              </p>
+            </div>
+          ) : (
+            <div className="p-4 rounded-2xl bg-[#0A1128] border border-[#1E2B4D] space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-lg">💡</span>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-white">
+                      Matching de Ahorro Educativo ("Premio al Ahorro")
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      Incentiva a tus hijos: Por cada $1 que ahorren en sus metas, el hogar bonifica un porcentaje adicional.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleUpdateMatching(25, savingsMatching.maxMonthlyBonus, true)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${savingsMatching.matchPercentage === 25 ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  >
+                    +25%
+                  </button>
+                  <button
+                    onClick={() => handleUpdateMatching(50, savingsMatching.maxMonthlyBonus, true)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${savingsMatching.matchPercentage === 50 ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  >
+                    +50%
+                  </button>
+                  <button
+                    onClick={() => handleUpdateMatching(100, savingsMatching.maxMonthlyBonus, true)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${savingsMatching.matchPercentage === 100 ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  >
+                    +100% (Duplicar)
+                  </button>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleUpdateMatching(25, savingsMatching.maxMonthlyBonus, true)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${savingsMatching.matchPercentage === 25 ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'}`}
-                >
-                  +25%
-                </button>
-                <button
-                  onClick={() => handleUpdateMatching(50, savingsMatching.maxMonthlyBonus, true)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${savingsMatching.matchPercentage === 50 ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'}`}
-                >
-                  +50%
-                </button>
-                <button
-                  onClick={() => handleUpdateMatching(100, savingsMatching.maxMonthlyBonus, true)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${savingsMatching.matchPercentage === 100 ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'}`}
-                >
-                  +100% (Duplicar)
-                </button>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-xs">
+                <span className="text-slate-400">
+                  Regla activa: <strong>+{savingsMatching.matchPercentage}% de aporte adicional</strong> (Tope máx: ${savingsMatching.maxMonthlyBonus}/mes).
+                </span>
+                <span className="text-emerald-400 font-bold">
+                  Total bonificado este mes: ${Number(savingsMatching.totalMatchedThisMonth || 0).toFixed(2)}
+                </span>
               </div>
             </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-xs">
-              <span className="text-slate-400">
-                Regla activa: <strong>+{savingsMatching.matchPercentage}% de aporte adicional</strong> (Tope máx: \${savingsMatching.maxMonthlyBonus}/mes).
-              </span>
-              <span className="text-emerald-400 font-bold">
-                Total bonificado este mes: \${Number(savingsMatching.totalMatchedThisMonth || 0).toFixed(2)}
-              </span>
-            </div>
-          </div>
+          )}
         </section>
 
         {/* Modal Crear Misión Familiar */}
@@ -2712,17 +2958,158 @@ export default function FamilyPage() {
           </div>
         )}
 
-        {/* Modal Solicitar Permiso / Dinero Extra al Padre (Vista Niño) */}
-        {showChildRequestModal && selectedAllowanceForRequest && (
+        {/* Modal Abonar Directo a Alcancía de Ahorro del Niño */}
+        {showChildSavingsDepositModal && selectedChildForSavings && (
           <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="glass-card w-full max-w-md p-6 relative border border-amber-500/40">
+            <div className="glass-card w-full max-w-md p-6 relative border border-violet-500/40">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-bold text-white">
-                  🙋‍♂️ Pedir Permiso / Dinero Extra a Papá o Mamá
+                  🐷 Abonar a Alcancía de {selectedChildForSavings.childName}
+                </h3>
+                <button
+                  onClick={() => setShowChildSavingsDepositModal(false)}
+                  className="text-slate-400 hover:text-white cursor-pointer text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-400 mb-4">
+                Este abono va directo al ahorro de tu hijo (no al saldo gastable) para impulsar sus metas.
+              </p>
+
+              <form onSubmit={handleDirectDepositToChildSavings} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                    Cuenta de Origen (Tutor) *
+                  </label>
+                  <select
+                    required
+                    value={savingsFromAccountId}
+                    onChange={(e) => setSavingsFromAccountId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
+                  >
+                    {accounts
+                      .filter((a) => !a.isChildAccount)
+                      .map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name} (${Number(a.balance).toFixed(2)})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                    Objetivo de Alcancía Destino
+                  </label>
+                  <select
+                    value={savingsGoalId}
+                    onChange={(e) => setSavingsGoalId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
+                  >
+                    {(piggyBanksByChild[selectedChildForSavings.childUserId]?.goals || []).map((g: any) => (
+                      <option key={g.id} value={g.id}>
+                        {g.emoji || '🐷'} {g.name} (${Number(g.currentAmount).toFixed(2)} / ${Number(g.targetAmount).toFixed(2)})
+                      </option>
+                    ))}
+                    <option value="__NEW__">+ Crear nuevo objetivo para {selectedChildForSavings.childName}</option>
+                  </select>
+                </div>
+
+                {savingsGoalId === '__NEW__' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                        Nombre de Meta
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={savingsNewGoalName}
+                        onChange={(e) => setSavingsNewGoalName(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                        Meta ($)
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        min="1"
+                        required
+                        value={savingsNewGoalTarget}
+                        onChange={(e) => setSavingsNewGoalTarget(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                    Monto a Abonar ($) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.50"
+                    required
+                    value={savingsDepositAmount}
+                    onChange={(e) => setSavingsDepositAmount(e.target.value)}
+                    className="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-slate-700 text-lg font-extrabold text-violet-300 tabular-nums"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                    Mensaje / Concepto
+                  </label>
+                  <input
+                    type="text"
+                    value={savingsDepositNote}
+                    onChange={(e) => setSavingsDepositNote(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowChildSavingsDepositModal(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={depositingSavings}
+                    className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs cursor-pointer"
+                  >
+                    {depositingSavings ? 'Abonando...' : `✓ Abonar $${Number(savingsDepositAmount || 0).toFixed(2)}`}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Solicitar Permiso / Dinero Extra al Padre (Vista Niño) */}
+        {showChildRequestModal && selectedAllowanceForRequest && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(14, 116, 144, 0.35)', backdropFilter: 'blur(6px)' }}
+          >
+            <div className="kids-hero-card w-full max-w-md p-6 sm:p-7 relative">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-lg font-extrabold text-[#1E1B4B]">
+                  Pedir dinero extra a Papá o Mamá
                 </h3>
                 <button
                   onClick={() => setShowChildRequestModal(false)}
-                  className="text-slate-400 hover:text-white cursor-pointer text-xl"
+                  className="w-8 h-8 rounded-full bg-amber-100 hover:bg-amber-200 text-[#1E1B4B] font-bold flex items-center justify-center cursor-pointer"
                 >
                   ✕
                 </button>
@@ -2730,8 +3117,8 @@ export default function FamilyPage() {
 
               <form onSubmit={handleSendChildRequest} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
-                    Monto Solicitado ($) *
+                  <label className="block text-sm font-bold text-[#1E1B4B] mb-1.5">
+                    ¿Cuánto dinero necesitas? ($)
                   </label>
                   <input
                     type="number"
@@ -2741,38 +3128,38 @@ export default function FamilyPage() {
                     value={reqAmount}
                     onChange={(e) => setReqAmount(e.target.value)}
                     placeholder="10.00"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-base font-bold text-emerald-400 tabular-nums"
+                    className="w-full px-4 py-3 rounded-2xl border-2 border-sky-200 text-xl font-extrabold text-emerald-700 tabular-nums focus:outline-none focus:border-sky-400"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
-                    ¿Para qué necesitas el permiso o dinero? *
+                  <label className="block text-sm font-bold text-[#1E1B4B] mb-1.5">
+                    ¿Para qué lo vas a usar?
                   </label>
                   <input
                     type="text"
                     required
                     value={reqReason}
                     onChange={(e) => setReqReason(e.target.value)}
-                    placeholder="Ej. Libro del colegio / Salida con amigos"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
+                    placeholder="Ej. Libro del colegio o salida con amigos"
+                    className="w-full px-4 py-3 rounded-2xl border-2 border-sky-200 text-sm font-medium text-[#1E1B4B] focus:outline-none focus:border-sky-400"
                   />
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                <div className="flex gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowChildRequestModal(false)}
-                    className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 cursor-pointer"
+                    className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm font-bold text-slate-700 cursor-pointer"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={sendingRequest}
-                    className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs cursor-pointer"
+                    className="kids-btn-sunny flex-1 py-3 font-extrabold text-sm cursor-pointer disabled:opacity-60"
                   >
-                    {sendingRequest ? 'Enviando...' : 'Enviar Solicitud al Padre'}
+                    {sendingRequest ? 'Enviando...' : 'Enviar solicitud'}
                   </button>
                 </div>
               </form>

@@ -16,14 +16,17 @@ import { getUser, getHousehold } from '@/constants/Api';
 interface TabBarIconProps {
   Icon: React.ComponentType<{ size: number; color: string; strokeWidth?: number }>;
   focused: boolean;
+  isKids?: boolean;
 }
 
-function TabBarIcon({ Icon, focused }: TabBarIconProps) {
+function TabBarIcon({ Icon, focused, isKids }: TabBarIconProps) {
+  const activeColor = isKids ? '#0284C7' : FamilyMint.primary;
+  const inactiveColor = isKids ? '#64748B' : FamilyMint.foregroundSubtle;
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
       <Icon
         size={20}
-        color={focused ? FamilyMint.primary : FamilyMint.foregroundSubtle}
+        color={focused ? activeColor : inactiveColor}
         strokeWidth={focused ? 2.4 : 1.8}
       />
     </View>
@@ -47,27 +50,27 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: FamilyMint.primary,
-        tabBarInactiveTintColor: FamilyMint.foregroundSubtle,
+        tabBarActiveTintColor: isChildAccount ? '#0284C7' : FamilyMint.primary,
+        tabBarInactiveTintColor: isChildAccount ? '#64748B' : FamilyMint.foregroundSubtle,
         tabBarStyle: {
-          backgroundColor: FamilyMint.background,
-          borderTopColor: FamilyMint.border,
-          borderTopWidth: 1,
+          backgroundColor: isChildAccount ? '#FFFFFF' : FamilyMint.background,
+          borderTopColor: isChildAccount ? '#BAE6FD' : FamilyMint.border,
+          borderTopWidth: isChildAccount ? 2 : 1,
           height: 64,
           paddingBottom: 8,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '600',
+          fontSize: 11,
+          fontWeight: '700',
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: isChildAccount ? 'Mi Cuenta' : 'Inicio',
-          tabBarIcon: ({ focused }) => <TabBarIcon Icon={Home} focused={focused} />,
+          title: isChildAccount ? 'Mi Alcancía' : 'Inicio',
+          tabBarIcon: ({ focused }) => <TabBarIcon Icon={Home} focused={focused} isKids={isChildAccount} />,
         }}
       />
       <Tabs.Screen
@@ -106,7 +109,7 @@ export default function TabLayout() {
         name="family"
         options={{
           title: isChildAccount ? 'Misiones' : 'Familia',
-          tabBarIcon: ({ focused }) => <TabBarIcon Icon={Users} focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabBarIcon Icon={Users} focused={focused} isKids={isChildAccount} />,
         }}
       />
       <Tabs.Screen

@@ -31,7 +31,7 @@ export class TransactionsService {
       ];
     }
 
-    return this.prisma.transaction.findMany({
+    const transactions = await this.prisma.transaction.findMany({
       where: whereClause,
       include: {
         account: true,
@@ -43,6 +43,52 @@ export class TransactionsService {
       },
       orderBy: { date: 'desc' },
       take: 50,
+    });
+
+    if (!childConfig || !childConfig.childAccountId) {
+      return transactions;
+    }
+
+    return transactions.map((tx: any) => {
+      const desc = (tx.description || '').toLowerCase();
+      const isMissionReward = desc.includes('recompensa misión') || desc.includes('recompensa mision');
+      const isAllowance = desc.includes('desembolso mesada') || desc.includes('mesada');
+      const isParentTopUp = desc.includes('recarga') || desc.includes('control parental');
+      const isSavingsDeposit =
+        desc.includes('alcancía') || desc.includes('alcancia') || desc.includes('aporte a meta') || desc.includes('ahorro');
+
+      const isChildInflow =
+        (tx.destinationAccountId === childConfig.childAccountId && tx.accountId !== childConfig.childAccountId) ||
+        (tx.accountId === childConfig.childAccountId && tx.type === TransactionType.INCOME) ||
+        isMissionReward ||
+        isAllowance ||
+        isParentTopUp;
+
+      let movementKind = isChildInflow ? 'INCOME' : 'EXPENSE';
+      let movementLabel = isChildInflow ? 'Ingreso recibido' : 'Compra / Gasto';
+
+      if (isChildInflow && isMissionReward) {
+        movementKind = 'MISSION_REWARD';
+        movementLabel = 'Premio de Misión';
+      } else if (isChildInflow && isAllowance) {
+        movementKind = 'ALLOWANCE';
+        movementLabel = 'Mesada Recibida';
+      } else if (isChildInflow && isParentTopUp) {
+        movementKind = 'PARENT_TOPUP';
+        movementLabel = 'Recarga de Tutor';
+      } else if (!isChildInflow && isSavingsDeposit) {
+        movementKind = 'SAVINGS_DEPOSIT';
+        movementLabel = 'Guardado en Alcancía';
+      }
+
+      return {
+        ...tx,
+        originalType: tx.type,
+        type: isChildInflow ? TransactionType.INCOME : TransactionType.EXPENSE,
+        isChildInflow,
+        movementKind,
+        movementLabel,
+      };
     });
   }
 
@@ -402,6 +448,7 @@ export class TransactionsService {
     let monthlyIncome = 0;
     let monthlyExpense = 0;
     let todayExpense = 0;
+    let monthlySavings = 0;
 
     for (const t of monthlyTransactions) {
       if (t.isVoided) continue;
@@ -411,8 +458,22 @@ export class TransactionsService {
         txCurrency,
         baseCurrency,
       );
-      if (t.type === TransactionType.INCOME || (childConfig && t.destinationAccountId === childConfig.childAccountId)) {
+      const desc = (t.description || '').toLowerCase();
+      const isChildTransferIn =
+        Boolean(childConfig) &&
+        (t.destinationAccountId === childConfig!.childAccountId ||
+          desc.includes('recompensa misión') ||
+          desc.includes('recompensa mision') ||
+          desc.includes('desembolso mesada'));
+
+      if (t.type === TransactionType.INCOME || isChildTransferIn) {
         monthlyIncome += amountConverted;
+      } else if (
+        childConfig &&
+        t.type === TransactionType.TRANSFER &&
+        t.accountId === childConfig.childAccountId
+      ) {
+        monthlySavings += amountConverted;
       } else if (t.type === TransactionType.EXPENSE) {
         monthlyExpense += amountConverted;
         if (new Date(t.date) >= startOfDay) {
@@ -422,11 +483,42 @@ export class TransactionsService {
     }
 
     if (childConfig) {
+      let piggyBankTotal = 0;
+      try {
+        if (this.prisma.auditLog?.findMany && this.prisma.savingsGoal?.findMany) {
+          const ownershipLogs = await this.prisma.auditLog.findMany({
+            where: { householdId, action: 'GOAL_OWNERSHIP_META' },
+            orderBy: { timestamp: 'asc' },
+          });
+          const childGoalIds = new Set<string>();
+          for (const log of ownershipLogs) {
+            try {
+              const meta = JSON.parse(log.details || '{}');
+              if (meta?.goalId && meta?.childUserId === childConfig.childUserId) {
+                childGoalIds.add(meta.goalId);
+              }
+            } catch {
+              // ignore malformed log
+            }
+          }
+          if (childGoalIds.size > 0) {
+            const childGoals = await this.prisma.savingsGoal.findMany({
+              where: { householdId, id: { in: Array.from(childGoalIds) } },
+            });
+            piggyBankTotal = childGoals.reduce((acc, g) => acc + Number(g.currentAmount || 0), 0);
+          }
+        }
+      } catch {
+        // ignore in mocked tests
+      }
+
       const dailyRemaining = Math.max(0, (childConfig.maxDailySpend || 25) - todayExpense);
       return {
         totalBalance: Math.round(totalBalance * 100) / 100,
         monthlyIncome: Math.round(monthlyIncome * 100) / 100,
         monthlyExpense: Math.round(monthlyExpense * 100) / 100,
+        monthlySavings: Math.round(monthlySavings * 100) / 100,
+        piggyBankTotal: Math.round(piggyBankTotal * 100) / 100,
         todayExpense: Math.round(todayExpense * 100) / 100,
         baseCurrency,
         accountsCount: accounts.length,

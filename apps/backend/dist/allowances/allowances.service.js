@@ -8,6 +8,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 var AllowancesService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AllowancesService = void 0;
@@ -16,13 +19,16 @@ const prisma_service_1 = require("../prisma/prisma.service");
 const client_1 = require("@prisma/client");
 const crypto_1 = require("crypto");
 const parental_control_helper_1 = require("../household/parental-control.helper");
+const events_gateway_1 = require("../events/events.gateway");
 let AllowancesService = class AllowancesService {
     static { AllowancesService_1 = this; }
     prisma;
+    eventsGateway;
     static missionsMap = new Map();
     static matchingRulesMap = new Map();
-    constructor(prisma) {
+    constructor(prisma, eventsGateway) {
         this.prisma = prisma;
+        this.eventsGateway = eventsGateway;
     }
     async findAll(householdId) {
         const allowances = await this.prisma.allowance.findMany({
@@ -90,13 +96,14 @@ let AllowancesService = class AllowancesService {
         const disburseAmount = data.amount || Number(allowance.limitAmount);
         const configs = await parental_control_helper_1.ParentalControlHelper.getHouseholdParentalControls(this.prisma, householdId);
         const childCfg = configs.find((c) => c.memberId === allowance.memberId || c.childUserId === allowance.member?.userId);
-        return this.prisma.$transaction(async (tx) => {
+        const result = await this.prisma.$transaction(async (tx) => {
+            const hasLinkedChildAcc = Boolean(childCfg?.childAccountId && childCfg.childAccountId !== account.id);
             await tx.transaction.create({
                 data: {
                     householdId,
                     accountId: account.id,
-                    destinationAccountId: childCfg?.childAccountId && childCfg.childAccountId !== account.id ? childCfg.childAccountId : null,
-                    type: client_1.TransactionType.EXPENSE,
+                    destinationAccountId: hasLinkedChildAcc ? childCfg.childAccountId : null,
+                    type: hasLinkedChildAcc ? client_1.TransactionType.TRANSFER : client_1.TransactionType.EXPENSE,
                     amount: disburseAmount,
                     description: `Desembolso Mesada: ${allowance.title} (${allowance.member.user.fullName})`,
                     date: new Date(),
@@ -106,17 +113,32 @@ let AllowancesService = class AllowancesService {
                 where: { id: account.id },
                 data: { balance: { decrement: disburseAmount } },
             });
-            if (childCfg?.childAccountId && childCfg.childAccountId !== account.id) {
+            if (hasLinkedChildAcc) {
                 await tx.account.update({
                     where: { id: childCfg.childAccountId },
                     data: { balance: { increment: disburseAmount } },
                 });
             }
+            if (allowance.member?.userId) {
+                await tx.notification.create({
+                    data: {
+                        userId: allowance.member.userId,
+                        householdId,
+                        title: '💰 ¡Mesada Recibida!',
+                        body: `Se acreditaron $${disburseAmount.toFixed(2)} en tu cuenta por "${allowance.title}".`,
+                        type: 'ALLOWANCE_DISBURSED',
+                    },
+                });
+            }
             return {
                 success: true,
-                message: `Desembolso de $${disburseAmount} realizado desde ${account.name}${childCfg?.childAccountId ? ' y acreditado en la cuenta del niño' : ''}`,
+                message: `Desembolso de $${disburseAmount} realizado desde ${account.name}${hasLinkedChildAcc ? ' y acreditado en la cuenta del niño' : ''}`,
             };
         });
+        this.eventsGateway?.notifyHouseholdChange(householdId, 'transaction', 'CREATE');
+        this.eventsGateway?.notifyHouseholdChange(householdId, 'account', 'UPDATE');
+        this.eventsGateway?.notifyHouseholdChange(householdId, 'notification', 'CREATE');
+        return result;
     }
     async reset(householdId, id) {
         const allowance = await this.prisma.allowance.findFirst({
@@ -129,14 +151,40 @@ let AllowancesService = class AllowancesService {
             data: { spentAmount: 0 },
         });
     }
-    async createRequest(householdId, memberId, allowanceId, amount, reason) {
+    async createRequest(householdId, userId, memberId, allowanceId, amount, reason) {
+        const allowance = await this.prisma.allowance.findFirst({
+            where: { id: allowanceId, householdId },
+        });
+        if (!allowance) {
+            throw new common_1.NotFoundException('Mesada no encontrada');
+        }
+        let resolvedMemberId = memberId;
+        if (!resolvedMemberId) {
+            const currentMember = await this.prisma.householdMember.findUnique({
+                where: {
+                    userId_householdId: {
+                        userId,
+                        householdId,
+                    },
+                },
+            });
+            resolvedMemberId = currentMember?.id || allowance.memberId;
+        }
+        const numericAmount = Number(amount);
+        if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+            throw new common_1.BadRequestException('El monto de la solicitud debe ser mayor a 0.');
+        }
+        const cleanReason = (reason || '').trim();
+        if (!cleanReason) {
+            throw new common_1.BadRequestException('Debes indicar un motivo para la solicitud.');
+        }
         const req = await this.prisma.allowanceRequest.create({
             data: {
                 householdId,
-                memberId,
+                memberId: resolvedMemberId,
                 allowanceId,
-                amount,
-                reason,
+                amount: numericAmount,
+                reason: cleanReason,
                 status: 'PENDING',
             },
             include: {
@@ -153,11 +201,12 @@ let AllowancesService = class AllowancesService {
                     userId: admin.userId,
                     householdId,
                     title: '🙋‍♂️ Solicitud de Control Parental / Dinero Extra',
-                    body: `${requesterName} solicita $${amount} para: "${reason}"`,
+                    body: `${requesterName} solicita $${numericAmount} para: "${cleanReason}"`,
                     type: 'ALLOWANCE_REQUEST',
                 },
             });
         }
+        this.eventsGateway?.notifyHouseholdChange(householdId, 'notification', 'CREATE');
         return req;
     }
     async getRequests(householdId) {
@@ -208,6 +257,7 @@ let AllowancesService = class AllowancesService {
                 },
             }).catch(() => null);
         }
+        this.eventsGateway?.notifyHouseholdChange(householdId, 'notification', 'CREATE');
         return updated;
     }
     async remove(id, householdId) {
@@ -308,10 +358,11 @@ let AllowancesService = class AllowancesService {
                     householdId,
                     title: '🏆 Misión Familiar Completada',
                     body: `${mission.memberName} completó: "${mission.title}". Toca para aprobar y desembolsar $${mission.rewardAmount.toFixed(2)}.`,
-                    type: 'SYSTEM',
+                    type: 'MISSION_COMPLETED',
                 },
             });
         }
+        this.eventsGateway?.notifyHouseholdChange(householdId, 'notification', 'CREATE');
         return mission;
     }
     async approveAndPayMission(householdId, missionId, data, parentUserId) {
@@ -325,14 +376,22 @@ let AllowancesService = class AllowancesService {
         if (!account)
             throw new common_1.NotFoundException('Cuenta de desembolso no encontrada');
         const configs = await parental_control_helper_1.ParentalControlHelper.getHouseholdParentalControls(this.prisma, householdId);
-        const childCfg = configs.find((c) => c.memberId === mission.memberId);
+        let childCfg = configs.find((c) => c.memberId === mission.memberId || c.childName === mission.memberName);
+        const memberRecord = await this.prisma.householdMember.findFirst({
+            where: { id: mission.memberId, householdId },
+        });
+        if (!childCfg && memberRecord) {
+            childCfg = configs.find((c) => c.childUserId === memberRecord.userId);
+        }
+        const hasLinkedChildAcc = Boolean(childCfg?.childAccountId && childCfg.childAccountId !== account.id);
+        const targetChildUserId = childCfg?.childUserId || memberRecord?.userId || null;
         await this.prisma.$transaction(async (tx) => {
             await tx.transaction.create({
                 data: {
                     householdId,
                     accountId: account.id,
-                    destinationAccountId: childCfg?.childAccountId && childCfg.childAccountId !== account.id ? childCfg.childAccountId : null,
-                    type: client_1.TransactionType.EXPENSE,
+                    destinationAccountId: hasLinkedChildAcc ? childCfg.childAccountId : null,
+                    type: hasLinkedChildAcc ? client_1.TransactionType.TRANSFER : client_1.TransactionType.EXPENSE,
                     amount: mission.rewardAmount,
                     description: `🏆 Recompensa Misión: ${mission.title} (${mission.memberName})`,
                     date: new Date(),
@@ -343,15 +402,29 @@ let AllowancesService = class AllowancesService {
                 where: { id: account.id },
                 data: { balance: { decrement: mission.rewardAmount } },
             });
-            if (childCfg?.childAccountId && childCfg.childAccountId !== account.id) {
+            if (hasLinkedChildAcc) {
                 await tx.account.update({
                     where: { id: childCfg.childAccountId },
                     data: { balance: { increment: mission.rewardAmount } },
                 });
             }
+            if (targetChildUserId) {
+                await tx.notification.create({
+                    data: {
+                        userId: targetChildUserId,
+                        householdId,
+                        title: '🏆 ¡Misión Aprobada y Pagada!',
+                        body: `Completaste "${mission.title}" y recibiste +$${mission.rewardAmount.toFixed(2)} en tu cuenta.`,
+                        type: 'MISSION_PAID',
+                    },
+                });
+            }
         });
         mission.status = 'APPROVED_AND_PAID';
         mission.approvedAt = new Date().toISOString();
+        this.eventsGateway?.notifyHouseholdChange(householdId, 'transaction', 'CREATE');
+        this.eventsGateway?.notifyHouseholdChange(householdId, 'account', 'UPDATE');
+        this.eventsGateway?.notifyHouseholdChange(householdId, 'notification', 'CREATE');
         return {
             mission,
             message: `¡Recompensa de $${mission.rewardAmount.toFixed(2)} transferida con éxito desde ${account.name}!`,
@@ -390,6 +463,8 @@ let AllowancesService = class AllowancesService {
 exports.AllowancesService = AllowancesService;
 exports.AllowancesService = AllowancesService = AllowancesService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __param(1, (0, common_1.Optional)()),
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        events_gateway_1.EventsGateway])
 ], AllowancesService);
 //# sourceMappingURL=allowances.service.js.map

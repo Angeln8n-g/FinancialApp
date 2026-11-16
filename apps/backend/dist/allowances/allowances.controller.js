@@ -41,7 +41,7 @@ let AllowancesController = class AllowancesController {
         return this.allowancesService.getRequests(user.householdId);
     }
     async createRequest(user, allowanceId, body) {
-        return this.allowancesService.createRequest(user.householdId, body.memberId, allowanceId, body.amount, body.reason);
+        return this.allowancesService.createRequest(user.householdId, user.userId, body.memberId, allowanceId, body.amount, body.reason);
     }
     async respondRequest(user, requestId, body) {
         return this.allowancesService.respondRequest(user.householdId, requestId, body.status);

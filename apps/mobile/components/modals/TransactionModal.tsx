@@ -20,6 +20,7 @@ interface TransactionModalProps {
   categories: any[];
   initialType?: 'EXPENSE' | 'INCOME' | 'TRANSFER';
   initialDate?: string;
+  isChildMode?: boolean;
   onSuccess: () => void;
 }
 
@@ -30,9 +31,10 @@ export default function TransactionModal({
   categories,
   initialType = 'EXPENSE',
   initialDate,
+  isChildMode = false,
   onSuccess,
 }: TransactionModalProps) {
-  const [type, setType] = useState<'EXPENSE' | 'INCOME' | 'TRANSFER'>(initialType);
+  const [type, setType] = useState<'EXPENSE' | 'INCOME' | 'TRANSFER'>(isChildMode ? 'EXPENSE' : initialType);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [accountId, setAccountId] = useState('');
@@ -43,7 +45,7 @@ export default function TransactionModal({
 
   useEffect(() => {
     if (visible) {
-      setType(initialType);
+      setType(isChildMode ? 'EXPENSE' : initialType);
       setAmount('');
       setDescription('');
       setDate(initialDate || new Date().toISOString().split('T')[0]);
@@ -57,7 +59,7 @@ export default function TransactionModal({
         setCategoryId(categories[0].id);
       }
     }
-  }, [visible, initialType, initialDate, accounts, categories]);
+  }, [visible, initialType, initialDate, isChildMode, accounts, categories]);
 
   const handleSubmit = async () => {
     const parsedAmount = parseFloat(amount.replace(',', '.'));
@@ -66,14 +68,19 @@ export default function TransactionModal({
       return;
     }
     if (!description.trim()) {
-      Alert.alert('Descripción Requerida', 'Ingresa una descripción para el movimiento.');
+      Alert.alert(
+        isChildMode ? '¿Qué compraste?' : 'Descripción Requerida',
+        isChildMode ? 'Cuéntanos brevemente qué compraste.' : 'Ingresa una descripción para el movimiento.'
+      );
       return;
     }
-    if (!accountId) {
+    const effectiveAccountId = accountId || accounts[0]?.id;
+    const effectiveType = isChildMode ? 'EXPENSE' : type;
+    if (!effectiveAccountId) {
       Alert.alert('Cuenta Requerida', 'Debes seleccionar una cuenta de origen.');
       return;
     }
-    if (type === 'TRANSFER' && (!destinationAccountId || destinationAccountId === accountId)) {
+    if (effectiveType === 'TRANSFER' && (!destinationAccountId || destinationAccountId === effectiveAccountId)) {
       Alert.alert('Transferencia Inválida', 'Selecciona una cuenta de destino distinta a la de origen.');
       return;
     }
@@ -82,14 +89,14 @@ export default function TransactionModal({
     try {
       const { fetchWithAuth } = await import('@/constants/Api');
       const payload: any = {
-        type,
+        type: effectiveType,
         amount: parsedAmount,
         description: description.trim(),
-        accountId,
-        date: new Date(date).toISOString(),
+        accountId: effectiveAccountId,
+        date: isChildMode ? new Date().toISOString() : new Date(date).toISOString(),
       };
 
-      if (type === 'TRANSFER') {
+      if (effectiveType === 'TRANSFER') {
         payload.destinationAccountId = destinationAccountId;
       } else if (categoryId) {
         payload.categoryId = categoryId;
@@ -167,6 +174,95 @@ export default function TransactionModal({
       Alert.alert('OCR', 'No se pudieron cargar los comprobantes.');
     }
   };
+
+  if (isChildMode) {
+    return (
+      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+        <View style={styles.overlay}>
+          <View style={styles.kidsSheet}>
+            <View style={styles.kidsHeader}>
+              <Text style={styles.kidsTitle}>Anotar una compra</Text>
+              <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <X size={22} color="#475569" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                <Text style={styles.kidsLabel}>¿Cuánto costó? ($)</Text>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  {[1, 2, 5, 10].map((val) => (
+                    <TouchableOpacity
+                      key={val}
+                      onPress={() => {
+                        const curr = parseFloat((amount || '0').replace(',', '.')) || 0;
+                        setAmount((curr + val).toString());
+                      }}
+                      style={styles.kidsQuickPill}
+                    >
+                      <Text style={styles.kidsQuickPillText}>+${val}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <TextInput
+                style={styles.kidsAmountInput}
+                keyboardType="decimal-pad"
+                placeholder="0.00"
+                placeholderTextColor="#94A3B8"
+                value={amount}
+                onChangeText={setAmount}
+              />
+
+              <Text style={styles.kidsLabel}>¿Qué compraste?</Text>
+              <TextInput
+                style={styles.kidsInput}
+                placeholder="Ej. Helado, cuaderno, juguete..."
+                placeholderTextColor="#94A3B8"
+                value={description}
+                onChangeText={setDescription}
+              />
+
+              {categories.length > 0 && (
+                <>
+                  <Text style={styles.kidsLabel}>Categoría</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
+                    {categories.slice(0, 8).map((cat) => {
+                      const isSelected = cat.id === categoryId;
+                      return (
+                        <TouchableOpacity
+                          key={cat.id}
+                          style={[styles.kidsChip, isSelected && styles.kidsChipActive]}
+                          onPress={() => setCategoryId(cat.id)}
+                        >
+                          <Text style={[styles.kidsChipText, isSelected && styles.kidsChipTextActive]}>
+                            {cat.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </>
+              )}
+
+              <TouchableOpacity
+                style={[styles.kidsSubmitBtn, submitting && { opacity: 0.6 }]}
+                disabled={submitting}
+                onPress={handleSubmit}
+              >
+                {submitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.kidsSubmitText}>Guardar compra</Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -501,5 +597,99 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+  // Estilos Modo Infantil
+  kidsSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 20,
+    maxHeight: '85%',
+    borderTopWidth: 3,
+    borderColor: '#FCD34D',
+  },
+  kidsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  kidsTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1E1B4B',
+  },
+  kidsLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1E1B4B',
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  kidsQuickPill: {
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  kidsQuickPillText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0369A1',
+  },
+  kidsAmountInput: {
+    backgroundColor: '#F0F9FF',
+    borderWidth: 2,
+    borderColor: '#BAE6FD',
+    borderRadius: 16,
+    padding: 14,
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#047857',
+    textAlign: 'center',
+  },
+  kidsInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#BAE6FD',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E1B4B',
+  },
+  kidsChip: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+  },
+  kidsChipActive: {
+    backgroundColor: '#0284C7',
+    borderColor: '#0369A1',
+  },
+  kidsChipText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E1B4B',
+  },
+  kidsChipTextActive: {
+    color: '#FFFFFF',
+  },
+  kidsSubmitBtn: {
+    backgroundColor: '#F43F5E',
+    borderRadius: 16,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginTop: 18,
+  },
+  kidsSubmitText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
   },
 });

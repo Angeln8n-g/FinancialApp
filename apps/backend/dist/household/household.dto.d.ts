@@ -8,7 +8,8 @@ export declare class UpdateRoleDto {
     role: Role;
 }
 export declare class CreateChildAccountDto {
-    childName: string;
+    childName?: string;
+    childFullName?: string;
     childEmail: string;
     childPassword?: string;
     parentEmail: string;

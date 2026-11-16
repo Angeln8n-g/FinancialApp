@@ -5,6 +5,7 @@ interface LogoProps {
   showText?: boolean;
   showTagline?: boolean;
   className?: string;
+  variant?: 'default' | 'kids';
 }
 
 export default function Logo({
@@ -12,6 +13,7 @@ export default function Logo({
   showText = true,
   showTagline = false,
   className = '',
+  variant = 'default',
 }: LogoProps) {
   const iconSizes = {
     sm: 'w-7 h-7',
@@ -38,7 +40,11 @@ export default function Logo({
     <div className={`inline-flex items-center space-x-2.5 group ${className}`}>
       {/* Icon Mark */}
       <div
-        className={`${iconSizes[size]} relative flex items-center justify-center rounded-xl bg-[#101A36] border border-[var(--primary-border)] shadow-md shadow-[var(--primary)]/10 transition-transform duration-200 group-hover:scale-105 overflow-hidden`}
+        className={`${iconSizes[size]} relative flex items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105 overflow-hidden ${
+          variant === 'kids'
+            ? 'bg-sky-50 border-2 border-sky-300 shadow-sm'
+            : 'bg-[#101A36] border border-[var(--primary-border)] shadow-md shadow-[var(--primary)]/10'
+        }`}
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-[var(--primary)]/10 via-[var(--primary)]/5 to-transparent opacity-80" />
 
@@ -90,14 +96,22 @@ export default function Logo({
       {showText && (
         <div className="flex flex-col">
           <div className="flex items-center space-x-1.5">
-            <span className={`${textSizes[size]} font-bold text-slate-100 tracking-tight leading-none`}>
-              Hogar<span className="text-[var(--primary)]">IQ</span>
-            </span>
-            <span
-              className={`${badgeSizes[size]} font-semibold rounded-md bg-[var(--primary-muted)] text-[var(--primary-text)] border border-[var(--primary-border)] tracking-wider leading-none`}
-            >
-              HOGAR
-            </span>
+            {variant === 'kids' ? (
+              <span className="text-xl font-extrabold text-[#1E1B4B] tracking-tight leading-none">
+                Hogar<span className="text-[#0284C7]">IQ</span>
+              </span>
+            ) : (
+              <>
+                <span className={`${textSizes[size]} font-bold text-slate-100 tracking-tight leading-none`}>
+                  Hogar<span className="text-[var(--primary)]">IQ</span>
+                </span>
+                <span
+                  className={`${badgeSizes[size]} font-semibold rounded-md bg-[var(--primary-muted)] text-[var(--primary-text)] border border-[var(--primary-border)] tracking-wider leading-none`}
+                >
+                  HOGAR
+                </span>
+              </>
+            )}
           </div>
           {showTagline && (
             <span className="text-[10px] font-medium text-slate-400 tracking-wide uppercase mt-0.5">

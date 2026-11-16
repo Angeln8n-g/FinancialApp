@@ -51,6 +51,14 @@ export default function MobileFamilyScreen() {
   const [activities, setActivities] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [householdState, setHouseholdState] = useState<any>(null);
+
+  // Solicitud de Dinero Extra (Vista Niño)
+  const [showChildRequestModal, setShowChildRequestModal] = useState(false);
+  const [selectedAllowanceForReq, setSelectedAllowanceForReq] = useState<any>(null);
+  const [reqAmount, setReqAmount] = useState('10.00');
+  const [reqReason, setReqReason] = useState('');
+  const [sendingRequest, setSendingRequest] = useState(false);
 
   // Gamificación & Misiones Familiares
   const [missions, setMissions] = useState<any[]>([]);
@@ -106,15 +114,27 @@ export default function MobileFamilyScreen() {
   const [disburseAccountId, setDisburseAccountId] = useState('');
   const [disburseAmount, setDisburseAmount] = useState('');
 
+  // Alcancías Infantiles y Abono Directo a Ahorro
+  const [piggyBanksByChild, setPiggyBanksByChild] = useState<Record<string, any>>({});
+  const [showChildSavingsModal, setShowChildSavingsModal] = useState(false);
+  const [selectedChildForSavings, setSelectedChildForSavings] = useState<any>(null);
+  const [savingsFromAccountId, setSavingsFromAccountId] = useState('');
+  const [savingsGoalId, setSavingsGoalId] = useState('');
+  const [savingsNewGoalName, setSavingsNewGoalName] = useState('');
+  const [savingsDepositAmount, setSavingsDepositAmount] = useState('15.00');
+  const [savingsDepositNote, setSavingsDepositNote] = useState('Abono directo a tu ahorro');
+  const [depositingSavings, setDepositingSavings] = useState(false);
+
   const loadData = async () => {
     try {
-      const u = await getUser();
+      const [u, h] = await Promise.all([getUser(), getHousehold()]);
       setCurrentUser(u);
+      setHouseholdState(h);
       if (u?.email) {
         if (!inviteParentEmail) setInviteParentEmail(u.email);
         if (!childParentEmail) setChildParentEmail(u.email);
       }
-      const [resMem, resParental, resAllow, resReq, resInv, resAct, resAcc, resSplit, resMiss, resMatch] = await Promise.all([
+      const [resMem, resParental, resAllow, resReq, resInv, resAct, resAcc, resSplit, resMiss, resMatch, resPiggy] = await Promise.all([
         fetchWithAuth('/api/household/members'),
         fetchWithAuth('/api/household/parental-controls'),
         fetchWithAuth('/api/allowances'),
@@ -125,6 +145,7 @@ export default function MobileFamilyScreen() {
         fetchWithAuth('/api/household/split-summary'),
         fetchWithAuth('/api/allowances/missions'),
         fetchWithAuth('/api/allowances/savings-matching'),
+        fetchWithAuth('/api/goals/piggy-bank'),
       ]);
 
       if (resMem.ok) {
@@ -172,6 +193,16 @@ export default function MobileFamilyScreen() {
       if (resMatch.ok) {
         const matchData = await resMatch.json();
         setSavingsMatching(matchData);
+      }
+      if (resPiggy.ok) {
+        const piggyData = await resPiggy.json();
+        if (Array.isArray(piggyData?.childrenPiggyBanks)) {
+          const map: Record<string, any> = {};
+          for (const item of piggyData.childrenPiggyBanks) {
+            map[item.childUserId] = item;
+          }
+          setPiggyBanksByChild(map);
+        }
       }
     } catch (e) {
       console.log('Error cargando familia:', e);
@@ -255,6 +286,7 @@ export default function MobileFamilyScreen() {
       const res = await fetchWithAuth('/api/household/child-account', {
         method: 'POST',
         body: JSON.stringify({
+          childName: childFullName.trim(),
           childFullName: childFullName.trim(),
           childEmail: childEmail.trim().toLowerCase(),
           parentEmail: childParentEmail.trim().toLowerCase(),
@@ -621,6 +653,321 @@ export default function MobileFamilyScreen() {
     );
   };
 
+  const handleDirectDepositToChildSavingsMobile = async () => {
+    if (!selectedChildForSavings || !savingsFromAccountId || !savingsDepositAmount) {
+      Alert.alert('Campos requeridos', 'Selecciona cuenta de origen y monto a abonar.');
+      return;
+    }
+    setDepositingSavings(true);
+    try {
+      const res = await fetchWithAuth('/api/goals/child-direct-deposit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          childUserId: selectedChildForSavings.childUserId,
+          fromAccountId: savingsFromAccountId,
+          amount: parseFloat(savingsDepositAmount),
+          goalId: savingsGoalId && savingsGoalId !== '__NEW__' ? savingsGoalId : undefined,
+          newGoalName:
+            savingsGoalId === '__NEW__' || !savingsGoalId
+              ? savingsNewGoalName.trim() || `Alcancía de ${selectedChildForSavings.childName}`
+              : undefined,
+          note: savingsDepositNote.trim() || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok) {
+        setShowChildSavingsModal(false);
+        setSelectedChildForSavings(null);
+        Alert.alert('¡Abono enviado!', data?.message || 'El dinero se acreditó directo a la alcancía del niño.');
+        loadData();
+      } else {
+        Alert.alert('No se pudo abonar', data?.message || 'Verifica el saldo de tu cuenta.');
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Error de conexión.');
+    } finally {
+      setDepositingSavings(false);
+    }
+  };
+
+  const handleSendChildRequest = async () => {
+    if (!selectedAllowanceForReq || !reqAmount || !reqReason.trim()) {
+      Alert.alert('Campos Requeridos', 'Ingresa el monto y para qué necesitas el dinero.');
+      return;
+    }
+    setSendingRequest(true);
+    try {
+      const res = await fetchWithAuth(`/api/allowances/${selectedAllowanceForReq.id}/request`, {
+        method: 'POST',
+        body: JSON.stringify({
+          memberId: selectedAllowanceForReq.memberId,
+          amount: parseFloat(reqAmount),
+          reason: reqReason.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok) {
+        setShowChildRequestModal(false);
+        setReqAmount('10.00');
+        setReqReason('');
+        Alert.alert('¡Solicitud Enviada!', 'Tu padre o tutor recibirá tu pedido para aprobarlo.');
+        loadData();
+      } else {
+        Alert.alert('No se pudo enviar', data?.message || 'Verifica los datos ingresados.');
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Error de conexión.');
+    } finally {
+      setSendingRequest(false);
+    }
+  };
+
+  const isChildAccount = Boolean(
+    householdState?.role === 'DEPENDENT' ||
+      householdState?.isChildAccount ||
+      currentUser?.isChildAccount
+  );
+
+  if (isChildAccount) {
+    const myControl = parentalChildren.find((c) => c.childUserId === currentUser?.id) || null;
+    const myAllowances = allowances.filter((a) => !currentUser?.id || a.member?.userId === currentUser.id);
+    const myRequests = allowanceRequests.filter((r) => !currentUser?.id || r.member?.userId === currentUser.id);
+    const parentEmailText =
+      myControl?.parentEmail || householdState?.parentEmail || currentUser?.parentEmail || 'tu tutor familiar';
+
+    return (
+      <ScrollView
+        style={styles.kidsContainer}
+        contentContainerStyle={styles.kidsContentContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              loadData();
+            }}
+            tintColor="#0284C7"
+          />
+        }
+      >
+        {/* Tarjeta Hero Alegre para el Niño */}
+        <View style={styles.kidsHeroCard}>
+          <Text style={styles.kidsHeroTitle}>Misiones, Mesada y Premios 🏆</Text>
+          <Text style={styles.kidsHeroSub}>
+            Cuenta protegida por{' '}
+            <Text style={{ fontWeight: '800', color: '#0369A1' }}>{parentEmailText}</Text>
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+            <View style={[styles.kidsInfoPill, { backgroundColor: '#ECFDF5' }]}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#065F46' }}>Estado</Text>
+              <Text style={{ fontSize: 14, fontWeight: '900', color: myControl?.isFrozen ? '#BE123C' : '#047857', marginTop: 2 }}>
+                {myControl?.isFrozen ? 'Pausada' : 'Activa'}
+              </Text>
+            </View>
+            <View style={[styles.kidsInfoPill, { backgroundColor: '#EFF6FF' }]}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#1E40AF' }}>Máx. compra</Text>
+              <Text style={{ fontSize: 14, fontWeight: '900', color: '#1E1B4B', marginTop: 2 }}>
+                ${Number(myControl?.maxSingleTransaction || 25).toFixed(2)}
+              </Text>
+            </View>
+            <View style={[styles.kidsInfoPill, { backgroundColor: '#FEF3C7' }]}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#92400E' }}>Límite hoy</Text>
+              <Text style={{ fontSize: 14, fontWeight: '900', color: '#1E1B4B', marginTop: 2 }}>
+                ${Number(myControl?.maxDailySpend || 50).toFixed(2)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Mi Mesada */}
+        <Text style={styles.kidsSectionTitle}>Mi mesada y dinero extra</Text>
+        {myAllowances.length === 0 ? (
+          <View style={styles.kidsCard}>
+            <Text style={{ fontSize: 13, color: '#475569', textAlign: 'center' }}>
+              Aún no tienes una mesada asignada.
+            </Text>
+          </View>
+        ) : (
+          myAllowances.map((a) => {
+            const pct = Math.min(100, Number(a.percentageUsed || 0));
+            return (
+              <View key={a.id} style={[styles.kidsCard, { marginBottom: 12 }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View>
+                    <Text style={{ fontSize: 16, fontWeight: '900', color: '#1E1B4B' }}>{a.title}</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#0369A1', marginTop: 2 }}>
+                      Periodo {a.period === 'WEEKLY' ? 'semanal' : 'mensual'}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 15, fontWeight: '900', color: '#047857' }}>
+                    ${Number(a.remainingAmount).toFixed(2)} disp.
+                  </Text>
+                </View>
+
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 }}>
+                  <Text style={{ fontSize: 12, color: '#475569', fontWeight: '600' }}>
+                    Gastado: ${Number(a.spentAmount).toFixed(2)}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#475569', fontWeight: '600' }}>
+                    Límite: ${Number(a.limitAmount).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.kidsProgressTrack}>
+                  <View
+                    style={[
+                      styles.kidsProgressFill,
+                      {
+                        width: `${pct}%`,
+                        backgroundColor: pct >= 90 ? '#F43F5E' : pct >= 70 ? '#F59E0B' : '#10B981',
+                      },
+                    ]}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedAllowanceForReq(a);
+                    setReqAmount('10.00');
+                    setReqReason('');
+                    setShowChildRequestModal(true);
+                  }}
+                  style={styles.kidsBtnSunny}
+                >
+                  <Text style={styles.kidsBtnSunnyText}>Pedir dinero extra a Papá o Mamá</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })
+        )}
+
+        {/* Mis Solicitudes */}
+        {myRequests.length > 0 && (
+          <View style={{ marginBottom: 14 }}>
+            <Text style={styles.kidsSectionTitle}>Tus solicitudes enviadas</Text>
+            {myRequests.slice(0, 5).map((r) => (
+              <View
+                key={r.id}
+                style={[styles.kidsCard, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }]}
+              >
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: '#1E1B4B' }}>{r.reason}</Text>
+                  <Text style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
+                    {r.status === 'APPROVED' ? 'Aprobada' : r.status === 'REJECTED' ? 'No aprobada' : 'Esperando respuesta'}
+                  </Text>
+                </View>
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: '900',
+                    color: r.status === 'APPROVED' ? '#047857' : r.status === 'REJECTED' ? '#BE123C' : '#B45309',
+                  }}
+                >
+                  ${Number(r.amount).toFixed(2)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Misiones */}
+        <Text style={styles.kidsSectionTitle}>Tus misiones y recompensas</Text>
+        {missions.length === 0 ? (
+          <View style={styles.kidsCard}>
+            <Text style={{ fontSize: 13, color: '#475569', textAlign: 'center' }}>
+              No tienes misiones asignadas por ahora.
+            </Text>
+          </View>
+        ) : (
+          missions.map((m) => {
+            const isPaid = m.status === 'APPROVED_AND_PAID';
+            const isDone = m.status === 'COMPLETED';
+            return (
+              <View
+                key={m.id}
+                style={[
+                  styles.kidsCard,
+                  {
+                    marginBottom: 10,
+                    backgroundColor: isPaid ? '#ECFDF5' : isDone ? '#FFFBEB' : '#FFFFFF',
+                    borderColor: isPaid ? '#6EE7B7' : isDone ? '#FCD34D' : '#BAE6FD',
+                  },
+                ]}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '800', color: isPaid ? '#047857' : isDone ? '#B45309' : '#0369A1' }}>
+                  {isPaid ? 'Recompensa acreditada' : isDone ? 'Esperando aprobación' : 'Misión disponible'}
+                </Text>
+                <Text style={{ fontSize: 16, fontWeight: '900', color: '#1E1B4B', marginTop: 4 }}>{m.title}</Text>
+                {m.description ? (
+                  <Text style={{ fontSize: 13, color: '#475569', marginTop: 4 }}>{m.description}</Text>
+                ) : null}
+
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                  <View>
+                    <Text style={{ fontSize: 11, color: '#475569', fontWeight: '600' }}>Premio</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '900', color: '#B45309' }}>+${Number(m.rewardAmount).toFixed(2)}</Text>
+                  </View>
+                  {m.status === 'PENDING' && (
+                    <TouchableOpacity onPress={() => handleCompleteMission(m.id)} style={styles.kidsBtnPrimary}>
+                      <Text style={styles.kidsBtnPrimaryText}>¡La completé!</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            );
+          })
+        )}
+
+        {/* Modal Solicitar Dinero Extra */}
+        <Modal visible={showChildRequestModal} transparent animationType="slide">
+          <View style={styles.modalBg}>
+            <View style={[styles.modalContent, { backgroundColor: '#FFFFFF', borderTopColor: '#FCD34D', borderTopWidth: 3 }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: '#1E1B4B' }]}>Pedir dinero extra</Text>
+                <TouchableOpacity onPress={() => setShowChildRequestModal(false)}>
+                  <Text style={{ color: '#475569', fontSize: 18, fontWeight: '700' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E1B4B', marginBottom: 6 }}>
+                ¿Cuánto dinero necesitas? ($)
+              </Text>
+              <TextInput
+                style={styles.kidsInput}
+                keyboardType="decimal-pad"
+                value={reqAmount}
+                onChangeText={setReqAmount}
+                placeholder="10.00"
+                placeholderTextColor="#64748B"
+              />
+
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E1B4B', marginBottom: 6, marginTop: 10 }}>
+                ¿Para qué lo vas a usar?
+              </Text>
+              <TextInput
+                style={styles.kidsInput}
+                value={reqReason}
+                onChangeText={setReqReason}
+                placeholder="Ej. Libro del colegio o salida con amigos"
+                placeholderTextColor="#64748B"
+              />
+
+              <TouchableOpacity
+                onPress={handleSendChildRequest}
+                disabled={sendingRequest}
+                style={[styles.kidsBtnSunny, { marginTop: 16, opacity: sendingRequest ? 0.6 : 1 }]}
+              >
+                <Text style={styles.kidsBtnSunnyText}>
+                  {sendingRequest ? 'Enviando...' : 'Enviar solicitud'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -782,22 +1129,43 @@ export default function MobileFamilyScreen() {
                     <Text style={[styles.cardTitle, { color: FamilyMint.income }]}>
                       ${Number(child.account?.balance ?? 0).toFixed(2)}
                     </Text>
-                    <TouchableOpacity
-                      style={[
-                        styles.actionBtn,
-                        { borderColor: child.isFrozen ? FamilyMint.primary : FamilyMint.expense },
-                      ]}
-                      onPress={() => handleToggleFreezeChildMobile(child)}
-                    >
-                      <Text
-                        style={[
-                          styles.actionBtnText,
-                          { color: child.isFrozen ? FamilyMint.primary : FamilyMint.expense },
-                        ]}
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#A78BFA' }}>
+                      🐷 Alcancía: ${Number(piggyBanksByChild[child.childUserId]?.totalSavedInPiggyBank || 0).toFixed(2)}
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <TouchableOpacity
+                        style={[styles.actionBtn, { borderColor: '#8B5CF6' }]}
+                        onPress={() => {
+                          setSelectedChildForSavings(child);
+                          const adultAcc = accounts.find((a) => !a.isChildAccount) || accounts[0];
+                          if (adultAcc) setSavingsFromAccountId(adultAcc.id);
+                          const childGoals = piggyBanksByChild[child.childUserId]?.goals || [];
+                          setSavingsGoalId(childGoals[0]?.id || '__NEW__');
+                          setSavingsNewGoalName(`Alcancía de ${child.childName}`);
+                          setSavingsDepositAmount('15.00');
+                          setSavingsDepositNote('Abono directo a tu ahorro');
+                          setShowChildSavingsModal(true);
+                        }}
                       >
-                        {child.isFrozen ? '🔓 Activar' : '🔒 Pausar'}
-                      </Text>
-                    </TouchableOpacity>
+                        <Text style={[styles.actionBtnText, { color: '#C4B5FD' }]}>🐷 Abonar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.actionBtn,
+                          { borderColor: child.isFrozen ? FamilyMint.primary : FamilyMint.expense },
+                        ]}
+                        onPress={() => handleToggleFreezeChildMobile(child)}
+                      >
+                        <Text
+                          style={[
+                            styles.actionBtnText,
+                            { color: child.isFrozen ? FamilyMint.primary : FamilyMint.expense },
+                          ]}
+                        >
+                          {child.isFrozen ? '🔓 Activar' : '🔒 Pausar'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               </View>
@@ -1869,6 +2237,102 @@ export default function MobileFamilyScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* MODAL ABONAR DIRECTO AL AHORRO DEL NIÑO */}
+      <Modal visible={showChildSavingsModal} transparent animationType="slide">
+        <View style={styles.modalBg}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                🐷 Abonar a Alcancía de {selectedChildForSavings?.childName}
+              </Text>
+              <TouchableOpacity onPress={() => setShowChildSavingsModal(false)}>
+                <X size={20} color={FamilyMint.foregroundSubtle} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.cardSub, { marginBottom: 12 }]}>
+              Este abono va directo al ahorro/alcancía del niño para impulsar sus metas.
+            </Text>
+
+            <Text style={styles.label}>Cuenta de Origen (Tutor)</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+              {accounts
+                .filter((a) => !a.isChildAccount)
+                .map((a) => (
+                  <TouchableOpacity
+                    key={a.id}
+                    style={[styles.roleSelectBtn, savingsFromAccountId === a.id && styles.roleSelectBtnActive]}
+                    onPress={() => setSavingsFromAccountId(a.id)}
+                  >
+                    <Text style={[styles.roleSelectText, savingsFromAccountId === a.id && styles.roleSelectTextActive]}>
+                      {a.name} (${Number(a.balance).toFixed(0)})
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+            </ScrollView>
+
+            <Text style={styles.label}>Objetivo de Alcancía</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+              {(piggyBanksByChild[selectedChildForSavings?.childUserId]?.goals || []).map((g: any) => (
+                <TouchableOpacity
+                  key={g.id}
+                  style={[styles.roleSelectBtn, savingsGoalId === g.id && styles.roleSelectBtnActive]}
+                  onPress={() => setSavingsGoalId(g.id)}
+                >
+                  <Text style={[styles.roleSelectText, savingsGoalId === g.id && styles.roleSelectTextActive]}>
+                    {g.emoji || '🐷'} {g.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[styles.roleSelectBtn, savingsGoalId === '__NEW__' && styles.roleSelectBtnActive]}
+                onPress={() => setSavingsGoalId('__NEW__')}
+              >
+                <Text style={[styles.roleSelectText, savingsGoalId === '__NEW__' && styles.roleSelectTextActive]}>
+                  + Nueva meta
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+
+            {savingsGoalId === '__NEW__' && (
+              <>
+                <Text style={styles.label}>Nombre del Objetivo</Text>
+                <TextInput
+                  style={styles.input}
+                  value={savingsNewGoalName}
+                  onChangeText={setSavingsNewGoalName}
+                />
+              </>
+            )}
+
+            <Text style={styles.label}>Monto a Abonar ($)</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="decimal-pad"
+              value={savingsDepositAmount}
+              onChangeText={setSavingsDepositAmount}
+            />
+
+            <Text style={styles.label}>Nota / Concepto</Text>
+            <TextInput
+              style={styles.input}
+              value={savingsDepositNote}
+              onChangeText={setSavingsDepositNote}
+            />
+
+            <TouchableOpacity
+              disabled={depositingSavings}
+              style={[styles.modalSubmitBtn, { backgroundColor: '#7C3AED' }]}
+              onPress={handleDirectDepositToChildSavingsMobile}
+            >
+              <Text style={[styles.modalSubmitText, { color: '#FFFFFF' }]}>
+                {depositingSavings ? 'Abonando...' : `Abonar $${Number(savingsDepositAmount || 0).toFixed(2)}`}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -2070,4 +2534,62 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   modalSubmitText: { color: '#0A1128', fontSize: 14, fontWeight: '700' },
+  // Estilos Modo Infantil (Cuentas de Niños)
+  kidsContainer: { flex: 1, backgroundColor: '#E0F2FE' },
+  kidsContentContainer: { padding: 16, paddingTop: 50, paddingBottom: 32 },
+  kidsHeroCard: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: '#FCD34D',
+    padding: 18,
+    marginBottom: 18,
+  },
+  kidsHeroTitle: { fontSize: 22, fontWeight: '900', color: '#1E1B4B' },
+  kidsHeroSub: { fontSize: 13, color: '#475569', marginTop: 4 },
+  kidsInfoPill: { flex: 1, borderRadius: 14, padding: 10 },
+  kidsSectionTitle: { fontSize: 18, fontWeight: '900', color: '#1E1B4B', marginBottom: 10, marginTop: 4 },
+  kidsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#BAE6FD',
+    padding: 16,
+  },
+  kidsProgressTrack: {
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: '#E2E8F0',
+    overflow: 'hidden',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  kidsProgressFill: { height: '100%', borderRadius: 999 },
+  kidsBtnSunny: {
+    backgroundColor: '#FBBF24',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+  },
+  kidsBtnSunnyText: { color: '#1E1B4B', fontSize: 14, fontWeight: '900' },
+  kidsBtnPrimary: {
+    backgroundColor: '#10B981',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+  },
+  kidsBtnPrimaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  kidsInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 2,
+    borderColor: '#BAE6FD',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    color: '#1E1B4B',
+    fontSize: 15,
+    fontWeight: '700',
+  },
 });

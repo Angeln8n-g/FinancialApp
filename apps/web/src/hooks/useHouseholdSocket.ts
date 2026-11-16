@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { API_URL } from '../lib/api';
 
@@ -11,23 +11,43 @@ export function useHouseholdSocket(
   householdId?: string,
   onDataChanged?: (data: any) => void,
 ) {
+  const onDataChangedRef = useRef(onDataChanged);
+
+  useEffect(() => {
+    onDataChangedRef.current = onDataChanged;
+  }, [onDataChanged]);
+
   useEffect(() => {
     if (!householdId) return;
 
     const socket: Socket = io(API_URL, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
     });
 
-    socket.emit('join_household', { householdId });
+    const handleConnect = () => {
+      socket.emit('join_household', { householdId });
+    };
 
-    if (onDataChanged) {
-      socket.on('household_data_changed', (data) => {
-        onDataChanged(data);
-      });
+    if (socket.connected) {
+      handleConnect();
+    } else {
+      socket.on('connect', handleConnect);
     }
 
-    return () => {
-      socket.disconnect();
+    const handleDataChanged = (data: any) => {
+      onDataChangedRef.current?.(data);
     };
-  }, [householdId, onDataChanged]);
+
+    socket.on('household_data_changed', handleDataChanged);
+
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('household_data_changed', handleDataChanged);
+      if (socket.connected) {
+        socket.disconnect();
+      } else {
+        socket.close();
+      }
+    };
+  }, [householdId]);
 }
